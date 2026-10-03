@@ -13,5 +13,6 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],
+    setupFiles: ['@dialpad/dialapp-external-sdk/testing/setup'],
   },
 });
