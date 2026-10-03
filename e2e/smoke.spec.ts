@@ -23,6 +23,12 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await expect(panel.getByTestId('connected-view')).toBeVisible();
   await expect(panel.getByTestId('claims-card')).toContainText('Jane Agent');
 
+  // Data flows from the host to the panel: the contact the dev page sends is shown Acme'd.
+  await page.getByRole('button', { name: 'Send contact' }).click();
+  await expect(panel.getByTestId('acme-contact')).toContainText(
+    'Acme Pat Customer',
+  );
+
   // Flow 4: a new iframe (the dev page reloaded) carries the cookie, so the first paint is connected.
   await page.reload();
   await expect(panel.getByTestId('connected-view')).toBeVisible();

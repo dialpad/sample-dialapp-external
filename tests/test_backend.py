@@ -109,6 +109,25 @@ async def test_the_page_embeds_page_data_and_never_the_api_key_or_csr(env: Env) 
   assert 'csr' not in response.text
 
 
+async def test_the_api_responses_never_contain_the_api_key_or_csr(env: Env) -> None:
+  token = encode_mock_idtoken(
+      TEST_CLIENT_SECRET,
+      api_key='real-looking-api-key',
+      csr={'internal': 'only-for-dialpad-support'},
+  )
+  data = await env.page_data(token)
+  access_token = data['access_token']
+  connected = await connect(env, access_token, data['connection']['authorize_url'])
+  not_connected = await env.get('/dialpad/connection', headers=bearer(access_token))
+  disconnected = await env.post('/dialpad/disconnect', headers=bearer(access_token))
+
+  for response in (connected, not_connected, disconnected):
+    assert 'real-looking-api-key' not in response.text
+    assert 'only-for-dialpad-support' not in response.text
+    assert 'api_key' not in response.text
+    assert 'csr' not in response.text
+
+
 async def test_the_page_carries_the_security_headers_and_a_matching_nonce(env: Env) -> None:
   response = await env.load_page()
 
