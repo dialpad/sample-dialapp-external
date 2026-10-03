@@ -12,11 +12,18 @@ import {
   makeUser,
 } from '@dialpad/dialapp-external-sdk/testing';
 import { flushPromises, mount } from '@vue/test-utils';
+import { initDialtoneTheme, setMode } from '@dialpad/dialtone/themes/config';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { api, sessionExpired } from './api';
 import App from './App.vue';
 import { bootstrap } from './bootstrap';
+
+// Dialtone's theme functions write to the document; here only the calls matter.
+vi.mock('@dialpad/dialtone/themes/config', () => ({
+  initDialtoneTheme: vi.fn(),
+  setMode: vi.fn(),
+}));
 
 const AUTHORIZE_URL = 'https://acme.example.com/oauth/fake-authorize?state=s';
 
@@ -103,6 +110,7 @@ async function setup({
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const wrapper of mounted.splice(0)) {
     wrapper.unmount();
   }
@@ -358,6 +366,20 @@ describe('Bootstrap errors', () => {
     await started;
 
     expect(root.textContent).toContain('Open this panel from Dialpad');
+  });
+
+  it("applies the host's theme at start and follows its changes", async () => {
+    vi.mocked(initDialtoneTheme).mockClear();
+    vi.mocked(setMode).mockClear();
+    const host = createMockHost({ theme: { mode: 'dark' } });
+    await bootstrapWith(host, makePageData());
+
+    expect(initDialtoneTheme).toHaveBeenCalledWith(expect.anything(), 'dark');
+
+    host.setTheme({ mode: 'light' });
+    await host.settle();
+
+    expect(setMode).toHaveBeenLastCalledWith('light');
   });
 
   it('mounts the panel when the SDK starts', async () => {
