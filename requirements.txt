@@ -1,1 +1,2 @@
 sanic>=25.12,<26
+./vendor/dialpad_dialapp_toolkit-0.1.0-py3-none-any.whl
