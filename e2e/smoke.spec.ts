@@ -3,7 +3,9 @@
 // moved with Playwright's clock, not real waits.
 import { expect, test } from '@playwright/test';
 
-test('connect by polling, reconnect on first paint, then disconnect', async ({ page }) => {
+test('connect by polling, reconnect on first paint, then disconnect', async ({
+  page,
+}) => {
   await page.clock.install();
   await page.goto('/dev/');
   const panel = page.frameLocator('iframe');

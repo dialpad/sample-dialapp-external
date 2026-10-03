@@ -1,11 +1,12 @@
 <script setup lang="ts">
 // The contact Dialpad sent, with every field "Acme'd": the reference app has no CRM, so this
 // proves data flows from the host to the panel. Fields are labelled by the SDK's field names.
+import type { Contact } from '@dialpad/dialapp-external-sdk';
 import { computed } from 'vue';
 
 import { acmeFields } from '../acme';
 
-const props = defineProps<{ contact: object | null }>();
+const props = defineProps<{ contact: Contact | null }>();
 
 const fields = computed(() => (props.contact ? acmeFields(props.contact) : []));
 </script>

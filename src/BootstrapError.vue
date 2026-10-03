@@ -4,5 +4,7 @@
 </script>
 
 <template>
-  <p role="alert" data-testid="bootstrap-error">Open this panel from Dialpad.</p>
+  <p role="alert" data-testid="bootstrap-error">
+    Open this panel from Dialpad.
+  </p>
 </template>

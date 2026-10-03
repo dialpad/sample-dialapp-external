@@ -3,9 +3,10 @@
 // modal, because the panel's iframe is about 300px wide and overlays can't leave it.
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 import { DtButton } from '@dialpad/dialtone/vue/lib/button';
+import { DtNotice } from '@dialpad/dialtone/vue/lib/notice';
 import { ref } from 'vue';
 
-const { disconnect } = useRightbar();
+const { state, disconnect } = useRightbar();
 const confirming = ref(false);
 
 async function confirm(): Promise<void> {
@@ -15,12 +16,22 @@ async function confirm(): Promise<void> {
 </script>
 
 <template>
+  <DtNotice
+    v-if="state.connection.error"
+    kind="error"
+    :show-close="false"
+    role="alert"
+  >
+    We couldn't disconnect Acme. Try again.
+  </DtNotice>
   <div class="acme-disconnect">
     <template v-if="confirming">
       <span id="disconnect-prompt">Disconnect Acme?</span>
-      <DtButton importance="outlined" size="sm" @click="confirming = false">Cancel</DtButton>
+      <DtButton importance="outlined" size="sm" @click="confirming = false">
+        Cancel
+      </DtButton>
       <DtButton
-        kind="danger"
+        kind="critical"
         size="sm"
         aria-describedby="disconnect-prompt"
         data-testid="disconnect-confirm"
@@ -46,6 +57,7 @@ async function confirm(): Promise<void> {
   display: flex;
   gap: var(--dt-space-300);
   align-items: center;
+  flex-wrap: wrap;
   justify-content: flex-end;
 }
 </style>

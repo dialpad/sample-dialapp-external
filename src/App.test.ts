@@ -1,6 +1,9 @@
 // Every state of the panel, against the SDK's mock host and its clock: Dialpad is `createMockHost()`,
 // the backend is a fetch function, and time moves with `host.advance()`.
-import { type FetchLike, type RightbarOptions } from '@dialpad/dialapp-external-sdk';
+import {
+  type FetchLike,
+  type RightbarOptions,
+} from '@dialpad/dialapp-external-sdk';
 import { rightbarPlugin } from '@dialpad/dialapp-external-sdk/vue';
 import {
   createMockHost,
@@ -8,7 +11,7 @@ import {
   makePageData,
   makeUser,
 } from '@dialpad/dialapp-external-sdk/testing';
-import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { api, sessionExpired } from './api';
@@ -27,12 +30,16 @@ function json(body: unknown, status = 200): Response {
 /** A fake Acme backend: `mode` decides how the connection endpoint answers. */
 function fakeBackend() {
   const backend = {
-    mode: 'not_connected' as 'not_connected' | 'connected' | 'network' | 'server_error',
+    mode: 'not_connected' as
+      'not_connected' | 'connected' | 'network' | 'server_error',
     calls: [] as { method: string; path: string }[],
     fetch: vi.fn<FetchLike>((input, init) => {
-      const path = new URL(String(input), 'https://acme.example.com').pathname;
+      const path = new URL(
+        input instanceof Request ? input.url : String(input),
+        'https://acme.example.com',
+      ).pathname;
       backend.calls.push({ method: init?.method ?? 'GET', path });
-      if (path.endsWith('/disconnect')) {
+      if (path.endsWith('/disconnect') && backend.mode === 'connected') {
         backend.mode = 'not_connected';
       }
       switch (backend.mode) {
@@ -41,10 +48,16 @@ function fakeBackend() {
         case 'server_error':
           return Promise.resolve(json({ code: 'oops', message: 'oops' }, 500));
         case 'connected':
-          return Promise.resolve(json({ connected: true, account_name: 'Acme CRM (demo)' }));
+          return Promise.resolve(
+            json({ connected: true, account_name: 'Acme CRM (demo)' }),
+          );
         default:
           return Promise.resolve(
-            json({ connected: false, account_name: 'Acme CRM (demo)', authorize_url: AUTHORIZE_URL }),
+            json({
+              connected: false,
+              account_name: 'Acme CRM (demo)',
+              authorize_url: AUTHORIZE_URL,
+            }),
           );
       }
     }),
@@ -52,24 +65,38 @@ function fakeBackend() {
   return backend;
 }
 
-const mounted: VueWrapper[] = [];
+const mounted: { unmount(): void }[] = [];
 
-async function setup({ connected = false } = {}) {
+async function setup({
+  connected = false,
+  mode = 'not_connected',
+}: {
+  connected?: boolean;
+  mode?: ReturnType<typeof fakeBackend>['mode'];
+} = {}) {
   const host = createMockHost();
   const backend = fakeBackend();
+  backend.mode = mode;
   const root = document.createElement('div');
   document.body.append(root);
   const rightbar = await host.createRightbar({
     heightRoot: root,
     fetch: backend.fetch,
     pageData: makePageData({
-      user: makeUser({ name: 'Jane Agent', email: 'jane@example.com', phoneNumber: '+1 555 0100' }),
+      user: makeUser({
+        name: 'Jane Agent',
+        email: 'jane@example.com',
+        phoneNumber: '+1 555 0100',
+      }),
       connection: connected
         ? { connected: true, accountName: 'Acme CRM (demo)' }
         : { connected: false, authorizeUrl: AUTHORIZE_URL },
     }),
   });
-  const wrapper = mount(App, { global: { plugins: [[rightbarPlugin, rightbar]] }, attachTo: root });
+  const wrapper = mount(App, {
+    global: { plugins: [[rightbarPlugin, rightbar]] },
+    attachTo: root,
+  });
   mounted.push(wrapper);
   await host.settle();
   return { host, backend, wrapper, rightbar };
@@ -89,7 +116,9 @@ describe('Connect gate', () => {
 
     expect(wrapper.find('[data-testid="connect-gate"]').exists()).toBe(true);
     expect(wrapper.text()).toContain('Connect your Acme account');
-    expect(wrapper.get('[data-testid="connect-button"]').text()).toBe('Connect');
+    expect(wrapper.get('[data-testid="connect-button"]').text()).toBe(
+      'Connect',
+    );
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(false);
   });
 
@@ -101,7 +130,9 @@ describe('Connect gate', () => {
 
     expect(host.received.authorizeRequests).toEqual([AUTHORIZE_URL]);
     expect(wrapper.get('[role="status"]').text()).toContain('Waiting');
-    expect(wrapper.get('[data-testid="connect-button"]').attributes('disabled')).toBeDefined();
+    expect(
+      wrapper.get('[data-testid="connect-button"]').attributes('disabled'),
+    ).toBeDefined();
   });
 
   it('completes Connect by polling: the first check is after 7 seconds', async () => {
@@ -124,32 +155,47 @@ describe('Connect gate', () => {
     await host.advance(120_000);
     await flushPromises();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain("didn't respond in time");
-    expect(wrapper.get('[data-testid="connect-button"]').text()).toBe('Try again');
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      "didn't respond in time",
+    );
+    expect(wrapper.get('[data-testid="connect-button"]').text()).toBe(
+      'Try again',
+    );
   });
 
-  it('shows the network state with Try again when the request throws', async () => {
-    const { wrapper, host, backend } = await setup();
-    await wrapper.get('[data-testid="connect-button"]').trigger('click');
-    backend.mode = 'network';
+  it('shows the network state with Try again when the connection check throws', async () => {
+    const { wrapper } = await setup({ mode: 'network' });
 
-    await host.advance(7_000);
-    await flushPromises();
-
-    expect(wrapper.get('[role="alert"]').text()).toContain("couldn't reach Acme");
-    expect(wrapper.get('[data-testid="connect-button"]').text()).toBe('Try again');
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      "couldn't reach Acme",
+    );
+    expect(wrapper.get('[data-testid="connect-button"]').text()).toBe(
+      'Try again',
+    );
   });
 
   it('shows the request-failed state with Try again on a non-2xx response', async () => {
+    const { wrapper } = await setup({ mode: 'server_error' });
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'Something went wrong',
+    );
+    expect(wrapper.get('[data-testid="connect-button"]').text()).toBe(
+      'Try again',
+    );
+  });
+
+  it('keeps polling through a failed check and still completes Connect', async () => {
     const { wrapper, host, backend } = await setup();
     await wrapper.get('[data-testid="connect-button"]').trigger('click');
-    backend.mode = 'server_error';
-
+    backend.mode = 'network';
     await host.advance(7_000);
+    backend.mode = 'connected';
+
+    await host.advance(5_000);
     await flushPromises();
 
-    expect(wrapper.get('[role="alert"]').text()).toContain('Something went wrong');
-    expect(wrapper.get('[data-testid="connect-button"]').text()).toBe('Try again');
+    expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
   it('restarts Connect when Try again is clicked', async () => {
@@ -209,7 +255,9 @@ describe('Connected view', () => {
     host.sendContact(makeContact({ displayName: 'Sam Prospect' }));
     await host.settle();
 
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain('Acme Sam Prospect');
+    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+      'Acme Sam Prospect',
+    );
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
@@ -218,12 +266,19 @@ describe('Connected view', () => {
 
     await wrapper.get('[data-testid="disconnect-button"]').trigger('click');
     expect(wrapper.text()).toContain('Disconnect Acme?');
-    expect(backend.calls.some((c) => c.path.endsWith('/disconnect'))).toBe(false);
+    expect(backend.calls.some((c) => c.path.endsWith('/disconnect'))).toBe(
+      false,
+    );
 
-    await wrapper.findAll('button').find((b) => b.text() === 'Cancel')?.trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Cancel')
+      ?.trigger('click');
 
     expect(wrapper.text()).not.toContain('Disconnect Acme?');
-    expect(wrapper.find('[data-testid="disconnect-button"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="disconnect-button"]').exists()).toBe(
+      true,
+    );
   });
 
   it('disconnects after confirmation and shows the Connect gate again', async () => {
@@ -235,8 +290,26 @@ describe('Connected view', () => {
     await host.settle();
     await flushPromises();
 
-    expect(backend.calls).toContainEqual({ method: 'POST', path: '/dialpad/disconnect' });
+    expect(backend.calls).toContainEqual({
+      method: 'POST',
+      path: '/dialpad/disconnect',
+    });
     expect(wrapper.find('[data-testid="connect-gate"]').exists()).toBe(true);
+  });
+
+  it('tells the user when Disconnect fails and stays connected', async () => {
+    const { wrapper, host, backend } = await setup({ connected: true });
+    backend.mode = 'server_error';
+
+    await wrapper.get('[data-testid="disconnect-button"]').trigger('click');
+    await wrapper.get('[data-testid="disconnect-confirm"]').trigger('click');
+    await host.settle();
+    await flushPromises();
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      "couldn't disconnect",
+    );
+    expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 });
 
@@ -253,7 +326,10 @@ describe('Requests', () => {
 });
 
 describe('Bootstrap errors', () => {
-  async function bootstrapWith(host: ReturnType<typeof createMockHost>, pageData: unknown) {
+  async function bootstrapWith(
+    host: ReturnType<typeof createMockHost>,
+    pageData: unknown,
+  ) {
     const root = document.createElement('div');
     document.body.append(root);
     await bootstrap(root, (options: RightbarOptions) =>

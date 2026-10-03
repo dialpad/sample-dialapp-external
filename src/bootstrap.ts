@@ -1,4 +1,9 @@
-import { createRightbar, type Rightbar, type RightbarOptions } from '@dialpad/dialapp-external-sdk';
+import {
+  createRightbar,
+  isRightbarError,
+  type Rightbar,
+  type RightbarOptions,
+} from '@dialpad/dialapp-external-sdk';
 import { rightbarPlugin } from '@dialpad/dialapp-external-sdk/vue';
 import { initDialtoneTheme, setMode } from '@dialpad/dialtone/themes/config';
 import dp from '@dialpad/dialtone/themes/dp';
@@ -15,11 +20,17 @@ export type CreateRightbar = (options: RightbarOptions) => Promise<Rightbar>;
  * rejects (`bad_options`, `not_framed`, `bad_page_data`, `init_timeout`), the user is told to open
  * the panel from Dialpad instead. `create` is injectable so tests can use the mock host.
  */
-export async function bootstrap(root: HTMLElement, create: CreateRightbar = createRightbar): Promise<void> {
+export async function bootstrap(
+  root: HTMLElement,
+  create: CreateRightbar = createRightbar,
+): Promise<void> {
   let rightbar: Rightbar;
   try {
     rightbar = await create({ heightRoot: root, fetch: api });
-  } catch {
+  } catch (error) {
+    if (!isRightbarError(error)) {
+      throw error;
+    }
     createApp(BootstrapError).mount(root);
     return;
   }

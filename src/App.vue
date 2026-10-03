@@ -13,7 +13,14 @@ const connected = computed(() => state.value.connection.connected);
 
 <template>
   <h1 class="acme-title">Acme CRM (demo)</h1>
-  <DtNotice v-if="sessionExpired" kind="warning" title="Reload the panel to keep going." role="alert" />
+  <DtNotice
+    v-if="sessionExpired"
+    kind="warning"
+    :show-close="false"
+    role="alert"
+  >
+    Reload the panel to keep going.
+  </DtNotice>
   <ConnectedView v-if="connected" />
   <ConnectGate v-else />
 </template>

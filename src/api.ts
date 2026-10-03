@@ -13,7 +13,10 @@ export function useAuthHeaders(source: () => Record<string, string>): void {
   authHeaders = source;
 }
 
-export async function api(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+export async function api(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
   const headers = new Headers(init?.headers);
   for (const [name, value] of Object.entries(authHeaders())) {
     if (!headers.has(name)) {

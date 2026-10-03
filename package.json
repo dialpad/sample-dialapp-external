@@ -21,6 +21,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@dialpad/dialapp-external-sdk": "link:../dialapp-external",
     "@dialpad/dialtone": "^10.4.0",
     "vue": "^3.5.0"
   },

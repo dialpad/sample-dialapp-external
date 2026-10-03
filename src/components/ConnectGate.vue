@@ -25,10 +25,14 @@ const errorCopy = computed(() => {
 
 <template>
   <section class="acme-gate" data-testid="connect-gate">
-    <p v-if="connection.pending" role="status">Waiting for you to finish connecting in the Acme window…</p>
+    <p v-if="connection.pending" role="status">
+      Waiting for you to finish connecting in the Acme window…
+    </p>
     <template v-else>
       <p>Connect your Acme account to see your contacts here.</p>
-      <DtNotice v-if="errorCopy" kind="error" :title="errorCopy" role="alert" />
+      <DtNotice v-if="errorCopy" kind="error" :show-close="false" role="alert">
+        {{ errorCopy }}
+      </DtNotice>
     </template>
     <DtButton
       :disabled="connection.pending"

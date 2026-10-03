@@ -11,7 +11,10 @@ const BACKEND = 'http://localhost:8000';
 const response = await fetch(`${BACKEND}/dev/frame-url`);
 const { url } = (await response.json()) as { url: string };
 
-const host = await mountMockHostPage({ src: url, container: document.getElementById('panel') });
+const host = mountMockHostPage({
+  src: url,
+  container: document.getElementById('panel') ?? undefined,
+});
 
 let mode: 'light' | 'dark' = 'light';
 
