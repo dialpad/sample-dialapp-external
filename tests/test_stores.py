@@ -1,6 +1,9 @@
 """The in-memory access tokens and the short-lived OAuth results."""
 
-from backend.stores import OAUTH_RESULT_TTL_SECONDS, AccessTokens, OAuthResults, UserKey
+from backend.stores import OAUTH_RESULT_TTL_SECONDS
+from backend.stores import AccessTokens
+from backend.stores import OAuthResults
+from backend.stores import UserKey
 
 JANE = UserKey(company_id=12345, user_id=5432)
 PAT = UserKey(company_id=12345, user_id=777)

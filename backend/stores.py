@@ -6,7 +6,8 @@ Upgrade trigger: the app runs on more than one instance or must survive a restar
 """
 
 import secrets
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING
+from typing import NamedTuple
 
 if TYPE_CHECKING:
   from collections.abc import Callable

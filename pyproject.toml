@@ -53,3 +53,7 @@ python-version = "3.14"
 
 [tool.ty.rules]
 all = "error"
+
+# One import per line: Ruff's wrapped imports indent by 2 and yapf's by 4, so avoid wrapping.
+[tool.ruff.lint.isort]
+force-single-line = true

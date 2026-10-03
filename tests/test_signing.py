@@ -1,7 +1,8 @@
 """The signed state and connection cookie: forged, expired, wrong-purpose, wrong-user values."""
 
 from backend import signing
-from backend.signing import COOKIE_MAX_AGE_SECONDS, STATE_TTL_SECONDS
+from backend.signing import COOKIE_MAX_AGE_SECONDS
+from backend.signing import STATE_TTL_SECONDS
 
 SECRET = 'app-secret'
 NOW = 1_000_000.0

@@ -54,7 +54,9 @@ def verify(value: str, secret: str) -> dict[str, object] | None:
     payload = json.loads(_unb64(body))
   except (ValueError, binascii.Error):
     return None
-  return payload if isinstance(payload, dict) else None
+  if not isinstance(payload, dict):
+    return None
+  return {str(name): item for name, item in payload.items()}
 
 
 def issue_state(user_id: int, company_id: int, secret: str, now: float) -> str:
