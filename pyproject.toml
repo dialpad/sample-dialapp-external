@@ -1,0 +1,55 @@
+# Tool configuration only. Dependencies are in requirements.txt (runtime) and
+# requirements-dev.txt (lint, type check, tests), so a partner installs with plain pip.
+# Ruff, yapf and ty are configured like Dialpad's own Python services.
+[project]
+name = "sample-dialapp-external"
+version = "0.1.0"
+requires-python = ">=3.14"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+# Nothing here is packaged; without these empty lists setuptools would try to discover packages.
+[tool.setuptools]
+packages = []
+py-modules = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+indent-width = 2
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    # No file in this repository carries a copyright header.
+    "CPY001",
+    # Ruff's TODO format differs from the one this code uses.
+    "TD002", "TD003", "TD004",
+    "FIX002",
+    # Conflicts with .style.yapf (blank_line_before_nested_class_or_def = false); yapf wins.
+    "D204",
+    # D203/D211 and D212/D213 are mutually exclusive pydocstyle pairs; ignore the losing half.
+    "D203", "D213",
+    # Trailing commas are managed by yapf.
+    "COM812", "COM819",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# pytest idioms: bare asserts, fixture arguments, magic values.
+"tests/**" = ["S101", "PLR2004", "ARG001", "S105", "S106", "D102", "D103", "D107"]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.ty.environment]
+python-version = "3.14"
+
+[tool.ty.rules]
+all = "error"

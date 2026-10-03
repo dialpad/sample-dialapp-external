@@ -1,0 +1,31 @@
+/* The panel is about 300px wide and its height follows its content. Everything here uses
+   Dialtone tokens so it follows the host's light and dark mode. */
+body {
+  margin: 0;
+  background: var(--dt-color-surface-primary);
+  color: var(--dt-color-foreground-primary);
+  font-family: var(--dt-font-family-body);
+  font-size: var(--dt-font-size-200);
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dt-space-500);
+  padding: var(--dt-space-500);
+}
+
+.acme-title {
+  margin: 0;
+  font-size: var(--dt-font-size-300);
+}
+
+.acme-heading {
+  margin: 0 0 var(--dt-space-300);
+  font-size: var(--dt-font-size-200);
+  font-weight: var(--dt-font-weight-bold);
+}
+
+.acme-muted {
+  color: var(--dt-color-foreground-secondary);
+}

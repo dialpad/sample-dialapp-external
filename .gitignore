@@ -1,0 +1,10 @@
+node_modules/
+.venv/
+dist/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+playwright-report/
+test-results/
+# Local build ledger of the agent that built this repository; not part of the app.
+docs/builds/

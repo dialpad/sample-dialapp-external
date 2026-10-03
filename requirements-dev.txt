@@ -1,0 +1,7 @@
+-r requirements.txt
+pytest>=9.1,<10
+pytest-asyncio>=1.4,<2
+sanic-testing>=24.6,<25
+ruff>=0.16,<0.17
+yapf>=0.43,<0.44
+ty>=0.0.84
