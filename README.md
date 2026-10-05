@@ -76,14 +76,7 @@ This is documented, not exercised in this repository: it needs a beta OAuth app
 that Dialpad sets up for you.
 
 1. Build the frontend (`pnpm build`) and run the backend without `LOCAL_MODE`,
-   with:
-
-   | Variable                | Value                                                     |
-   | ----------------------- | --------------------------------------------------------- |
-   | `DIALPAD_CLIENT_SECRET` | the beta app's client secret (from Dialpad's CSR runbook) |
-   | `DIALPAD_ORIGIN`        | `https://dialpadbeta.com`                                 |
-   | `APP_SECRET`            | a random secret that signs `state` and the cookie         |
-   | `BASE_URL`              | the public HTTPS URL of your running backend              |
+   with the four required variables from [Configuration](#configuration):
 
    ```sh
    DIALPAD_CLIENT_SECRET=... DIALPAD_ORIGIN=https://dialpadbeta.com APP_SECRET=... \
@@ -99,6 +92,24 @@ that Dialpad sets up for you.
 Current Chrome, Edge, Firefox and Safari 26.2 or later are supported (the
 connection cookie is `Partitioned`). Older Safari rejects partitioned cookies,
 so there the panel asks the user to connect again on each new iframe.
+
+## Configuration
+
+The backend reads these environment variables; the frontend reads none. Nothing
+loads a `.env` file, so export them in your shell or your host's settings.
+
+| Variable                | Required                | Purpose                                                                                                                                                      |
+| ----------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DIALPAD_CLIENT_SECRET` | yes, outside local mode | The OAuth app's client secret; decodes the idtoken. At least 48 characters (Dialpad's are 50). Local mode defaults to the toolkit's test secret              |
+| `DIALPAD_ORIGIN`        | yes, outside local mode | `https://dialpadbeta.com` for beta or `https://dialpad.com` for production; the page's `frame-ancestors`. Local mode defaults to `VITE_ORIGIN`               |
+| `APP_SECRET`            | yes, outside local mode | A random secret that signs the OAuth `state` and the connection cookie. Local mode defaults to a fixed development value                                     |
+| `BASE_URL`              | yes, outside local mode | The public HTTPS URL of the backend, without a trailing slash; used to build the authorize and callback URLs. Local mode defaults to `http://localhost:8000` |
+| `LOCAL_MODE`            | no                      | `1` turns on local mode: the defaults above, the dev page's route, and the Vite dev server's origins in the CSP                                              |
+| `VITE_ORIGIN`           | no, local mode only     | The Vite dev server's origin. Default `http://localhost:5173`                                                                                                |
+| `DIST_DIR`              | no                      | Where `pnpm build` wrote the frontend. Default `dist`                                                                                                        |
+| `PORT`                  | no                      | The port to listen on, used only when `BASE_URL` has none. Default `8000`                                                                                    |
+
+Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control.
 
 ## How it works
 
