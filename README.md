@@ -21,7 +21,7 @@ under [What to replace](#what-to-replace).
 
 ## Install
 
-You need Node 24, Corepack (for pnpm 11) and Python 3.14.
+You need Node 24, Corepack (for pnpm 12) and Python 3.14.
 
 ```sh
 nvm use                                  # reads .nvmrc (24)

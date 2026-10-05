@@ -1,4 +1,12 @@
-# pnpm 11 refuses to install when a dependency has an unreviewed build script.
-# vue-demi's postinstall only picks a Vue version to link against; Vue 3 is already the default.
+# Install scripts: every dependency that has one is listed. None is needed here: vue-demi's
+# postinstall only picks a Vue version to link against, and Vue 3 is already the default.
 allowBuilds:
   vue-demi: false
+
+# Supply-chain checks on top of pnpm's defaults (strictDepBuilds, a minimumReleaseAge):
+# refuse a version whose publishing evidence is weaker than its predecessors'...
+trustPolicy: no-downgrade
+# ...transitive dependencies from git or tarball URLs...
+blockExoticSubdeps: true
+# ...and installs on a Node version outside a package's engines.
+engineStrict: true
