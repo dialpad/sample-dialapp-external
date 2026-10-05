@@ -17,8 +17,10 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   // SDK's polling (first check after 7 seconds) completes it.
   const popup = page.waitForEvent('popup');
   await panel.getByTestId('connect-button').click();
-  await popup;
+  const authWindow = await popup;
   await expect(panel.getByRole('status')).toContainText('Waiting');
+  // The clock acts on every page in the context, so don't move it while the popup is closing.
+  await expect.poll(() => authWindow.isClosed()).toBe(true);
   await page.clock.runFor(7_000);
   await expect(panel.getByTestId('connected-view')).toBeVisible();
   await expect(panel.getByTestId('claims-card')).toContainText('Jane Agent');

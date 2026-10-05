@@ -11,6 +11,20 @@ async function openDevPage(page: Page): Promise<FrameLocator> {
   return panel;
 }
 
+/** Clicks Connect, lets the popup finish and close itself, then moves the clock to the first poll. */
+async function connectByPolling(
+  page: Page,
+  panel: FrameLocator,
+): Promise<void> {
+  const popup = page.waitForEvent('popup');
+  await panel.getByTestId('connect-button').click();
+  const authWindow = await popup;
+  // The clock acts on every page in the context, so don't move it while the popup is closing.
+  await expect.poll(() => authWindow.isClosed()).toBe(true);
+  await page.clock.runFor(7_000);
+  await expect(panel.getByTestId('connected-view')).toBeVisible();
+}
+
 async function hostThinksConnected(page: Page): Promise<boolean | undefined> {
   return page.evaluate(() => window.mockHost?.received.connected);
 }
@@ -58,11 +72,7 @@ test("Disconnect from Dialpad's panel menu shows the Connect gate", async ({
   page,
 }) => {
   const panel = await openDevPage(page);
-  const popup = page.waitForEvent('popup');
-  await panel.getByTestId('connect-button').click();
-  await popup;
-  await page.clock.runFor(7_000);
-  await expect(panel.getByTestId('connected-view')).toBeVisible();
+  await connectByPolling(page, panel);
   await expect.poll(() => hostThinksConnected(page)).toBe(true);
 
   const disconnectCalled = page.waitForRequest(
