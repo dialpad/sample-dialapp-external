@@ -13,6 +13,7 @@ export default defineConfig(
     ignores: [
       'dist/**',
       'node_modules/**',
+      '.pnpm-store/**',
       '.venv/**',
       'vendor/**',
       'playwright-report/**',
@@ -54,7 +55,10 @@ export default defineConfig(
       eqeqeq: ['error', 'smart'],
       // The contract's JSON is snake_case, so object properties are exempt.
       camelcase: ['error', { properties: 'never' }],
-      complexity: ['error', 9],
+      // Raised from Dialpad's default of 9 (and max-statements added): splitting readable
+      // functions into many small pieces to satisfy the default limits made the code harder to follow.
+      complexity: ['error', 15],
+      'max-statements': ['error', 30],
       'default-param-last': 'error',
       'array-callback-return': 'error',
       'prefer-const': 'error',

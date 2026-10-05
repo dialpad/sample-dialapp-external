@@ -1,4 +1,6 @@
 node_modules/
+# pnpm keeps its store here in a fresh container (CI); keep Prettier and ESLint out of it.
+.pnpm-store/
 .venv/
 dist/
 __pycache__/
@@ -6,5 +8,5 @@ __pycache__/
 .pytest_cache/
 playwright-report/
 test-results/
-# Local build ledger of the agent that built this repository; not part of the app.
-docs/builds/
+# Local planning files of whoever builds this repository; not part of the app.
+docs/
