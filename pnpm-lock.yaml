@@ -144,7 +144,7 @@ packages:
     engines: {node: '>=20.19.0'}
 
   '@dialpad/dialapp-external-sdk@file:vendor/dialpad-dialapp-external-sdk-0.1.0.tgz':
-    resolution: {integrity: sha512-jQ2WhSy3SsZstsBe2XAb2Xu3sVyG/I0w3XcWp7Jyc/k0p/Ox2ZHg0mkk2c3RAQ2u+ldCMJVB5k7/HheZ8pDeYg==, tarball: file:vendor/dialpad-dialapp-external-sdk-0.1.0.tgz}
+    resolution: {integrity: sha512-YyIuwIOR0+lVCFrVSZKVaUbzY00j00QoPA+bonJ5AiQleqV3J6wLXICxkoMANn7+astEl7cR7mmVtdN9TxUvwA==, tarball: file:vendor/dialpad-dialapp-external-sdk-0.1.0.tgz}
     version: 0.1.0
     engines: {node: '>=24'}
     peerDependencies:

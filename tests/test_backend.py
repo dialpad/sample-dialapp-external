@@ -427,6 +427,47 @@ def test_a_client_secret_shorter_than_48_characters_is_rejected() -> None:
     Settings(client_secret='short', app_secret='x', dialpad_origin=DIALPAD_ORIGIN, base_url='x')
 
 
+@pytest.mark.parametrize(
+    'origin',
+    [
+        'https://dialpadbeta.com/',
+        'https://dialpadbeta.com/path',
+        'dialpadbeta.com',
+        'ftp://dialpadbeta.com',
+        'https://dialpadbeta.com; script-src *',
+        ' https://dialpadbeta.com',
+        'https://dialpadbeta.com?x=1',
+        '',
+    ],
+)
+def test_a_dialpad_origin_that_is_not_a_bare_origin_is_rejected_at_startup(origin: str) -> None:
+  with pytest.raises(ConfigurationError, match='DIALPAD_ORIGIN'):
+    Settings(
+        client_secret=TEST_CLIENT_SECRET,
+        app_secret='x',
+        dialpad_origin=origin,
+        base_url='https://acme.example.com',
+    )
+
+
+@pytest.mark.parametrize(
+    'origin',
+    [
+        'https://dialpadbeta.com', 'https://dialpad.com', 'http://localhost:5173',
+        'http://[::1]:5173'
+    ],
+)
+def test_a_bare_dialpad_origin_is_accepted(origin: str) -> None:
+  settings = Settings(
+      client_secret=TEST_CLIENT_SECRET,
+      app_secret='x',
+      dialpad_origin=origin,
+      base_url='https://acme.example.com',
+  )
+
+  assert settings.dialpad_origin == origin
+
+
 def test_settings_require_every_value_outside_local_mode() -> None:
   with pytest.raises(ConfigurationError):
     settings_from_env({})

@@ -3,6 +3,7 @@
 import os
 from dataclasses import dataclass
 from dataclasses import field
+from urllib.parse import urlsplit
 
 from dialpad_dialapp_toolkit.testing import TEST_CLIENT_SECRET
 
@@ -15,6 +16,17 @@ DEFAULT_LOCAL_APP_SECRET = 'local-mode-app-secret-not-for-production' # noqa: S1
 
 class ConfigurationError(Exception):
   """A required setting is missing."""
+
+
+def _is_bare_origin(value: str) -> bool:
+  """Whether ``value`` is exactly ``scheme://host[:port]``: no path, query, spaces or ``;``.
+
+  The origin goes into the page's Content-Security-Policy header, which the toolkit also checks.
+  """
+  if ';' in value or any(char.isspace() for char in value):
+    return False
+  parts = urlsplit(value)
+  return parts.scheme in {'http', 'https'} and f'{parts.scheme}://{parts.netloc}' == value
 
 
 @dataclass(frozen=True)
@@ -36,7 +48,11 @@ class Settings:
   dist_dir: str = 'dist'
 
   def __post_init__(self) -> None:
-    """Reject a client secret too short to key the idtoken's JWE (Dialpad's are 50 characters)."""
+    """Reject a bad client secret or Dialpad origin at startup, not on the first page load."""
+    if not _is_bare_origin(self.dialpad_origin):
+      message = ('DIALPAD_ORIGIN must be a bare origin such as https://dialpadbeta.com, '
+                 f'got {self.dialpad_origin!r}')
+      raise ConfigurationError(message)
     if len(self.client_secret) < MIN_CLIENT_SECRET_LENGTH:
       message = f'DIALPAD_CLIENT_SECRET must be at least {MIN_CLIENT_SECRET_LENGTH} characters'
       raise ConfigurationError(message)

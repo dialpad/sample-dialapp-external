@@ -1,6 +1,6 @@
 import {
   createRightbar,
-  isRightbarError,
+  RightbarError,
   type Rightbar,
   type RightbarOptions,
 } from '@dialpad/dialapp-external-sdk';
@@ -28,7 +28,7 @@ export async function bootstrap(
   try {
     rightbar = await create({ heightRoot: root, fetch: api });
   } catch (error) {
-    if (!isRightbarError(error)) {
+    if (!(error instanceof RightbarError)) {
       throw error;
     }
     createApp(BootstrapError).mount(root);

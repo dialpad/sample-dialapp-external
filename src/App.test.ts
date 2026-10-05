@@ -206,6 +206,21 @@ describe('Connect gate', () => {
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
+  it('stops waiting when the user disconnects from the host menu while Connect is polling', async () => {
+    const { wrapper, host } = await setup();
+    await wrapper.get('[data-testid="connect-button"]').trigger('click');
+    expect(wrapper.find('[role="status"]').exists()).toBe(true);
+
+    host.trigger('disconnect');
+    await host.settle();
+    await flushPromises();
+
+    expect(wrapper.find('[role="status"]').exists()).toBe(false);
+    expect(
+      wrapper.get('[data-testid="connect-button"]').attributes('disabled'),
+    ).toBeUndefined();
+  });
+
   it('restarts Connect when Try again is clicked', async () => {
     const { wrapper, host, backend } = await setup();
     await wrapper.get('[data-testid="connect-button"]').trigger('click');
