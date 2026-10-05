@@ -13,7 +13,7 @@ import {
 } from '@dialpad/dialapp-external-sdk/testing';
 import { flushPromises, mount } from '@vue/test-utils';
 import { initDialtoneTheme, setMode } from '@dialpad/dialtone/themes/config';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { api, sessionExpired } from './api';
 import App from './App.vue';
@@ -74,6 +74,13 @@ function fakeBackend() {
 
 const mounted: { unmount(): void }[] = [];
 
+// Vue reports bad props (for example an invalid Dialtone `kind`) as console warnings.
+let warnings: ReturnType<typeof vi.spyOn>;
+
+beforeEach(() => {
+  warnings = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+});
+
 async function setup({
   connected = false,
   mode = 'not_connected',
@@ -110,7 +117,11 @@ async function setup({
 }
 
 afterEach(() => {
+  const vueWarnings = warnings.mock.calls.filter((call) =>
+    String(call[0]).includes('[Vue warn]'),
+  );
   vi.restoreAllMocks();
+  expect(vueWarnings).toEqual([]);
   for (const wrapper of mounted.splice(0)) {
     wrapper.unmount();
   }

@@ -180,6 +180,10 @@ pnpm lint:ci && pnpm format:ci && pnpm types:check && pnpm test:run     # fronte
 pnpm test:e2e                                                          # Playwright smoke test
 ```
 
-The Playwright test starts the backend in local mode and Vite, then walks the
-dev page through Connect, a reload, and Disconnect with Playwright's clock.
-Install its browser once with `pnpm exec playwright install chromium`.
+The Playwright tests start the backend in local mode and Vite, then drive the
+dev page with Playwright's clock. `e2e/smoke.spec.ts` walks Connect, a reload
+and Disconnect. The three tests in `e2e/sdk/` exist to check the SDK in a real
+browser from the libraries' CI (opened outside Dialpad, Connect that times out,
+Disconnect from the host's panel menu); they are not part of the template, so
+delete that folder when you copy the app. Install the browser once with
+`pnpm exec playwright install chromium`.

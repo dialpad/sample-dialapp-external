@@ -18,7 +18,7 @@ async function confirm(): Promise<void> {
 <template>
   <DtNotice
     v-if="state.connection.error"
-    kind="error"
+    kind="critical"
     :show-close="false"
     role="alert"
   >

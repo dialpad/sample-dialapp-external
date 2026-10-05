@@ -30,7 +30,12 @@ const errorCopy = computed(() => {
     </p>
     <template v-else>
       <p>Connect your Acme account to see your contacts here.</p>
-      <DtNotice v-if="errorCopy" kind="error" :show-close="false" role="alert">
+      <DtNotice
+        v-if="errorCopy"
+        kind="critical"
+        :show-close="false"
+        role="alert"
+      >
         {{ errorCopy }}
       </DtNotice>
     </template>

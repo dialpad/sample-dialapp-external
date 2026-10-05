@@ -4,7 +4,15 @@ import {
   makeCall,
   makeContact,
   mountMockHostPage,
+  type MockHostPage,
 } from '@dialpad/dialapp-external-sdk/testing';
+
+declare global {
+  interface Window {
+    /** The mock host, for browser tests: `page.evaluate(() => window.mockHost?.received)`. */
+    mockHost?: MockHostPage;
+  }
+}
 
 const BACKEND = 'http://localhost:8000';
 
@@ -15,6 +23,8 @@ const host = mountMockHostPage({
   src: url,
   container: document.getElementById('panel') ?? undefined,
 });
+
+window.mockHost = host;
 
 let mode: 'light' | 'dark' = 'light';
 
