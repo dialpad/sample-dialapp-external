@@ -35,9 +35,27 @@ python3.14 -m venv .venv
 The two libraries are installed from files in `vendor/`, exactly as you install
 what Dialpad sends you: `package.json` points at
 `vendor/dialpad-dialapp-external-sdk-<version>.tgz` and `requirements.txt` at
-`vendor/dialpad_dialapp_toolkit-<version>-py3-none-any.whl`. To upgrade, replace
-the two files and the two version numbers. Nothing here needs Dialpad's private
-registry.
+`vendor/dialpad_dialapp_toolkit-<version>-py3-none-any.whl`. Nothing here needs
+Dialpad's private registry.
+
+### Upgrading the libraries
+
+Put the new `dialpad-dialapp-external-sdk-<version>.tgz` and
+`dialpad_dialapp_toolkit-<version>-py3-none-any.whl` in one folder and run:
+
+```sh
+pnpm run vendor <folder>
+```
+
+It replaces everything in `vendor/` with those two files, updates the two
+references (the `file:vendor/...` dependency in `package.json` and the
+`./vendor/...` line in `requirements.txt`), then installs them with
+`pnpm install --no-frozen-lockfile` and
+`pip install --force-reinstall --no-deps` into `.venv`, which must already
+exist. The install is not frozen because a new build changes the tarball's
+checksum even at the same version. The folder must contain exactly one of each
+file; otherwise the command stops with a message before changing anything.
+Running it twice with the same files is safe.
 
 ## Run locally, without Dialpad (local mode)
 

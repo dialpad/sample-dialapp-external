@@ -18,7 +18,8 @@
     "types:check": "vue-tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "vendor": "node scripts/vendor.mjs"
   },
   "dependencies": {
     "@dialpad/dialapp-external-sdk": "file:vendor/dialpad-dialapp-external-sdk-0.1.0.tgz",

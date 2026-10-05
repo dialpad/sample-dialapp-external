@@ -26,7 +26,7 @@ export default defineConfig(
     languageOptions: {
       globals: { ...globals.browser },
       parserOptions: {
-        projectService: true,
+        projectService: { allowDefaultProject: ['scripts/*.mjs'] },
         extraFileExtensions: ['.vue'],
       },
     },
@@ -41,11 +41,11 @@ export default defineConfig(
     ...vitest.configs.recommended,
   },
   {
-    files: ['*.config.{js,ts}', 'e2e/**/*.ts'],
+    files: ['*.config.{js,ts}', 'e2e/**/*.ts', 'scripts/**/*.mjs'],
     languageOptions: { globals: { ...globals.node } },
   },
   {
-    files: ['**/*.js'],
+    files: ['**/*.{js,mjs}'],
     ...tseslint.configs.disableTypeChecked,
   },
   prettier,
