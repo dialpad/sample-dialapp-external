@@ -77,7 +77,7 @@ test("Disconnect from Dialpad's panel menu shows the Connect gate", async ({
 
   const disconnectCalled = page.waitForRequest(
     (req) =>
-      req.method() === 'POST' && req.url().endsWith('/dialpad/disconnect'),
+      req.method() === 'POST' && req.url().endsWith('/dialpad/ext-disconnect'),
   );
   await page.evaluate(() => {
     window.mockHost?.trigger('disconnect');

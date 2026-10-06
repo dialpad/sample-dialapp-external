@@ -5,8 +5,8 @@ page knows who the user is, the user connects a partner system through an OAuth
 popup, and the panel shows data Dialpad passes in.
 
 The partner system here is a fictional "Acme CRM" with no data. The panel proves
-data flow by showing the Dialpad user's claims and the open Dialpad contact with
-every field "Acme'd" (text gets an `Acme ` prefix).
+data flow by showing the Dialpad user, the OAuth scopes and the open Dialpad
+contact with every field "Acme'd" (text gets an `Acme ` prefix).
 
 It uses only Dialpad's two libraries and public packages:
 
@@ -133,27 +133,33 @@ Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control.
 
 1. **Page.** Dialpad loads `GET /?idtoken=…`. The backend decodes the token with
    the toolkit, looks up or issues this user's access token, and renders the
-   page with the toolkit: the non-sensitive claims, the access token, and
-   whether the user is connected.
-2. **API.** Every call afterwards carries
+   page with the toolkit: the access token and an `external_connection` (whether
+   the user is connected, one authorize URL for the `acme-crm` client, and its
+   scopes). The page carries no user data, so nothing from the idtoken's profile
+   reaches the browser.
+2. **User.** The SDK asks Dialpad for the user (`get/user`) once it starts, and
+   the panel shows it from `state.user`.
+3. **API.** Every call afterwards carries
    `Authorization: Bearer <access token>`. The idtoken is used only on the page
    request.
-3. **Connect.** The SDK asks Dialpad to open the authorize URL. The callback
+4. **Connect.** The SDK asks Dialpad to open the authorize URL. The callback
    verifies a signed `state`, records "connected" for that user in server memory
    for 5 minutes, and returns the toolkit's close-popup page. The next
-   connection check (the reply-triggered one, a poll, or the next iframe's
-   bootstrap check) consumes it and sets the connection cookie.
-4. **Later contacts and sessions.** The cookie is signed and bound to the user
+   `/dialpad/ext-connection` check (the reply-triggered one, a poll, or the next
+   iframe's bootstrap check) consumes it and sets the connection cookie.
+5. **Later contacts and sessions.** The cookie is signed and bound to the user
    and company, so the first paint is already the connected view.
-5. **Disconnect.** `POST /dialpad/disconnect` clears the cookie.
+6. **Disconnect.** `POST /dialpad/ext-disconnect` clears the cookie and answers
+   `204`; the SDK then calls `/dialpad/ext-connection` once for a fresh
+   authorize URL.
 
-| Endpoint                    | Behaviour                                                              |
-| --------------------------- | ---------------------------------------------------------------------- |
-| `GET /`                     | The page. `401` HTML if the idtoken doesn't decode                     |
-| `GET /dialpad/connection`   | Bearer token. Consumes a stored OAuth result, else answers from cookie |
-| `POST /dialpad/disconnect`  | Bearer token. Clears the cookie                                        |
-| `GET /oauth/fake-authorize` | Demo only. Redirects to the callback with `state` and a fixed `code`   |
-| `GET /oauth/callback`       | Demo only. Verifies `state`, records the result, close-popup page      |
+| Endpoint                       | Behaviour                                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| `GET /`                        | The page. `401` HTML if the idtoken doesn't decode                                                       |
+| `GET /dialpad/ext-connection`  | Bearer token. Consumes a stored OAuth result, else answers from the cookie. Always a fresh authorize URL |
+| `POST /dialpad/ext-disconnect` | Bearer token. Clears the cookie, answers `204` with no body                                              |
+| `GET /oauth/fake-authorize`    | Demo only. Redirects to the callback with `state` and a fixed `code`                                     |
+| `GET /oauth/callback`          | Demo only. Verifies `state`, records the result, close-popup page                                        |
 
 ## What to replace
 

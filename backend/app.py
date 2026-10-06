@@ -15,12 +15,11 @@ from typing import override
 from urllib.parse import urlencode
 
 from dialpad_dialapp_toolkit import DEFAULT_API_PREFIX
-from dialpad_dialapp_toolkit import ConnectionStatus
 from dialpad_dialapp_toolkit import ErrorResponse
+from dialpad_dialapp_toolkit import ExternalConnection
 from dialpad_dialapp_toolkit import IdTokenError
 from dialpad_dialapp_toolkit import PageData
 from dialpad_dialapp_toolkit import PageOptions
-from dialpad_dialapp_toolkit import PageUser
 from dialpad_dialapp_toolkit import RenderedPage
 from dialpad_dialapp_toolkit import decode_idtoken
 from dialpad_dialapp_toolkit import generate_nonce
@@ -33,6 +32,7 @@ from sanic import Request
 from sanic import Sanic
 from sanic.config import Config
 from sanic.handlers import ErrorHandler
+from sanic.response import empty
 from sanic.response import html
 from sanic.response import json
 from sanic.response import redirect
@@ -56,6 +56,9 @@ logger = logging.getLogger('acme_crm')
 App = Sanic[Config, SimpleNamespace]
 
 ACCOUNT_NAME = 'Acme CRM (demo)'
+# The OAuth client's name and scopes, in the DialApp framework's `external_connection` shape.
+CLIENT_NAME = 'acme-crm'
+CONNECTED_SCOPES = ['contacts.read']
 FAKE_CODE = 'fake-code'
 COOKIE_NAME = 'acme_session'
 # Sanic prefixes the name with `__Host-` when host_prefix is set, and reports it that way back.
@@ -97,14 +100,16 @@ class Backend:
         self.clock(),
     )
 
-  def status(self, key: UserKey, *, connected: bool) -> ConnectionStatus:
-    """Build the status: connected, or not connected with a fresh authorize URL."""
-    if connected:
-      return ConnectionStatus(connected=True, account_name=ACCOUNT_NAME)
-    return ConnectionStatus(
-        connected=False,
-        account_name=ACCOUNT_NAME,
-        authorize_url=self.authorize_url(key),
+  def external_connection(self, key: UserKey, *, connected: bool) -> ExternalConnection:
+    """Build the connection status: always one authorize URL with a fresh ``state``.
+
+    The scopes are the client's when connected and empty otherwise.
+    """
+    return ExternalConnection(
+        connected=connected,
+        authorization_urls={CLIENT_NAME: self.authorize_url(key)},
+        name=CLIENT_NAME,
+        scopes=CONNECTED_SCOPES if connected else [],
     )
 
   def user_for(self, request: Request) -> UserKey | None:
@@ -119,8 +124,8 @@ def _rendered(page: RenderedPage) -> HTTPResponse:
   return html(page.html, status=page.status, headers=page.headers)
 
 
-def _status_response(status: ConnectionStatus) -> HTTPResponse:
-  return json(status.model_dump(mode='json', exclude_none=True))
+def _connection_response(connection: ExternalConnection) -> HTTPResponse:
+  return json(connection.model_dump(mode='json'))
 
 
 def _unauthorized() -> HTTPResponse:
@@ -159,8 +164,10 @@ def _register_page(app: App, backend: Backend) -> None:
         dialpad_origin=settings.dialpad_origin,
         api_prefix=DEFAULT_API_PREFIX,
         access_token=backend.tokens.issue(key),
-        user=PageUser.from_claims(claims),
-        connection=backend.status(key, connected=backend.cookie_is_valid(request, key)),
+        external_connection=backend.external_connection(
+            key,
+            connected=backend.cookie_is_valid(request, key),
+        ),
     )
     options = PageOptions(
         title=ACCOUNT_NAME,
@@ -173,13 +180,13 @@ def _register_page(app: App, backend: Backend) -> None:
 def _register_contract(app: App, backend: Backend) -> None:
   settings = backend.settings
 
-  @app.get(f'{DEFAULT_API_PREFIX}/connection')
-  async def connection(request: Request) -> HTTPResponse:
+  @app.get(f'{DEFAULT_API_PREFIX}/ext-connection')
+  async def ext_connection(request: Request) -> HTTPResponse:
     key = backend.user_for(request)
     if key is None:
       return _unauthorized()
     if backend.results.consume(key):
-      reply = _status_response(backend.status(key, connected=True))
+      reply = _connection_response(backend.external_connection(key, connected=True))
       cookie = signing.issue_cookie(
           key.user_id,
           key.company_id,
@@ -188,14 +195,16 @@ def _register_contract(app: App, backend: Backend) -> None:
       )
       _set_cookie(reply, cookie, signing.COOKIE_MAX_AGE_SECONDS)
       return reply
-    return _status_response(backend.status(key, connected=backend.cookie_is_valid(request, key)))
+    connected = backend.cookie_is_valid(request, key)
+    return _connection_response(backend.external_connection(key, connected=connected))
 
-  @app.post(f'{DEFAULT_API_PREFIX}/disconnect')
-  async def disconnect(request: Request) -> HTTPResponse:
+  @app.post(f'{DEFAULT_API_PREFIX}/ext-disconnect')
+  async def ext_disconnect(request: Request) -> HTTPResponse:
+    """Clear the cookie and answer 204; the SDK then asks ``ext-connection`` for fresh URLs."""
     key = backend.user_for(request)
     if key is None:
       return _unauthorized()
-    reply = _status_response(backend.status(key, connected=False))
+    reply = empty(status=204)
     _set_cookie(reply, '', 0)
     return reply
 

@@ -23,7 +23,7 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await expect.poll(() => authWindow.isClosed()).toBe(true);
   await page.clock.runFor(7_000);
   await expect(panel.getByTestId('connected-view')).toBeVisible();
-  await expect(panel.getByTestId('claims-card')).toContainText('Jane Agent');
+  await expect(panel.getByTestId('user-card')).toContainText('Jane Agent');
 
   // Data flows from the host to the panel: the contact the dev page sends is shown Acme'd.
   await page.getByRole('button', { name: 'Send contact' }).click();

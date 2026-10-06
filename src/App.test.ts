@@ -3,6 +3,7 @@
 import {
   type FetchLike,
   type RightbarOptions,
+  type User,
 } from '@dialpad/dialapp-external-sdk';
 import { rightbarPlugin } from '@dialpad/dialapp-external-sdk/vue';
 import {
@@ -42,6 +43,16 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
+/** The backend's `external_connection`, in the wire format: one OAuth client, `acme-crm`. */
+function externalConnection(connected: boolean) {
+  return {
+    connected,
+    authorization_urls: { 'acme-crm': AUTHORIZE_URL },
+    name: 'acme-crm',
+    scopes: connected ? ['contacts.read'] : [],
+  };
+}
+
 /** A fake Acme backend: `mode` decides how the connection endpoint answers. */
 function fakeBackend() {
   const backend = {
@@ -54,8 +65,16 @@ function fakeBackend() {
         'https://acme.example.com',
       ).pathname;
       backend.calls.push({ method: init?.method ?? 'GET', path });
-      if (path.endsWith('/disconnect') && backend.mode === 'connected') {
+      if (path.endsWith('/ext-disconnect')) {
+        // The backend answers 204 with no body; a later check then says "not connected".
+        if (backend.mode === 'network') {
+          return Promise.reject(new TypeError('Failed to fetch'));
+        }
+        if (backend.mode === 'server_error') {
+          return Promise.resolve(json({ code: 'oops', message: 'oops' }, 500));
+        }
         backend.mode = 'not_connected';
+        return Promise.resolve(new Response(null, { status: 204 }));
       }
       switch (backend.mode) {
         case 'network':
@@ -63,17 +82,9 @@ function fakeBackend() {
         case 'server_error':
           return Promise.resolve(json({ code: 'oops', message: 'oops' }, 500));
         case 'connected':
-          return Promise.resolve(
-            json({ connected: true, account_name: 'Acme CRM (demo)' }),
-          );
+          return Promise.resolve(json(externalConnection(true)));
         default:
-          return Promise.resolve(
-            json({
-              connected: false,
-              account_name: 'Acme CRM (demo)',
-              authorize_url: AUTHORIZE_URL,
-            }),
-          );
+          return Promise.resolve(json(externalConnection(false)));
       }
     }),
   };
@@ -92,11 +103,14 @@ beforeEach(() => {
 async function setup({
   connected = false,
   mode = 'not_connected',
+  user,
 }: {
   connected?: boolean;
   mode?: ReturnType<typeof fakeBackend>['mode'];
+  /** What Dialpad's `get/user` answers: the default user, a user, or `null` for none. */
+  user?: User | null;
 } = {}) {
-  const host = createMockHost();
+  const host = createMockHost(user === undefined ? {} : { user });
   const backend = fakeBackend();
   backend.mode = mode;
   const root = document.createElement('div');
@@ -105,14 +119,12 @@ async function setup({
     heightRoot: root,
     fetch: backend.fetch,
     pageData: makePageData({
-      user: makeUser({
-        name: 'Jane Agent',
-        email: 'jane@example.com',
-        phoneNumber: '+1 555 0100',
-      }),
-      connection: connected
-        ? { connected: true, accountName: 'Acme CRM (demo)' }
-        : { connected: false, authorizeUrl: AUTHORIZE_URL },
+      externalConnection: {
+        connected,
+        name: 'acme-crm',
+        scopes: connected ? ['contacts.read'] : [],
+        authorizationUrls: { 'acme-crm': AUTHORIZE_URL },
+      },
     }),
   });
   const wrapper = mount(App, {
@@ -259,14 +271,46 @@ describe('Connect gate', () => {
 });
 
 describe('Connected view', () => {
-  it("shows the user's claims from the page data", async () => {
+  it("shows the user from Dialpad's get/user, not from the page", async () => {
     const { wrapper } = await setup({ connected: true });
 
-    const claims = wrapper.get('[data-testid="claims-card"]').text();
-    expect(claims).toContain('Jane Agent');
-    expect(claims).toContain('jane@example.com · +1 555 0100');
-    expect(claims).toContain('user 5432 · company 12345 · office 54321');
-    expect(claims).not.toContain('api_key');
+    const card = wrapper.get('[data-testid="user-card"]').text();
+    expect(card).toContain('Jane Agent');
+    expect(card).toContain('Support Agent');
+    expect(card).toContain('jane.agent@example.com · +15555550100');
+    expect(card).toContain('user 5432 · company 12345 · office 54321');
+    expect(card).toContain('Licenses: agents');
+    expect(card).toContain('Available · On duty · Online');
+    expect(card).not.toContain('api_key');
+  });
+
+  it('shows admin and do-not-disturb flags only when they are set', async () => {
+    const { wrapper } = await setup({
+      connected: true,
+      user: makeUser({ isAdmin: true, doNotDisturb: true, isAvailable: false }),
+    });
+
+    const card = wrapper.get('[data-testid="user-card"]').text();
+    expect(card).toContain('Admin');
+    expect(card).toContain('Do not disturb');
+    expect(card).not.toContain('Available');
+  });
+
+  it('copes with Dialpad sending no user', async () => {
+    const { wrapper } = await setup({ connected: true, user: null });
+
+    expect(wrapper.get('[data-testid="user-card"]').text()).toContain(
+      "didn't send your user details",
+    );
+    expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
+  });
+
+  it('shows the scopes of the connection', async () => {
+    const { wrapper } = await setup({ connected: true });
+
+    expect(wrapper.get('[data-testid="scopes"]').text()).toContain(
+      'contacts.read',
+    );
   });
 
   it("shows the contact Dialpad sends with every field Acme'd, omitting empty ones", async () => {
@@ -310,7 +354,7 @@ describe('Connected view', () => {
 
     await wrapper.get('[data-testid="disconnect-button"]').trigger('click');
     expect(wrapper.text()).toContain('Disconnect Acme?');
-    expect(backend.calls.some((c) => c.path.endsWith('/disconnect'))).toBe(
+    expect(backend.calls.some((c) => c.path.endsWith('/ext-disconnect'))).toBe(
       false,
     );
 
@@ -336,7 +380,15 @@ describe('Connected view', () => {
 
     expect(backend.calls).toContainEqual({
       method: 'POST',
-      path: '/dialpad/disconnect',
+      path: '/dialpad/ext-disconnect',
+    });
+    // The SDK then asks for fresh authorize URLs.
+    const afterDisconnect = backend.calls.slice(
+      backend.calls.findIndex((c) => c.path.endsWith('/ext-disconnect')) + 1,
+    );
+    expect(afterDisconnect).toContainEqual({
+      method: 'GET',
+      path: '/dialpad/ext-connection',
     });
     expect(wrapper.find('[data-testid="connect-gate"]').exists()).toBe(true);
   });
