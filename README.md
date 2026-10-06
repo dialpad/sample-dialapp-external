@@ -126,12 +126,16 @@ loads a `.env` file, so export them in your shell or your host's settings.
 | `DIALPAD_ORIGIN`        | yes, outside local mode | `https://dialpadbeta.com` for beta or `https://dialpad.com` for production; the page's `frame-ancestors`. Must be a bare origin (scheme, host, optional port; no trailing slash or path), checked at startup. Local mode defaults to `VITE_ORIGIN` |
 | `APP_SECRET`            | yes, outside local mode | A random secret that signs the OAuth `state` and the connection cookie. Local mode defaults to a fixed development value                                                                                                                           |
 | `BASE_URL`              | yes, outside local mode | The public HTTPS URL of the backend, without a trailing slash; used to build the authorize and callback URLs. Local mode defaults to `http://localhost:8000`                                                                                       |
+| `HOST`                  | no                      | The address to listen on. Default `127.0.0.1` (this machine only); a container sets `0.0.0.0`. See [deployment.md](deployment.md)                                                                                                                  |
 | `LOCAL_MODE`            | no                      | `1` turns on local mode: the defaults above, the dev page's route, and the Vite dev server's origins in the CSP                                                                                                                                    |
 | `VITE_ORIGIN`           | no, local mode only     | The Vite dev server's origin. Default `http://localhost:5173`                                                                                                                                                                                      |
 | `DIST_DIR`              | no                      | Where `pnpm build` wrote the frontend. Default `dist`                                                                                                                                                                                              |
-| `PORT`                  | no                      | The port to listen on, used only when `BASE_URL` has none. Default `8000`                                                                                                                                                                          |
+| `PORT`                  | no                      | The port to listen on. If unset, the port in `BASE_URL`, else `8000`. A container host sets it                                                                                                                                                     |
 
 Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control.
+
+To run it as a container, for example on Cloud Run, see
+[deployment.md](deployment.md).
 
 ## How it works
 

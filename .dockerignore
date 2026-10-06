@@ -1,0 +1,20 @@
+# Keep the build context to what the image needs. vendor/ is needed: both libraries install from it.
+.git
+.gitignore
+.codegraph
+.idea
+.vscode
+node_modules
+.pnpm-store
+.venv
+dist
+docs
+e2e
+tests
+test-results
+playwright-report
+__pycache__
+.pytest_cache
+.ruff_cache
+Dockerfile
+.dockerignore
