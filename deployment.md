@@ -29,12 +29,12 @@ URL: the environment variables below are passed when the container runs.
 See the [Configuration table in the README](README.md#configuration) for all of
 them. A container needs these four, none of which is baked into the image:
 
-| Variable                | Value                                                                     |
-| ----------------------- | ------------------------------------------------------------------------- |
-| `DIALPAD_CLIENT_SECRET` | The OAuth app's client secret (a secret: use Secret Manager on Cloud Run) |
-| `APP_SECRET`            | A random secret that signs `state` and the cookie (also a secret)         |
-| `DIALPAD_ORIGIN`        | `https://dialpadbeta.com` for beta, `https://dialpad.com` for production  |
-| `BASE_URL`              | The public HTTPS URL of the service, without a trailing slash             |
+| Variable                | Value                                                                    |
+| ----------------------- | ------------------------------------------------------------------------ |
+| `DIALPAD_CLIENT_SECRET` | The OAuth app's client secret                                            |
+| `APP_SECRET`            | A random secret that signs `state` and the cookie                        |
+| `DIALPAD_ORIGIN`        | `https://dialpadbeta.com` for beta, `https://dialpad.com` for production |
+| `BASE_URL`              | The public HTTPS URL of the service, without a trailing slash            |
 
 Do not set `LOCAL_MODE`. The listen port comes from `PORT`; the port in
 `BASE_URL` is not used when `PORT` is set, which is what a container host does.
@@ -70,15 +70,16 @@ let Cloud Build do the build (below).
 
 ## Deploy
 
-None of the `gcloud` commands in this section were run while writing this
-document; check them against the current Cloud Run documentation. Replace
-`PROJECT`, `REGION` and the names to suit.
+These are the commands the reference app was deployed with, on a project with
+nothing enabled yet. Replace `PROJECT`, `REGION` and the names to suit. Cloud
+Run's commands change over time, so check them against the current
+documentation.
 
 ### 1. Enable the services and create a repository
 
 ```sh
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com \
-  cloudbuild.googleapis.com secretmanager.googleapis.com
+  cloudbuild.googleapis.com
 
 gcloud artifacts repositories create acme-crm \
   --repository-format=docker --location=REGION
@@ -96,15 +97,21 @@ gcloud builds submit \
 `vendor/` is tracked in git, so it is uploaded with the source; the image needs
 it.
 
-### 3. Store the secrets
+### 3. Choose the secret values
+
+There is no Secret Manager step: this reference app takes everything as plain
+environment variables, so anyone can deploy and test it with one command. Have
+these ready:
 
 ```sh
-printf '%s' "$DIALPAD_CLIENT_SECRET" | gcloud secrets create dialpad-client-secret --data-file=-
-openssl rand -hex 32 | tr -d '\n' | gcloud secrets create acme-app-secret --data-file=-
+export DIALPAD_CLIENT_SECRET=...        # the OAuth app's client secret, from Dialpad
+export APP_SECRET=$(openssl rand -hex 32)
 ```
 
-Grant the service's runtime service account the `Secret Manager Secret Accessor`
-role on both.
+Environment variables on a Cloud Run service are visible to anyone who can view
+the service in the project (the console, `gcloud run services describe`). That
+is fine for a demo. For anything real, store them in Secret Manager and pass
+them with `--set-secrets` instead of `--set-env-vars`.
 
 ### 4. Deploy
 
@@ -115,8 +122,7 @@ gcloud run deploy acme-crm-demo \
   --allow-unauthenticated \
   --port 8080 \
   --min-instances 1 --max-instances 1 \
-  --set-env-vars DIALPAD_ORIGIN=https://dialpadbeta.com,BASE_URL=https://placeholder.example.com \
-  --set-secrets DIALPAD_CLIENT_SECRET=dialpad-client-secret:latest,APP_SECRET=acme-app-secret:latest
+  --set-env-vars "DIALPAD_ORIGIN=https://dialpadbeta.com,BASE_URL=https://placeholder.example.com,DIALPAD_CLIENT_SECRET=$DIALPAD_CLIENT_SECRET,APP_SECRET=$APP_SECRET"
 ```
 
 - **`--allow-unauthenticated`:** Dialpad's iframe has to reach the service
@@ -135,8 +141,14 @@ gcloud run services update acme-crm-demo --region REGION --update-env-vars BASE_
 Until that update finishes, the authorize URLs the app builds point at the
 placeholder.
 
-You can also set a startup probe on `/healthz`, which answers `ok` once the app
-is up.
+Cloud Run's default startup probe (a TCP check on the port) is enough. Don't
+point a check at `/healthz` on the public URL: Cloud Run's front end answers
+that path itself (with Google's 404 page) before the request reaches the app.
+The app's `/healthz` is for local runs and containers outside Cloud Run.
+
+If a command fails with a permission error right after you enable the APIs, wait
+a minute and run it again; the first `gcloud builds submit` here did the same
+and then succeeded.
 
 ### 5. Point Dialpad at it
 
@@ -155,12 +167,22 @@ contact in dialpadbeta and the panel should appear.
   as above, avoids this for a demo. Anything beyond a demo needs a shared store
   (Redis, Firestore) and a durable access token store, as `backend/stores.py`
   says.
-- **The idtoken is in the page URL.** It never expires, and the app avoids
-  logging it (no access log, and a quiet error handler). Cloud Run also writes
-  its own request log, which I believe includes the full request URL with the
-  query string, but I have not verified that. Check what your project logs, and
-  if the URL is there, add a Cloud Logging exclusion for the service's request
-  logs or restrict who can read them.
+- **The idtoken ends up in Cloud Run's request log.** The idtoken is in the page
+  URL and never expires. The app doesn't log it (no access log, and a quiet
+  error handler), but Cloud Run's own request log,
+  `run.googleapis.com/requests`, records the full request URL including
+  `?idtoken=...`. This was checked on a deployed service. Anyone who can read
+  the project's logs can read those tokens. Either restrict who can read them,
+  or exclude the service's request logs from the `_Default` sink (not run here;
+  check the syntax against the current Cloud Logging documentation):
+
+  ```sh
+  gcloud logging sinks update _Default --project PROJECT \
+    --add-exclusion='name=exclude-acme-requests,filter=logName:"run.googleapis.com%2Frequests" AND resource.labels.service_name="acme-crm-demo"'
+  ```
+
+  Entries already written stay until their retention ends.
+
 - **The OAuth is fake.** `/oauth/fake-authorize` and `/oauth/callback` stand in
   for a CRM; a real partner replaces them (see the README's "What to replace").
 - **Cookies.** The connection cookie is `Secure`, `HttpOnly`, `SameSite=None`
@@ -182,5 +204,18 @@ On a laptop, with Docker:
 - The amd64 image, run under emulation with an HTTPS `BASE_URL` and `PORT=8080`,
   answers `/healthz` and serves the page.
 
-Not checked: a real Cloud Run deployment, Cloud Build, Secret Manager, or what
-Cloud Run logs.
+On Cloud Run, from a deployment to a project that had nothing enabled:
+
+- Cloud Build built the image, Artifact Registry stored it, and the service came
+  up with one instance on port 8080.
+- Over the service's HTTPS URL: the page rendered for an idtoken signed with the
+  configured client secret and returned `401` for one signed with another
+  secret; its headers (the Content-Security-Policy with `frame-ancestors`,
+  `no-store`, `no-referrer`) and its hashed assets were right; the fake
+  authorize page, the callback and `ext-connection` completed a connection and
+  set the cookie with all its attributes.
+- `/healthz` on the public URL returns Google's 404, not the app's `ok`.
+- The app's own logs held no idtoken; Cloud Run's request log did (see above).
+
+Not checked: the panel framed by dialpadbeta itself, which needs the OAuth app's
+conversation sidebar URI to point at the service.
