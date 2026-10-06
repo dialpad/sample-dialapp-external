@@ -75,8 +75,9 @@ pnpm dev                                    # Vite on http://localhost:5173
 Open <http://localhost:5173/dev/>. The dev page stands in for Dialpad: it asks
 the backend for a page URL carrying a mock idtoken (made by the toolkit with its
 test secret), frames the app, answers `init`, opens the first of three contacts,
-and offers buttons to change contact (cycling through the three), start and end
-a call, and switch light and dark.
+and offers buttons to change contact (cycling through the three), change the
+call state (ringing, connected, ended, and a new call ringing), and switch light
+and dark.
 
 Click **Connect**. The fake authorize URL opens in a popup showing a page that
 says it is a fake OAuth page, with an **Authorize** button. The popup stays

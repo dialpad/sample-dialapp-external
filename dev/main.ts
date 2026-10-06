@@ -6,8 +6,8 @@
 // authorize URL in a popup (a page marked as fake, with an Authorize button) and, like the desktop
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.
 // The first of three contacts is open when the panel starts, as when Dialpad opens the panel for a
-// contact. The buttons in `dev/index.html` cycle to the next contact, start and end a call, and
-// switch light and dark.
+// contact. The buttons in `dev/index.html` cycle to the next contact, step a call through its
+// states, and switch light and dark.
 // Playwright tests drive the same host through `window.mockHost`.
 import {
   makeCall,
@@ -83,6 +83,16 @@ const host = mountMockHostPage({
 
 window.mockHost = host;
 
+/**
+ * The states the "Change call state" button steps a call through, in order: ringing, connected and
+ * ended (`hangup`, which is what Dialpad sends). After ended, the next click is a new call
+ * ringing: Dialpad never reports "no call" once a call has been reported, so neither does this.
+ */
+const CALL_STATES = ['ringing', 'connected', 'hangup'] as const;
+
+/** Which of `CALL_STATES` the host last sent; -1 until the first click, when there is no call. */
+let callStateIndex = -1;
+
 /** The theme the host is showing; the toggle button flips it. */
 let mode: 'light' | 'dark' = 'light';
 
@@ -95,11 +105,12 @@ onClick('change-contact', () => {
   contactIndex = (contactIndex + 1) % CONTACTS.length;
   host.sendContact(CONTACTS[contactIndex] ?? null);
 });
-onClick('start-call', () => {
-  host.sendCall(makeCall({ state: 'ringing' }));
-});
-onClick('end-call', () => {
-  host.sendCall(makeCall({ state: 'hangup' }));
+onClick('change-call-state', () => {
+  callStateIndex = (callStateIndex + 1) % CALL_STATES.length;
+  const state = CALL_STATES[callStateIndex];
+  if (state) {
+    host.sendCall(makeCall({ state }));
+  }
 });
 onClick('toggle-theme', () => {
   mode = mode === 'light' ? 'dark' : 'light';

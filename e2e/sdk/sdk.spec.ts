@@ -89,12 +89,18 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await page.getByRole('button', { name: 'Change contact' }).click();
   await expect(contact).toContainText('Acme Pat Customer');
 
-  // Calls reach the panel too: ringing, then ended.
-  await expect(panel.getByTestId('call-card')).toContainText('No active call');
-  await page.getByRole('button', { name: 'Start call' }).click();
-  await expect(panel.getByTestId('call-card')).toContainText('Ringing');
-  await page.getByRole('button', { name: 'End call' }).click();
-  await expect(panel.getByTestId('call-card')).toContainText('Ended');
+  // Calls reach the panel too: the button steps through ringing, connected and ended, and the
+  // next click is a new call ringing.
+  const call = panel.getByTestId('call-card');
+  await expect(call).toContainText('No active call');
+  await page.getByRole('button', { name: 'Change call state' }).click();
+  await expect(call).toContainText('Ringing');
+  await page.getByRole('button', { name: 'Change call state' }).click();
+  await expect(call).toContainText('Connected');
+  await page.getByRole('button', { name: 'Change call state' }).click();
+  await expect(call).toContainText('Ended');
+  await page.getByRole('button', { name: 'Change call state' }).click();
+  await expect(call).toContainText('Ringing');
 
   // A new iframe (the dev page reloaded) carries the cookie, so the first paint is connected.
   await page.reload();
