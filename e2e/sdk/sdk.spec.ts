@@ -84,6 +84,13 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
     'Acme Pat Customer',
   );
 
+  // Calls reach the panel too: ringing, then ended.
+  await expect(panel.getByTestId('call-card')).toContainText('No active call');
+  await page.getByRole('button', { name: 'Start call' }).click();
+  await expect(panel.getByTestId('call-card')).toContainText('Ringing');
+  await page.getByRole('button', { name: 'End call' }).click();
+  await expect(panel.getByTestId('call-card')).toContainText('Ended');
+
   // A new iframe (the dev page reloaded) carries the cookie, so the first paint is connected.
   await page.reload();
   await expect(panel.getByTestId('connected-view')).toBeVisible();

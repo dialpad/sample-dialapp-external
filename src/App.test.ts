@@ -8,6 +8,7 @@ import {
 import { rightbarPlugin } from '@dialpad/dialapp-external-sdk/vue';
 import {
   createMockHost,
+  makeCall,
   makeContact,
   makePageData,
   makeUser,
@@ -349,6 +350,40 @@ describe('Connected view', () => {
     expect(contact).toContain('Acme +1 555 0199');
     expect(contact).toContain('Acme pat@example.com');
     expect(contact).not.toContain('jobTitle');
+  });
+
+  it('shows no active call until Dialpad sends one', async () => {
+    const { wrapper } = await setup({ connected: true });
+
+    expect(wrapper.get('[data-testid="call-card"]').text()).toContain(
+      'No active call',
+    );
+  });
+
+  it('follows a call from ringing to connected to ended', async () => {
+    const { wrapper, host } = await setup({ connected: true });
+
+    host.sendCall(
+      makeCall({
+        state: 'ringing',
+        direction: 'inbound',
+        externalNumber: '+15555550199',
+      }),
+    );
+    await host.settle();
+    const ringing = wrapper.get('[data-testid="call-card"]').text();
+    expect(ringing).toContain('Ringing');
+    expect(ringing).toContain('inbound · +15555550199');
+
+    host.sendCall(makeCall({ state: 'connected' }));
+    await host.settle();
+    expect(wrapper.get('[data-testid="call-card"]').text()).toContain(
+      'Connected',
+    );
+
+    host.sendCall(makeCall({ state: 'hangup' }));
+    await host.settle();
+    expect(wrapper.get('[data-testid="call-card"]').text()).toContain('Ended');
   });
 
   it('opens a new contact without disconnecting', async () => {
