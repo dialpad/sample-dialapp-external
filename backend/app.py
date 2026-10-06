@@ -6,7 +6,8 @@ Routes, in the order a user meets them:
 * ``GET /dialpad/ext-connection`` and ``POST /dialpad/ext-disconnect``: the contract endpoints the
   SDK calls with the app's own access token to check, and to end, the connection.
 * ``GET /oauth/fake-authorize`` and ``GET /oauth/callback``: a stand-in for the partner CRM's OAuth
-  round trip. A real partner replaces these two with their CRM's authorize URL and callback.
+  round trip, with a clearly fake Authorize page in between. A real partner replaces these two with
+  their CRM's authorize URL and callback.
 * ``GET /dev/frame-url`` (local mode only) and ``GET /healthz``: development helpers.
 
 Identity comes from the idtoken on the page request only. Every later API call carries the app's own
@@ -43,11 +44,11 @@ from sanic.handlers import ErrorHandler
 from sanic.response import empty
 from sanic.response import html
 from sanic.response import json
-from sanic.response import redirect
 from sanic.response import text
 
 from backend import signing
 from backend.assets import build_assets
+from backend.fake_oauth import render_fake_authorize_page
 from backend.stores import AccessTokens
 from backend.stores import OAuthResults
 from backend.stores import UserKey
@@ -290,16 +291,25 @@ def _register_fake_oauth(app: App, backend: Backend) -> None:
 
   @app.get('/oauth/fake-authorize')
   async def fake_authorize(request: Request) -> HTTPResponse:
-    """Stand in for the CRM's authorize page by redirecting straight to the callback.
+    """Show the fake authorize screen: a page labelled as fake, with an Authorize button.
 
     Invoked when the user clicks Connect and Dialpad opens the authorize URL in a popup (the web)
-    or its own login window (the desktop app). A real CRM would show a login and consent screen
-    here; this one skips both and sends the ``state`` back with a fixed ``code``. No cookie is set.
+    or its own login window (the desktop app). A real CRM would ask the user to sign in and
+    approve access here. This page just asks for one click, so the popup stays open while the
+    panel shows "connecting". Nothing is recorded and no cookie is set; pressing Authorize sends
+    the ``state`` and a fixed ``code`` to ``/oauth/callback``.
     """
     state = request.args.get('state')
     if not state:
       return text('state is required', status=400)
-    return redirect(f'{settings.callback_url}?{urlencode({"state": state, "code": FAKE_CODE})}')
+    return _rendered(
+        render_fake_authorize_page(
+            callback_url=settings.callback_url,
+            state=state,
+            code=FAKE_CODE,
+            scopes=CONNECTED_SCOPES,
+            nonce=generate_nonce(),
+        ),)
 
   @app.get('/oauth/callback')
   async def callback(request: Request) -> HTTPResponse:

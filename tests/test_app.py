@@ -1,6 +1,8 @@
 """The Sanic app (backend/app.py): page, access tokens, connection, fake OAuth, disconnect, logs."""
 
 import logging
+import re
+from html import unescape
 from typing import TYPE_CHECKING
 from typing import Any
 from urllib.parse import parse_qs
@@ -42,15 +44,31 @@ def state_from(authorize_url: str) -> str:
   return parse_qs(urlsplit(authorize_url).query)['state'][0]
 
 
+async def press_authorize(env: Env, authorize_page: Response) -> Response:
+  """Click the Authorize button on the fake authorize page and return the callback's response.
+
+  A browser submits the page's GET form: the callback URL from ``action`` with the hidden ``state``
+  and ``code`` as query parameters. This reads them from the HTML the same way.
+  """
+  form = re.search(r'<form method="get" action="([^"]*)">', authorize_page.text)
+  assert form
+  action = unescape(form[1])
+  fields = {
+      name: unescape(value) for name, value in re.findall(
+          r'<input type="hidden" name="(\w+)" value="([^"]*)">', authorize_page.text)
+  }
+  return await env.get(action, params=fields)
+
+
 async def finish_oauth(env: Env, authorize_url: str) -> None:
-  """Play the OAuth popup: open the authorize URL, follow its redirect, hit the callback.
+  """Play the OAuth popup: open the authorize URL, click Authorize, land on the callback.
 
   Afterwards the callback has recorded "this user connected" in the app's memory, but nothing is
   connected yet: the next ``ext-connection`` call has to collect it.
   """
-  authorize = await env.get(authorize_url, follow_redirects=False)
-  assert authorize.status_code == 302
-  callback = await env.get(authorize.headers['location'])
+  authorize = await env.get(authorize_url)
+  assert authorize.status_code == 200
+  callback = await press_authorize(env, authorize)
   assert callback.status_code == 200
 
 
@@ -314,26 +332,59 @@ async def test_a_forged_cookie_counts_as_not_connected(env: Env) -> None:
 # --- the fake OAuth round trip -----------------------------------------------------------------
 
 
-async def test_fake_authorize_redirects_to_the_callback_with_the_state_and_a_fixed_code(
+async def test_fake_authorize_shows_a_page_labelled_fake_with_an_authorize_button(
     env: Env,) -> None:
   data = await env.page_data()
   authorize_url = authorize_url_of(data)
 
-  response = await env.get(authorize_url, follow_redirects=False)
+  response = await env.get(authorize_url)
 
-  location = urlsplit(response.headers['location'])
-  assert response.status_code == 302
-  target = f'{location.scheme}://{location.netloc}{location.path}'
-  assert target == f'{env.settings.base_url}/oauth/callback'
-  assert parse_qs(location.query) == {'state': [state_from(authorize_url)], 'code': [FAKE_CODE]}
+  assert response.status_code == 200
+  assert response.headers['content-type'].startswith('text/html')
+  assert 'fake OAuth page' in response.text
+  assert '<button type="submit">Authorize</button>' in response.text
+  # The button sends the same state, and the fixed code, to the callback.
+  action = re.search(r'<form method="get" action="([^"]*)">', response.text)
+  assert action
+  assert action[1] == f'{env.settings.base_url}/oauth/callback'
+  assert f'name="state" value="{state_from(authorize_url)}"' in response.text
+  assert f'name="code" value="{FAKE_CODE}"' in response.text
   assert 'set-cookie' not in response.headers
+
+
+async def test_the_authorize_page_is_locked_down_and_connects_nothing_until_authorized(
+    env: Env,) -> None:
+  data = await env.page_data()
+  token = data['access_token']
+
+  response = await env.get(authorize_url_of(data))
+  check = await env.get('/dialpad/ext-connection', headers=bearer(token))
+
+  csp = response.headers['content-security-policy']
+  nonce = csp.split("style-src 'nonce-")[1].split("'")[0]
+  assert "default-src 'none'" in csp
+  assert "form-action 'self'" in csp
+  assert "frame-ancestors 'none'" in csp
+  assert f'<style nonce="{nonce}">' in response.text
+  assert response.headers['cache-control'] == 'no-store'
+  assert json_of(check)['connected'] is False
+
+
+async def test_the_authorize_page_escapes_the_state_it_echoes(env: Env) -> None:
+  hostile = '"><script>alert(1)</script>'
+
+  response = await env.get('/oauth/fake-authorize', params={'state': hostile})
+
+  assert response.status_code == 200
+  assert '<script>alert(1)</script>' not in response.text
+  assert '&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;' in response.text
 
 
 async def test_the_callback_returns_the_close_popup_page_for_the_dialpad_origin(env: Env) -> None:
   data = await env.page_data()
-  authorize = await env.get(authorize_url_of(data), follow_redirects=False)
+  authorize = await env.get(authorize_url_of(data))
 
-  response = await env.get(authorize.headers['location'])
+  response = await press_authorize(env, authorize)
 
   assert response.status_code == 200
   assert DIALPAD_ORIGIN in response.text
@@ -344,10 +395,10 @@ async def test_the_callback_returns_the_close_popup_page_for_the_dialpad_origin(
 async def test_an_expired_state_at_the_callback_records_nothing(env: Env) -> None:
   data = await env.page_data()
   token = data['access_token']
-  authorize = await env.get(authorize_url_of(data), follow_redirects=False)
+  authorize = await env.get(authorize_url_of(data))
   env.clock.advance(signing.STATE_TTL_SECONDS + 1)
 
-  callback = await env.get(authorize.headers['location'])
+  callback = await press_authorize(env, authorize)
   check = await env.get('/dialpad/ext-connection', headers=bearer(token))
 
   assert callback.status_code == 400
@@ -369,7 +420,7 @@ async def test_the_callback_rejects_a_wrong_code_and_authorize_requires_a_state(
   state = signing.issue_state(5432, 12345, APP_SECRET, env.clock())
 
   wrong_code = await env.get('/oauth/callback', params={'state': state, 'code': 'other'})
-  no_state = await env.get('/oauth/fake-authorize', follow_redirects=False)
+  no_state = await env.get('/oauth/fake-authorize')
 
   assert wrong_code.status_code == 400
   assert no_state.status_code == 400

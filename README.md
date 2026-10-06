@@ -77,11 +77,13 @@ the backend for a page URL carrying a mock idtoken (made by the toolkit with its
 test secret), frames the app, answers `init`, and offers buttons to send a
 contact, start and end a call, and switch light and dark.
 
-Click **Connect**. The fake authorize URL opens in a popup and redirects
-straight to the fake callback, with no login screen. Like the desktop app, the
-dev page never replies to Connect, so the SDK's polling completes it (first
-check after 7 seconds, then every 5). The panel then shows you, and the contact,
-Acme'd. **Disconnect** asks for inline confirmation.
+Click **Connect**. The fake authorize URL opens in a popup showing a page that
+says it is a fake OAuth page, with an **Authorize** button. The popup stays
+open, and the panel shows "Waiting for you to finish connecting", until you
+press Authorize; the popup then goes to the callback and closes itself. Like the
+desktop app, the dev page never replies to Connect, so the SDK's polling
+completes it (first check after 7 seconds, then every 5). The panel then shows
+you, and the contact, Acme'd. **Disconnect** asks for inline confirmation.
 
 `LOCAL_MODE=1` is configuration only; a request cannot switch it on. It changes
 the page's `Content-Security-Policy` in three places and nowhere else:
@@ -142,9 +144,10 @@ Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control.
 3. **API.** Every call afterwards carries
    `Authorization: Bearer <access token>`. The idtoken is used only on the page
    request.
-4. **Connect.** The SDK asks Dialpad to open the authorize URL. The callback
-   verifies a signed `state`, records "connected" for that user in server memory
-   for 5 minutes, and returns the toolkit's close-popup page. The next
+4. **Connect.** The SDK asks Dialpad to open the authorize URL, which shows the
+   fake authorize page. When the user presses Authorize, the callback verifies a
+   signed `state`, records "connected" for that user in server memory for 5
+   minutes, and returns the toolkit's close-popup page. The next
    `/dialpad/ext-connection` check (the reply-triggered one, a poll, or the next
    iframe's bootstrap check) consumes it and sets the connection cookie.
 5. **Later contacts and sessions.** The cookie is signed and bound to the user
@@ -153,24 +156,24 @@ Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control.
    `204`; the SDK then calls `/dialpad/ext-connection` once for a fresh
    authorize URL.
 
-| Endpoint                       | Behaviour                                                                                                |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| `GET /`                        | The page. `401` HTML if the idtoken doesn't decode                                                       |
-| `GET /dialpad/ext-connection`  | Bearer token. Consumes a stored OAuth result, else answers from the cookie. Always a fresh authorize URL |
-| `POST /dialpad/ext-disconnect` | Bearer token. Clears the cookie, answers `204` with no body                                              |
-| `GET /oauth/fake-authorize`    | Demo only. Redirects to the callback with `state` and a fixed `code`                                     |
-| `GET /oauth/callback`          | Demo only. Verifies `state`, records the result, close-popup page                                        |
+| Endpoint                       | Behaviour                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `GET /`                        | The page. `401` HTML if the idtoken doesn't decode                                                                  |
+| `GET /dialpad/ext-connection`  | Bearer token. Consumes a stored OAuth result, else answers from the cookie. Always a fresh authorize URL            |
+| `POST /dialpad/ext-disconnect` | Bearer token. Clears the cookie, answers `204` with no body                                                         |
+| `GET /oauth/fake-authorize`    | Demo only. A page labelled fake, with an Authorize button that goes to the callback with `state` and a fixed `code` |
+| `GET /oauth/callback`          | Demo only. Verifies `state`, records the result, close-popup page                                                   |
 
 ## What to replace
 
-| Here                                            | With                                                                                         |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `/oauth/fake-authorize`, `/oauth/callback`      | Your real OAuth authorize URL and callback. Keep the close-popup page                        |
-| `backend/stores.py` (in-memory)                 | A durable store for access tokens and OAuth results (see below)                              |
-| The cookie (`backend/signing.py`, `app.py`)     | Wherever you keep your CRM tokens. The cookie is this app's choice, not part of the contract |
-| `src/acme.ts`, `src/components/AcmeContact.vue` | Your CRM's data, matched to the Dialpad contact                                              |
-| `src/components/ConnectGate.vue`                | Copy it and change the copy; it renders the SDK's `connection` state                         |
-| `ACCOUNT_NAME` in `backend/app.py`              | Your CRM's account name                                                                      |
+| Here                                            | With                                                                                                  |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `/oauth/fake-authorize`, `/oauth/callback`      | Your CRM's real authorize URL and callback; delete `backend/fake_oauth.py`. Keep the close-popup page |
+| `backend/stores.py` (in-memory)                 | A durable store for access tokens and OAuth results (see below)                                       |
+| The cookie (`backend/signing.py`, `app.py`)     | Wherever you keep your CRM tokens. The cookie is this app's choice, not part of the contract          |
+| `src/acme.ts`, `src/components/AcmeContact.vue` | Your CRM's data, matched to the Dialpad contact                                                       |
+| `src/components/ConnectGate.vue`                | Copy it and change the copy; it renders the SDK's `connection` state                                  |
+| `ACCOUNT_NAME` in `backend/app.py`              | Your CRM's account name                                                                               |
 
 Access tokens and OAuth results live in one process's memory. That is a
 reference-app shortcut, not something to copy: a real partner stores tokens

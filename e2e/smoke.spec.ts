@@ -13,12 +13,15 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   // Flow 1: first open, not connected.
   await expect(panel.getByTestId('connect-gate')).toBeVisible();
 
-  // Flow 2: Connect opens the fake authorize URL in a popup; the dev page never replies, so the
-  // SDK's polling (first check after 7 seconds) completes it.
+  // Flow 2: Connect opens the fake authorize page in a popup, which stays open until the user
+  // presses Authorize. The dev page never replies, so the SDK's polling (first check after 7
+  // seconds) completes it.
   const popup = page.waitForEvent('popup');
   await panel.getByTestId('connect-button').click();
   const authWindow = await popup;
+  await expect(authWindow.getByRole('note')).toContainText('fake OAuth page');
   await expect(panel.getByRole('status')).toContainText('Waiting');
+  await authWindow.getByRole('button', { name: 'Authorize' }).click();
   // The clock acts on every page in the context, so don't move it while the popup is closing.
   await expect.poll(() => authWindow.isClosed()).toBe(true);
   await page.clock.runFor(7_000);

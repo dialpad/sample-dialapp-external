@@ -20,8 +20,9 @@ async function openDevPage(page: Page): Promise<FrameLocator> {
 /**
  * Connect the user through the fake OAuth, the way a desktop app would complete it: by polling.
  *
- * Clicks Connect, lets the popup run the (instant) fake OAuth and close itself, then moves the
- * clock to the SDK's first poll. When it returns the panel shows the connected view.
+ * Clicks Connect, presses Authorize on the fake OAuth page in the popup, waits for the popup to
+ * close itself, then moves the clock to the SDK's first poll. When it returns the panel shows the
+ * connected view.
  */
 async function connectByPolling(
   page: Page,
@@ -30,6 +31,7 @@ async function connectByPolling(
   const popup = page.waitForEvent('popup');
   await panel.getByTestId('connect-button').click();
   const authWindow = await popup;
+  await authWindow.getByRole('button', { name: 'Authorize' }).click();
   // The clock acts on every page in the context, so don't move it while the popup is closing.
   await expect.poll(() => authWindow.isClosed()).toBe(true);
   await page.clock.runFor(7_000);
@@ -64,15 +66,14 @@ test('opened outside Dialpad, the panel asks to be opened from Dialpad', async (
 
 test('Connect that is never completed times out and the host stays not connected', async ({
   page,
-  context,
 }) => {
-  // Block the fake authorize page, so the popup never finishes the OAuth round trip.
-  await context.route('**/oauth/fake-authorize**', (route) => route.abort());
   const panel = await openDevPage(page);
 
+  // The popup shows the fake authorize page; Authorize is never pressed, so OAuth never finishes.
   const popup = page.waitForEvent('popup');
   await panel.getByTestId('connect-button').click();
-  await popup;
+  const authWindow = await popup;
+  await expect(authWindow.getByRole('note')).toContainText('fake OAuth page');
   await expect(panel.getByRole('status')).toContainText('Waiting');
 
   await page.clock.runFor(125_000);

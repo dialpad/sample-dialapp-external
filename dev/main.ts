@@ -3,9 +3,10 @@
 // It is a thin wrapper around the SDK's `mountMockHostPage()`. On load it asks the backend (in local
 // mode) for the panel's page URL with a mock idtoken made by the Python toolkit, and frames it in
 // an iframe, answering the SDK's `init` and `get/user` like Dialpad does. Connect opens the fake
-// authorize URL in a popup and, like the desktop app, never replies, so the SDK's polling completes
-// the connection. The buttons in `dev/index.html` send a contact, start and end a call, and switch
-// light and dark. Playwright tests drive the same host through `window.mockHost`.
+// authorize URL in a popup (a page marked as fake, with an Authorize button) and, like the desktop
+// app, never replies, so the SDK's polling completes the connection once Authorize is pressed.
+// The buttons in `dev/index.html` send a contact, start and end a call, and switch light and dark.
+// Playwright tests drive the same host through `window.mockHost`.
 import {
   makeCall,
   makeContact,
