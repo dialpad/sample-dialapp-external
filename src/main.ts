@@ -1,3 +1,5 @@
+// The page's entry module: the backend's page loads it, and it only starts `bootstrap`.
+// Dialtone's CSS is imported once, here, and components are imported one by one where used.
 import '@dialpad/dialtone/css';
 import './style.css';
 

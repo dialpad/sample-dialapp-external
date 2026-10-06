@@ -1,7 +1,18 @@
 <script setup lang="ts">
-// The Connect gate: the UI the SDK deliberately doesn't ship. Partners copy this file and change
-// the copy. It renders `connection` from the SDK's snapshot: not connected, connecting (polling),
-// and the three failures (`timeout`, `network`, `request_failed`), each with "Try again".
+// The Connect gate: what the panel shows while the user is not connected. It is the UI the SDK
+// deliberately doesn't ship, so partners copy this file and change the copy.
+//
+// It renders from the SDK's `connection` state and has four looks:
+//   * not connected: a Connect button;
+//   * connecting: Connect was clicked, Dialpad opened the authorize URL in a popup (or the desktop
+//     app's login window) and the SDK is polling `/dialpad/ext-connection`. The button is disabled
+//     and the text says to finish in the Acme window. This ends by itself when the backend says
+//     "connected" (the gate disappears), or after 2 minutes with a timeout;
+//   * failed: `timeout` (polling gave up), `network` or `request_failed` (a connection check
+//     failed), each with an explanation and "Try again".
+//
+// With one OAuth client `authorize()` needs no argument. A company with several would have
+// several `authorizationUrls`, and this is where the user would pick one.
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 import { DtButton } from '@dialpad/dialtone/vue/lib/button';
 import { DtNotice } from '@dialpad/dialtone/vue/lib/notice';
@@ -11,12 +22,14 @@ const { state, authorize } = useRightbar();
 
 const connection = computed(() => state.value.connection);
 
+/** What the user is told for each way a connection check can fail, keyed by the SDK's error code. */
 const ERROR_COPY: Record<string, string> = {
   timeout: "Acme didn't respond in time.",
   network: "We couldn't reach Acme. Check your connection.",
   request_failed: 'Something went wrong while checking your Acme connection.',
 };
 
+/** The message for the current error, or null when there is none (so no notice and "Connect"). */
 const errorCopy = computed(() => {
   const code = connection.value.error?.code;
   return code ? ERROR_COPY[code] : null;

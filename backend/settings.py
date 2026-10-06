@@ -1,4 +1,8 @@
-"""Configuration, read from the environment. Secrets never appear in logs or responses."""
+"""Configuration, read from the environment. Secrets never appear in logs or responses.
+
+``settings_from_env`` is the only entry point: ``python -m backend`` calls it once at startup, and a
+bad value stops the process there with a ``ConfigurationError`` rather than failing on a request.
+"""
 
 import os
 from dataclasses import dataclass
@@ -7,21 +11,25 @@ from urllib.parse import urlsplit
 
 from dialpad_dialapp_toolkit.testing import TEST_CLIENT_SECRET
 
-# Local mode defaults: the dev page (served by Vite) frames this backend.
+# The idtoken's JWE is keyed with the first 48 characters of the client secret; Dialpad's secrets
+# are 50 characters.
 MIN_CLIENT_SECRET_LENGTH = 48
+# Local mode defaults: the dev page (served by Vite) frames this backend.
 DEFAULT_LOCAL_BASE_URL = 'http://localhost:8000'
 DEFAULT_LOCAL_DEV_PAGE_ORIGIN = 'http://localhost:5173'
 DEFAULT_LOCAL_APP_SECRET = 'local-mode-app-secret-not-for-production' # noqa: S105
 
 
 class ConfigurationError(Exception):
-  """A required setting is missing."""
+  """A setting is missing or invalid; raised at startup, before the server listens."""
 
 
 def _is_bare_origin(value: str) -> bool:
   """Whether ``value`` is exactly ``scheme://host[:port]``: no path, query, spaces or ``;``.
 
-  The origin goes into the page's Content-Security-Policy header, which the toolkit also checks.
+  The Dialpad origin goes into the page's Content-Security-Policy header, where a stray ``;`` or
+  space would add directives, so it is checked at startup (the toolkit refuses it at render time
+  too). A trailing slash, the likeliest typo, fails the exact comparison.
   """
   if ';' in value or any(char.isspace() for char in value):
     return False
@@ -31,11 +39,12 @@ def _is_bare_origin(value: str) -> bool:
 
 @dataclass(frozen=True)
 class Settings:
-  """Everything the backend needs to know about its environment.
+  """Everything the backend needs to know about its environment, immutable once built.
 
   ``local_mode`` is configuration only; no request can switch it on. In local mode the dev page,
   not Dialpad, frames the app, so ``dialpad_origin`` is the dev page's origin and the page's
-  Content-Security-Policy gains the Vite dev server's origins.
+  Content-Security-Policy gains the Vite dev server's origins. The two secrets are left out of
+  ``repr`` so they can't leak into a log line or a traceback.
   """
 
   client_secret: str = field(repr=False)
@@ -48,7 +57,11 @@ class Settings:
   dist_dir: str = 'dist'
 
   def __post_init__(self) -> None:
-    """Reject a bad client secret or Dialpad origin at startup, not on the first page load."""
+    """Reject a bad Dialpad origin or client secret as soon as the settings are built.
+
+    That is at startup, so a typo in an environment variable surfaces as a clear message instead
+    of a 500 on the first page load.
+    """
     if not _is_bare_origin(self.dialpad_origin):
       message = ('DIALPAD_ORIGIN must be a bare origin such as https://dialpadbeta.com, '
                  f'got {self.dialpad_origin!r}')
@@ -59,21 +72,31 @@ class Settings:
 
   @property
   def vite_websocket_origin(self) -> str:
-    """The Vite dev server's websocket origin, for hot reload."""
+    """Return the Vite dev server's websocket origin (``ws://``/``wss://``), for hot reload.
+
+    Local mode adds it to the page's ``connect-src`` so the dev server's websocket isn't blocked.
+    """
     return self.vite_origin.replace('http://', 'ws://', 1).replace('https://', 'wss://', 1)
 
   @property
   def authorize_url(self) -> str:
-    """The fake authorize endpoint's absolute URL, without a ``state``."""
+    """Return the absolute URL of the fake authorize endpoint, without a ``state``.
+
+    Dialpad opens it (with a ``state`` appended) when the user clicks Connect.
+    """
     return f'{self.base_url}/oauth/fake-authorize'
 
   @property
   def callback_url(self) -> str:
-    """The fake callback endpoint's absolute URL."""
+    """Return the absolute URL the fake authorize endpoint redirects to.
+
+    A real CRM would redirect to the callback URL registered with it, which is built the same way.
+    """
     return f'{self.base_url}/oauth/callback'
 
 
 def _required(env: dict[str, str], name: str) -> str:
+  """Return the environment variable ``name``, or raise ``ConfigurationError`` if unset or empty."""
   value = env.get(name)
   if not value:
     message = f'{name} is required'
@@ -82,11 +105,12 @@ def _required(env: dict[str, str], name: str) -> str:
 
 
 def settings_from_env(env: dict[str, str] | None = None) -> Settings:
-  """Build settings from ``env`` (default: the process environment).
+  """Build the settings from ``env`` (default: the process environment).
 
-  ``LOCAL_MODE=1`` fills in every value a local run needs, including the toolkit's test client
-  secret, which is also what the dev page signs its mock idtoken with. Outside local mode the
-  client secret, app secret, Dialpad origin and base URL are all required.
+  Called once, at startup. ``LOCAL_MODE=1`` fills in every value a local run needs, including the
+  toolkit's test client secret, which is also what the dev page signs its mock idtoken with. Any
+  of those can still be overridden. Outside local mode the client secret, app secret, Dialpad
+  origin and base URL are all required, and a missing one raises ``ConfigurationError``.
   """
   env = dict(os.environ) if env is None else env
   if env.get('LOCAL_MODE') == '1':

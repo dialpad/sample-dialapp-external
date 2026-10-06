@@ -3,6 +3,12 @@ import { expect, test, type FrameLocator, type Page } from '@playwright/test';
 
 const BACKEND = 'http://localhost:8000';
 
+/**
+ * Open the dev page with Playwright's clock installed and wait for the panel's Connect gate.
+ *
+ * Starts from a fresh browser context, so the user is not connected (no cookie). Returns the
+ * panel's iframe for queries; the clock is paused until a test moves it.
+ */
 async function openDevPage(page: Page): Promise<FrameLocator> {
   await page.clock.install();
   await page.goto('/dev/');
@@ -11,7 +17,12 @@ async function openDevPage(page: Page): Promise<FrameLocator> {
   return panel;
 }
 
-/** Clicks Connect, lets the popup finish and close itself, then moves the clock to the first poll. */
+/**
+ * Connect the user through the fake OAuth, the way a desktop app would complete it: by polling.
+ *
+ * Clicks Connect, lets the popup run the (instant) fake OAuth and close itself, then moves the
+ * clock to the SDK's first poll. When it returns the panel shows the connected view.
+ */
 async function connectByPolling(
   page: Page,
   panel: FrameLocator,
@@ -25,6 +36,12 @@ async function connectByPolling(
   await expect(panel.getByTestId('connected-view')).toBeVisible();
 }
 
+/**
+ * What the mock host believes: whether the panel last told Dialpad it is connected.
+ *
+ * The SDK reports this automatically so Dialpad's panel menu (which has Disconnect only while
+ * connected) always matches the panel.
+ */
 async function hostThinksConnected(page: Page): Promise<boolean | undefined> {
   return page.evaluate(() => window.mockHost?.received.connected);
 }

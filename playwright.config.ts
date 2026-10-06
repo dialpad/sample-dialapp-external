@@ -1,7 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// The smoke test runs the whole local stack: the Sanic backend in local mode (port 8000) and the
-// Vite dev server (port 5173), which serves the app's scripts and the dev page.
+// The browser tests run the whole local stack: the Sanic backend in local mode (port 8000) and the
+// Vite dev server (port 5173), which serves the app's scripts and the dev page. Playwright starts
+// both and waits for them; outside CI it reuses servers you already started with `pnpm dev`.
+// The tests run one at a time because they share the backend's in-memory state.
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: false,

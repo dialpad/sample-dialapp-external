@@ -1,6 +1,9 @@
 <script setup lang="ts">
 // The contact Dialpad sent, with every field "Acme'd": the reference app has no CRM, so this
 // proves data flows from the host to the panel. Fields are labelled by the SDK's field names.
+//
+// `contact` is null until Dialpad sends one (the SDK's `state.contact`), and a different contact
+// arrives in a new iframe, so the panel simply re-renders. Empty fields are left out.
 import type { Contact } from '@dialpad/dialapp-external-sdk';
 import { computed } from 'vue';
 
@@ -8,6 +11,7 @@ import { acmeFields } from '../acme';
 
 const props = defineProps<{ contact: Contact | null }>();
 
+/** The rows to show; empty when no contact is open, which shows a short "no contact" line. */
 const fields = computed(() => (props.contact ? acmeFields(props.contact) : []));
 </script>
 

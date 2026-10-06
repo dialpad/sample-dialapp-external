@@ -1,4 +1,8 @@
-"""The signed state and connection cookie: forged, expired, wrong-purpose, wrong-user values."""
+"""The signed state and connection cookie (backend/signing.py).
+
+Covers forged, expired, wrong-purpose and wrong-user values: what the OAuth callback and the
+connection checks rely on to trust a ``state`` or a cookie.
+"""
 
 from backend import signing
 from backend.signing import COOKIE_MAX_AGE_SECONDS

@@ -1,5 +1,11 @@
-// The dev page: a thin wrapper around the SDK's `mountMockHostPage()`. The backend, in local mode,
-// hands out a page URL carrying a mock idtoken made by the Python toolkit.
+// The dev page: a stand-in for Dialpad, for running the panel locally without Dialpad.
+//
+// It is a thin wrapper around the SDK's `mountMockHostPage()`. On load it asks the backend (in local
+// mode) for the panel's page URL with a mock idtoken made by the Python toolkit, and frames it in
+// an iframe, answering the SDK's `init` and `get/user` like Dialpad does. Connect opens the fake
+// authorize URL in a popup and, like the desktop app, never replies, so the SDK's polling completes
+// the connection. The buttons in `dev/index.html` send a contact, start and end a call, and switch
+// light and dark. Playwright tests drive the same host through `window.mockHost`.
 import {
   makeCall,
   makeContact,
@@ -14,6 +20,7 @@ declare global {
   }
 }
 
+/** Where the backend runs in local mode; the backend allows this page's origin by CORS. */
 const BACKEND = 'http://localhost:8000';
 
 const response = await fetch(`${BACKEND}/dev/frame-url`);
@@ -26,8 +33,10 @@ const host = mountMockHostPage({
 
 window.mockHost = host;
 
+/** The theme the host is showing; the toggle button flips it. */
 let mode: 'light' | 'dark' = 'light';
 
+/** Run `handler` when the dev page's button with this id is clicked. */
 function onClick(id: string, handler: () => void): void {
   document.getElementById(id)?.addEventListener('click', handler);
 }

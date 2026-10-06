@@ -1,9 +1,10 @@
-"""The in-memory access tokens and the short-lived OAuth results."""
+"""The in-memory access tokens and the short-lived OAuth results (backend/stores.py)."""
 
 from backend.stores import OAUTH_RESULT_TTL_SECONDS
 from backend.stores import AccessTokens
 from backend.stores import OAuthResults
 from backend.stores import UserKey
+from tests.conftest import Clock
 
 JANE = UserKey(company_id=12345, user_id=5432)
 PAT = UserKey(company_id=12345, user_id=777)
@@ -21,15 +22,6 @@ def test_a_user_gets_the_same_access_token_every_time_and_other_users_get_other_
 
 def test_an_unknown_access_token_maps_to_no_user() -> None:
   assert AccessTokens().lookup('never-issued') is None
-
-
-class Clock:
-  """A settable clock."""
-  def __init__(self) -> None:
-    self.now = 1_000.0
-
-  def __call__(self) -> float:
-    return self.now
 
 
 def test_an_oauth_result_is_consumed_once_by_the_user_it_was_recorded_for() -> None:

@@ -33,16 +33,21 @@ PAT = {'user_id': 777, 'company_id': 12345}
 
 
 def authorize_url_of(page_data: dict[str, Any]) -> str:
-  """Return the one authorize URL in the page data's external connection."""
+  """Return the ``acme-crm`` authorize URL from page data, as the Connect button would use it."""
   return str(page_data['external_connection']['authorization_urls'][CLIENT_NAME])
 
 
 def state_from(authorize_url: str) -> str:
+  """Return the signed ``state`` query parameter of an authorize URL."""
   return parse_qs(urlsplit(authorize_url).query)['state'][0]
 
 
 async def finish_oauth(env: Env, authorize_url: str) -> None:
-  """Follow the fake authorize redirect and the callback, as the popup does."""
+  """Play the OAuth popup: open the authorize URL, follow its redirect, hit the callback.
+
+  Afterwards the callback has recorded "this user connected" in the app's memory, but nothing is
+  connected yet: the next ``ext-connection`` call has to collect it.
+  """
   authorize = await env.get(authorize_url, follow_redirects=False)
   assert authorize.status_code == 302
   callback = await env.get(authorize.headers['location'])
@@ -50,7 +55,11 @@ async def finish_oauth(env: Env, authorize_url: str) -> None:
 
 
 async def connect(env: Env, token: str, authorize_url: str) -> Response:
-  """Complete OAuth for a user and return the connection response that sets the cookie."""
+  """Connect a user end to end and return the ``ext-connection`` response that sets the cookie.
+
+  Runs the OAuth popup (``finish_oauth``), then makes the SDK's follow-up connection check with the
+  user's access token. That response is "connected" with the ``Set-Cookie`` header.
+  """
   await finish_oauth(env, authorize_url)
   return await env.get('/dialpad/ext-connection', headers=bearer(token))
 

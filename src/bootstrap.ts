@@ -13,12 +13,19 @@ import { api, useAuthHeaders } from './api';
 import App from './App.vue';
 import BootstrapError from './BootstrapError.vue';
 
+/** The shape of the SDK's `createRightbar`, so tests can swap in the mock host's. */
 export type CreateRightbar = (options: RightbarOptions) => Promise<Rightbar>;
 
 /**
- * Starts the panel: `createRightbar()` before mounting, then the theme, then the app. When the SDK
- * rejects (`bad_options`, `not_framed`, `bad_page_data`, `init_timeout`), the user is told to open
- * the panel from Dialpad instead. `create` is injectable so tests can use the mock host.
+ * Start the panel inside `root`.
+ *
+ * Called once, as soon as the page's script runs, when `root` is still empty. It asks the SDK to
+ * start (the SDK reads the page data, checks the page is framed by Dialpad and does the `init`
+ * handshake), applies Dialpad's light or dark mode, and mounts the Vue app, which then renders from
+ * the SDK's snapshot. If the SDK refuses to start (`bad_options`, `not_framed`, `bad_page_data` or
+ * `init_timeout`) the page is not in a working Dialpad iframe, so a short "open this panel from
+ * Dialpad" message is mounted instead and nothing else runs. Any other error is a bug and is
+ * rethrown. `create` defaults to the real SDK; tests pass the mock host's.
  */
 export async function bootstrap(
   root: HTMLElement,

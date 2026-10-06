@@ -36,6 +36,7 @@ vi.mock('@dialpad/dialtone/themes/config', () => ({
 
 const AUTHORIZE_URL = 'https://acme.example.com/oauth/fake-authorize?state=s';
 
+/** A JSON response, as the Acme backend would send one. */
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -53,7 +54,13 @@ function externalConnection(connected: boolean) {
   };
 }
 
-/** A fake Acme backend: `mode` decides how the connection endpoint answers. */
+/**
+ * A fake Acme backend as a `fetch` function, recording every call it gets.
+ *
+ * `mode` decides how it answers: `not_connected` or `connected` (an `external_connection` body),
+ * `network` (the request throws), or `server_error` (a 500). `ext-disconnect` answers 204 and, when
+ * it succeeds, flips the backend to `not_connected`, as clearing the cookie does for the real one.
+ */
 function fakeBackend() {
   const backend = {
     mode: 'not_connected' as
@@ -91,6 +98,7 @@ function fakeBackend() {
   return backend;
 }
 
+/** Every component mounted by `setup`, so `afterEach` can unmount them. */
 const mounted: { unmount(): void }[] = [];
 
 // Vue reports bad props (for example an invalid Dialtone `kind`) as console warnings.
@@ -100,6 +108,14 @@ beforeEach(() => {
   warnings = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 });
 
+/**
+ * Start the panel against a mock Dialpad and a fake Acme backend, like a user opening it.
+ *
+ * `connected` is what the page data says at load (a connected user's cookie, or not); `mode` is how
+ * the fake backend answers connection checks from then on; `user` is what Dialpad's `get/user`
+ * answers. Returns the host (to send contacts and move the clock), the backend (to change its mode
+ * and see its calls) and the mounted wrapper.
+ */
 async function setup({
   connected = false,
   mode = 'not_connected',
@@ -422,6 +438,12 @@ describe('Requests', () => {
 });
 
 describe('Bootstrap errors', () => {
+  /**
+   * Run the real `bootstrap` into a fresh element, with the mock host standing in for Dialpad.
+   *
+   * `pageData` is whatever the (pretend) page embedded, valid or not, so tests can exercise how
+   * the SDK reacts to bad page data. Returns the element so tests can read what was mounted.
+   */
   async function bootstrapWith(
     host: ReturnType<typeof createMockHost>,
     pageData: unknown,

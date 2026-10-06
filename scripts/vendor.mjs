@@ -20,15 +20,19 @@ import {
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+/** The repository root (this file lives in `scripts/`). */
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+/** The file names the libraries' packaging produces; the capture group is the version. */
 const SDK = /^dialpad-dialapp-external-sdk-(.+)\.tgz$/;
 const TOOLKIT = /^dialpad_dialapp_toolkit-(.+)-py3-none-any\.whl$/;
 
+/** Print a `vendor:` error and exit with status 1. Nothing after it runs. */
 function fail(message) {
   console.error(`vendor: ${message}`);
   process.exit(1);
 }
 
+/** Return the one file name in `files` that matches `pattern`, or fail if there are none or many. */
 function findOne(files, pattern, description, dir) {
   const matches = files.filter((file) => pattern.test(file));
   if (matches.length === 0) {
@@ -42,6 +46,7 @@ function findOne(files, pattern, description, dir) {
   return matches[0];
 }
 
+/** Replace the first match of `pattern` in the file at `path`, failing if there is no match. */
 function replaceOnce(path, pattern, replacement, description) {
   const text = readFileSync(path, 'utf8');
   if (!pattern.test(text)) {
@@ -50,6 +55,7 @@ function replaceOnce(path, pattern, replacement, description) {
   writeFileSync(path, text.replace(pattern, replacement));
 }
 
+/** Run a command in the repository root with its output shown, failing if it does not exit 0. */
 function run(command, args) {
   console.log(`vendor: $ ${command} ${args.join(' ')}`);
   const result = spawnSync(command, args, { cwd: root, stdio: 'inherit' });
