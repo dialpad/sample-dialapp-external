@@ -1,6 +1,12 @@
-// Real-browser checks of the SDK, against the dev page. See README.md in this folder.
+// Real-browser tests of the panel and the SDK against the dev page, in Chromium. See README.md in
+// this folder: they are not part of the template.
+//
+// The Playwright config starts the backend in local mode and Vite. Every test opens the dev page
+// (a stand-in for Dialpad) with Playwright's clock installed, so waiting for the SDK's polling and
+// timeouts costs no real time, and reads what the mock host believes through `window.mockHost`.
 import { expect, test, type FrameLocator, type Page } from '@playwright/test';
 
+/** Where the backend runs in local mode. */
 const BACKEND = 'http://localhost:8000';
 
 /**
@@ -18,19 +24,29 @@ async function openDevPage(page: Page): Promise<FrameLocator> {
 }
 
 /**
- * Connect the user through the fake OAuth, the way a desktop app would complete it: by polling.
+ * Click Connect and return the popup Dialpad opens for the authorize URL.
  *
- * Clicks Connect, presses Authorize on the fake OAuth page in the popup, waits for the popup to
- * close itself, then moves the clock to the SDK's first poll. When it returns the panel shows the
- * connected view.
+ * The popup shows the fake OAuth page and stays open until Authorize is pressed. The panel shows
+ * "Waiting for you to finish connecting" meanwhile.
  */
-async function connectByPolling(
-  page: Page,
-  panel: FrameLocator,
-): Promise<void> {
+async function startConnect(page: Page, panel: FrameLocator): Promise<Page> {
   const popup = page.waitForEvent('popup');
   await panel.getByTestId('connect-button').click();
-  const authWindow = await popup;
+  return popup;
+}
+
+/**
+ * Finish Connect the way the desktop app does, by polling: press Authorize, wait for the popup to
+ * close itself, then move the clock to the SDK's first poll (7 seconds after Connect).
+ *
+ * When it returns, the backend has handed the finished OAuth to that poll and the panel shows the
+ * connected view.
+ */
+async function authorizeAndPoll(
+  page: Page,
+  panel: FrameLocator,
+  authWindow: Page,
+): Promise<void> {
   await authWindow.getByRole('button', { name: 'Authorize' }).click();
   // The clock acts on every page in the context, so don't move it while the popup is closing.
   await expect.poll(() => authWindow.isClosed()).toBe(true);
@@ -47,6 +63,37 @@ async function connectByPolling(
 async function hostThinksConnected(page: Page): Promise<boolean | undefined> {
   return page.evaluate(() => window.mockHost?.received.connected);
 }
+
+test('connect by polling, reconnect on first paint, then disconnect', async ({
+  page,
+}) => {
+  // First open, not connected.
+  const panel = await openDevPage(page);
+
+  // Connect opens the fake authorize page in a popup. The dev page never replies, so the SDK's
+  // polling (first check after 7 seconds) completes it once Authorize is pressed.
+  const authWindow = await startConnect(page, panel);
+  await expect(authWindow.getByRole('note')).toContainText('fake OAuth page');
+  await expect(panel.getByRole('status')).toContainText('Waiting');
+  await authorizeAndPoll(page, panel, authWindow);
+  await expect(panel.getByTestId('user-card')).toContainText('Jane Agent');
+
+  // Data flows from the host to the panel: the contact the dev page sends is shown Acme'd.
+  await page.getByRole('button', { name: 'Send contact' }).click();
+  await expect(panel.getByTestId('acme-contact')).toContainText(
+    'Acme Pat Customer',
+  );
+
+  // A new iframe (the dev page reloaded) carries the cookie, so the first paint is connected.
+  await page.reload();
+  await expect(panel.getByTestId('connected-view')).toBeVisible();
+  await expect(panel.getByTestId('connect-gate')).toHaveCount(0);
+
+  // Disconnect, with inline confirmation.
+  await panel.getByTestId('disconnect-button').click();
+  await panel.getByTestId('disconnect-confirm').click();
+  await expect(panel.getByTestId('connect-gate')).toBeVisible();
+});
 
 test('opened outside Dialpad, the panel asks to be opened from Dialpad', async ({
   page,
@@ -69,10 +116,8 @@ test('Connect that is never completed times out and the host stays not connected
 }) => {
   const panel = await openDevPage(page);
 
-  // The popup shows the fake authorize page; Authorize is never pressed, so OAuth never finishes.
-  const popup = page.waitForEvent('popup');
-  await panel.getByTestId('connect-button').click();
-  const authWindow = await popup;
+  // Authorize is never pressed, so the OAuth round trip never finishes.
+  const authWindow = await startConnect(page, panel);
   await expect(authWindow.getByRole('note')).toContainText('fake OAuth page');
   await expect(panel.getByRole('status')).toContainText('Waiting');
 
@@ -90,7 +135,7 @@ test("Disconnect from Dialpad's panel menu shows the Connect gate", async ({
   page,
 }) => {
   const panel = await openDevPage(page);
-  await connectByPolling(page, panel);
+  await authorizeAndPoll(page, panel, await startConnect(page, panel));
   await expect.poll(() => hostThinksConnected(page)).toBe(true);
 
   const disconnectCalled = page.waitForRequest(

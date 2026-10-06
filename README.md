@@ -186,13 +186,11 @@ panels get `401` after a restart and show "Reload the panel".
 pnpm lint:ci && pnpm format:ci && pnpm types:check && pnpm test:run     # frontend
 .venv/bin/ruff check . && .venv/bin/yapf --diff -r backend tests \
   && .venv/bin/ty check && .venv/bin/pytest                             # backend
-pnpm test:e2e                                                          # Playwright smoke test
+pnpm test:e2e                                                          # browser tests
 ```
 
-The Playwright tests start the backend in local mode and Vite, then drive the
-dev page with Playwright's clock. `e2e/smoke.spec.ts` walks Connect, a reload
-and Disconnect. The three tests in `e2e/sdk/` exist to check the SDK in a real
-browser from the libraries' CI (opened outside Dialpad, Connect that times out,
-Disconnect from the host's panel menu); they are not part of the template, so
-delete that folder when you copy the app. Install the browser once with
+`pnpm test:e2e` starts the backend in local mode and Vite, then drives the dev
+page in Chromium with Playwright's clock. These tests check this repository and
+the libraries in a real browser; they are not part of the template, so delete
+`e2e/sdk/` (see its README) when you copy the app. Install the browser once with
 `pnpm exec playwright install chromium`.
