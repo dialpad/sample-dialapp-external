@@ -5,7 +5,9 @@
 // an iframe, answering the SDK's `init` and `get/user` like Dialpad does. Connect opens the fake
 // authorize URL in a popup (a page marked as fake, with an Authorize button) and, like the desktop
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.
-// The buttons in `dev/index.html` send a contact, start and end a call, and switch light and dark.
+// The first of three contacts is open when the panel starts, as when Dialpad opens the panel for a
+// contact. The buttons in `dev/index.html` cycle to the next contact, start and end a call, and
+// switch light and dark.
 // Playwright tests drive the same host through `window.mockHost`.
 import {
   makeCall,
@@ -27,9 +29,56 @@ const BACKEND = 'http://localhost:8000';
 const response = await fetch(`${BACKEND}/dev/frame-url`);
 const { url } = (await response.json()) as { url: string };
 
+/**
+ * The Dialpad contacts the "Change contact" button cycles through. The first is open from the
+ * start, so the panel shows a contact as soon as the user connects, like a real Dialpad.
+ */
+const CONTACTS = [
+  makeContact({
+    id: '4800000000000001',
+    displayName: 'Pat Customer',
+    firstName: 'Pat',
+    lastName: 'Customer',
+    companyName: 'Customer Co',
+    jobTitle: 'Buyer',
+    primaryPhone: '+1 555 0199',
+    phones: ['+1 555 0199'],
+    primaryEmail: 'pat@example.com',
+    emails: ['pat@example.com'],
+  }),
+  makeContact({
+    id: '4800000000000002',
+    displayName: 'Sam Prospect',
+    firstName: 'Sam',
+    lastName: 'Prospect',
+    companyName: 'Prospect Inc',
+    jobTitle: 'Founder',
+    primaryPhone: '+1 555 0142',
+    phones: ['+1 555 0142', '+1 555 0143'],
+    primaryEmail: 'sam@example.com',
+    emails: ['sam@example.com'],
+  }),
+  makeContact({
+    id: '4800000000000003',
+    displayName: 'Robin Partner',
+    firstName: 'Robin',
+    lastName: 'Partner',
+    companyName: 'Partner LLC',
+    jobTitle: null,
+    primaryPhone: '+1 555 0177',
+    phones: ['+1 555 0177'],
+    primaryEmail: 'robin@example.com',
+    emails: ['robin@example.com', 'robin@partner.example.com'],
+  }),
+];
+
+/** Which of `CONTACTS` the host currently has open. */
+let contactIndex = 0;
+
 const host = mountMockHostPage({
   src: url,
   container: document.getElementById('panel') ?? undefined,
+  contact: CONTACTS[contactIndex],
 });
 
 window.mockHost = host;
@@ -42,16 +91,9 @@ function onClick(id: string, handler: () => void): void {
   document.getElementById(id)?.addEventListener('click', handler);
 }
 
-onClick('send-contact', () => {
-  host.sendContact(
-    makeContact({
-      displayName: 'Pat Customer',
-      primaryPhone: '+1 555 0199',
-      phones: ['+1 555 0199'],
-      primaryEmail: 'pat@example.com',
-      emails: ['pat@example.com'],
-    }),
-  );
+onClick('change-contact', () => {
+  contactIndex = (contactIndex + 1) % CONTACTS.length;
+  host.sendContact(CONTACTS[contactIndex] ?? null);
 });
 onClick('start-call', () => {
   host.sendCall(makeCall({ state: 'ringing' }));

@@ -78,11 +78,16 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await authorizeAndPoll(page, panel, authWindow);
   await expect(panel.getByTestId('user-card')).toContainText('Jane Agent');
 
-  // Data flows from the host to the panel: the contact the dev page sends is shown Acme'd.
-  await page.getByRole('button', { name: 'Send contact' }).click();
-  await expect(panel.getByTestId('acme-contact')).toContainText(
-    'Acme Pat Customer',
-  );
+  // Data flows from the host to the panel: the contact open in the dev page, shown Acme'd, is
+  // there as soon as the user is connected. Changing contact cycles through three and wraps.
+  const contact = panel.getByTestId('acme-contact');
+  await expect(contact).toContainText('Acme Pat Customer');
+  await page.getByRole('button', { name: 'Change contact' }).click();
+  await expect(contact).toContainText('Acme Sam Prospect');
+  await page.getByRole('button', { name: 'Change contact' }).click();
+  await expect(contact).toContainText('Acme Robin Partner');
+  await page.getByRole('button', { name: 'Change contact' }).click();
+  await expect(contact).toContainText('Acme Pat Customer');
 
   // Calls reach the panel too: ringing, then ended.
   await expect(panel.getByTestId('call-card')).toContainText('No active call');
