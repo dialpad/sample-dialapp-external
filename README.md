@@ -145,12 +145,14 @@ To run it as a container, for example on Cloud Run, see
    page with the toolkit: the access token and an `external_connection` (whether
    the user is connected, one authorize URL for the `acme-crm` client, and its
    scopes). The page carries no user data, so nothing from the idtoken's profile
-   reaches the browser.
+   reaches the browser, and the idtoken's `api_key` never does either. The one
+   extra thing it embeds is the result of a demo call to Dialpad's API (see
+   [below](#the-demo-call-to-dialpads-api)).
 2. **User.** The SDK asks Dialpad for the user (`get/user`) once it starts, and
    the panel shows it from `state.user`.
 3. **API.** Every call afterwards carries
    `Authorization: Bearer <access token>`. The idtoken is used only on the page
-   request.
+   request (for the user's identity and the demo call below), and is not stored.
 4. **Connect.** The SDK asks Dialpad to open the authorize URL, which shows the
    fake authorize page. When the user presses Authorize, the callback verifies a
    signed `state`, records "connected" for that user in server memory for 5
@@ -171,6 +173,31 @@ To run it as a container, for example on Cloud Run, see
 | `GET /oauth/fake-authorize`    | Demo only. A page labelled fake, with an Authorize button that goes to the callback with `state` and a fixed `code` |
 | `GET /oauth/callback`          | Demo only. Verifies `state`, records the result, close-popup page                                                   |
 
+### The demo call to Dialpad's API
+
+**Unnecessary for the app, and for demo purposes only.** While it renders the
+page, the backend uses the idtoken's `api_key` to call Dialpad's public API, to
+show how the key is used: `GET {DIALPAD_ORIGIN}/api/v2/users/me` with
+`Authorization: Bearer <api_key>`, made by Dialpad's own Python client
+([`python-dialpad`](https://pypi.org/project/python-dialpad/)), in
+`backend/dialpad_api.py`. The panel shows the user's name, email, id and state
+in a "From Dialpad's API" card.
+
+- The call has a 3 second timeout and no retry. If Dialpad's API refuses the
+  key, fails or is slow, the page renders anyway and the card says "Dialpad API
+  unavailable".
+- Local mode makes no call (the mock idtoken's key isn't real), and the card
+  says so.
+- The key is used for this one call and dropped. It is never put in the page,
+  logged or returned, and the idtoken is not stored.
+- Doc 11 of the partner rightbar PRD lists calling the public API with the key
+  as out of scope; this demo does it anyway, to show the key in use.
+
+A real application would not work this way. The key never expires, so it
+**persists the api key in long-term storage** (as it does its CRM tokens) the
+first time it sees it, and **uses it to call Dialpad as and when needed**, from
+a background job or a webhook handler as much as from a page load.
+
 ## What to replace
 
 | Here                                            | With                                                                                                  |
@@ -181,6 +208,7 @@ To run it as a container, for example on Cloud Run, see
 | `src/acme.ts`, `src/components/AcmeContact.vue` | Your CRM's data, matched to the Dialpad contact                                                       |
 | `src/components/ConnectGate.vue`                | Copy it and change the copy; it renders the SDK's `connection` state                                  |
 | `ACCOUNT_NAME` in `backend/app.py`              | Your CRM's account name                                                                               |
+| `backend/dialpad_api.py`, `DialpadApiCard.vue`  | Delete both, and the call in the `page` handler. Store the api key and call Dialpad when you need to  |
 
 Access tokens and OAuth results live in one process's memory. That is a
 reference-app shortcut, not something to copy: a real partner stores tokens

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Connected: who you are (the host's `get/user`), the active call, and the contact Dialpad sent,
-// Acme'd, plus the OAuth scopes the connection has. All of it comes from the SDK's snapshot, which
+// Acme'd, the backend's demo call to Dialpad's API, plus the OAuth scopes the connection has. All of it comes from the SDK's snapshot, which
 // keeps the call and contact up to date; connecting doesn't reset them.
 //
 // During a call there can be two contacts: the panel's (`state.contact`) and the call's own
@@ -12,6 +12,7 @@ import { computed } from 'vue';
 import { isSameContact } from '../contacts';
 import AcmeContact from './AcmeContact.vue';
 import CallCard from './CallCard.vue';
+import DialpadApiCard from './DialpadApiCard.vue';
 import DisconnectButton from './DisconnectButton.vue';
 import UserCard from './UserCard.vue';
 
@@ -27,6 +28,7 @@ const otherCallContact = computed(() => {
 <template>
   <div class="acme-connected" data-testid="connected-view">
     <UserCard :user="state.user" />
+    <DialpadApiCard />
     <CallCard :call="state.call" />
     <AcmeContact
       v-if="otherCallContact"

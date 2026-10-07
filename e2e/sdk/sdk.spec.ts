@@ -77,6 +77,10 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await expect(panel.getByRole('status')).toContainText('Waiting');
   await authorizeAndPoll(page, panel, authWindow);
   await expect(panel.getByTestId('user-card')).toContainText('Jane Agent');
+  // The backend's demo call to Dialpad's API is skipped in local mode, and the card says so.
+  await expect(panel.getByTestId('dialpad-api-card')).toContainText(
+    'Skipped in local mode',
+  );
 
   // Data flows from the host to the panel: the contact open in the dev page, shown Acme'd, is
   // there as soon as the user is connected. Changing contact cycles through three and wraps.

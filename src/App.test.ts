@@ -121,11 +121,14 @@ async function setup({
   connected = false,
   mode = 'not_connected',
   user,
+  app = null,
 }: {
   connected?: boolean;
   mode?: ReturnType<typeof fakeBackend>['mode'];
   /** What Dialpad's `get/user` answers: the default user, a user, or `null` for none. */
   user?: User | null;
+  /** What the backend put in the page data's `app` field, for example the demo API call's result. */
+  app?: Record<string, unknown> | null;
 } = {}) {
   const host = createMockHost(user === undefined ? {} : { user });
   const backend = fakeBackend();
@@ -136,6 +139,7 @@ async function setup({
     heightRoot: root,
     fetch: backend.fetch,
     pageData: makePageData({
+      app,
       externalConnection: {
         connected,
         name: 'acme-crm',
@@ -350,6 +354,66 @@ describe('Connected view', () => {
     expect(contact).toContain('Acme +1 555 0199');
     expect(contact).toContain('Acme pat@example.com');
     expect(contact).not.toContain('jobTitle');
+  });
+
+  it("shows the user the backend fetched from Dialpad's API with the api key", async () => {
+    const { wrapper } = await setup({
+      connected: true,
+      app: {
+        dialpadApi: {
+          status: 'ok',
+          user: {
+            id: 5432,
+            displayName: 'Jane From Api',
+            email: 'jane.api@example.com',
+            state: 'active',
+          },
+        },
+      },
+    });
+
+    const card = wrapper.get('[data-testid="dialpad-api-card"]').text();
+    expect(card).toContain("From Dialpad's API");
+    expect(card).toContain('Jane From Api');
+    expect(card).toContain('jane.api@example.com');
+    expect(card).toContain('user 5432 · active');
+    expect(card).toContain('demo only');
+  });
+
+  it("says so when the backend could not reach Dialpad's API, and the panel still works", async () => {
+    const { wrapper } = await setup({
+      connected: true,
+      app: { dialpadApi: { status: 'unavailable', user: null } },
+    });
+
+    expect(wrapper.get('[data-testid="dialpad-api-card"]').text()).toContain(
+      'Dialpad API unavailable',
+    );
+    expect(wrapper.find('[data-testid="user-card"]').exists()).toBe(true);
+  });
+
+  it("explains that local mode doesn't call Dialpad's API", async () => {
+    const { wrapper } = await setup({
+      connected: true,
+      app: { dialpadApi: { status: 'skipped', user: null } },
+    });
+
+    expect(wrapper.get('[data-testid="dialpad-api-card"]').text()).toContain(
+      'Skipped in local mode',
+    );
+  });
+
+  it.each([
+    ['no app data', null],
+    ['an unknown status', { dialpadApi: { status: 'weird', user: null } }],
+    ['a malformed result', { dialpadApi: 'nope' }],
+  ])('shows no API card for %s', async (_name, app) => {
+    const { wrapper } = await setup({ connected: true, app });
+
+    expect(wrapper.find('[data-testid="dialpad-api-card"]').exists()).toBe(
+      false,
+    );
+    expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
   it('shows no active call until Dialpad sends one', async () => {

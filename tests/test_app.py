@@ -17,7 +17,6 @@ from backend.app import CLIENT_NAME
 from backend.app import CONNECTED_SCOPES
 from backend.app import FAKE_CODE
 from tests.conftest import APP_SECRET
-from tests.conftest import DIALPAD_ORIGIN
 from tests.conftest import Env
 from tests.conftest import bearer
 from tests.conftest import cookie_header
@@ -133,7 +132,7 @@ async def test_the_page_embeds_page_data_and_never_the_api_key_or_csr(env: Env) 
   data = page_data_of(response)
 
   assert data['version'] == 1
-  assert data['dialpad_origin'] == DIALPAD_ORIGIN
+  assert data['dialpad_origin'] == env.settings.dialpad_origin
   assert data['api_prefix'] == '/dialpad'
   connection = data['external_connection']
   assert connection['connected'] is False
@@ -171,7 +170,7 @@ async def test_the_page_carries_the_security_headers_and_a_matching_nonce(env: E
 
   csp = response.headers['content-security-policy']
   nonce = csp.split("'nonce-")[1].split("'")[0]
-  assert f'frame-ancestors {DIALPAD_ORIGIN}' in csp
+  assert f'frame-ancestors {env.settings.dialpad_origin}' in csp
   assert "script-src 'self'" in csp
   assert 'unsafe-eval' not in csp
   assert f'nonce="{nonce}"' in response.text
@@ -387,7 +386,7 @@ async def test_the_callback_returns_the_close_popup_page_for_the_dialpad_origin(
   response = await press_authorize(env, authorize)
 
   assert response.status_code == 200
-  assert DIALPAD_ORIGIN in response.text
+  assert env.settings.dialpad_origin in response.text
   assert 'close_popup' in response.text
   assert 'set-cookie' not in response.headers
 

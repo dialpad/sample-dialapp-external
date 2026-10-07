@@ -48,6 +48,9 @@ from sanic.response import text
 
 from backend import signing
 from backend.assets import build_assets
+from backend.dialpad_api import DEFAULT_TIMEOUT_SECONDS
+from backend.dialpad_api import fetch_dialpad_user
+from backend.dialpad_api import skipped
 from backend.fake_oauth import render_fake_authorize_page
 from backend.stores import AccessTokens
 from backend.stores import OAuthResults
@@ -111,6 +114,8 @@ class Backend:
   tokens: AccessTokens
   results: OAuthResults
   clock: Callable[[], float]
+  # Seconds the page request waits for the demo call to Dialpad's API (see `dialpad_api`).
+  api_timeout: float
 
   def authorize_url(self, key: UserKey) -> str:
     """Build the URL the Connect button sends this user to, with a fresh signed ``state``.
@@ -212,8 +217,9 @@ def _register_page(app: App, backend: Backend) -> None:
     Invoked when Dialpad (or the dev page) loads the iframe. A token that doesn't decode gets a
     ``401`` HTML page. Otherwise the user's access token is created on first use (and reused
     after), and the page embeds it with the connection as the cookie says it is: connected for
-    a valid cookie, not connected (with an authorize URL) otherwise. Nothing is stored beyond the
-    token, and no cookie is set here: only ``ext-connection`` sets it.
+    a valid cookie, not connected (with an authorize URL) otherwise. The page data's ``app`` field
+    carries the result of the demo call to Dialpad's API (never the api key itself). Nothing is
+    stored beyond the token, and no cookie is set here: only ``ext-connection`` sets it.
     """
     try:
       claims = decode_idtoken(request.args.get('idtoken'), settings.client_secret)
@@ -222,6 +228,18 @@ def _register_page(app: App, backend: Backend) -> None:
       return _rendered(render_error_page(error, status=401,
                                          dialpad_origin=settings.dialpad_origin),)
     key = UserKey(company_id=claims.company_id, user_id=claims.user_id)
+    # DEMO ONLY, and UNNECESSARY for this app: the panel works without this request. It shows how
+    # the idtoken's `api_key` is used, by calling Dialpad's public API with it right here, on the
+    # page request, while the idtoken is in hand. The key is used for this one call and dropped.
+    # A real application must NOT work like this: it persists the api key in long-term storage
+    # (the key never expires) and uses it to call Dialpad as and when necessary, for example from
+    # a background job or a webhook handler, not only when the panel loads. Local mode has no real
+    # key (the mock idtoken's is `mock-api-key`, which Dialpad would refuse), so it makes no call.
+    demo = skipped() if settings.local_mode else await fetch_dialpad_user(
+        claims.api_key,
+        origin=settings.dialpad_origin,
+        timeout=backend.api_timeout,
+    )
     page_data = PageData(
         dialpad_origin=settings.dialpad_origin,
         api_prefix=DEFAULT_API_PREFIX,
@@ -230,6 +248,7 @@ def _register_page(app: App, backend: Backend) -> None:
             key,
             connected=backend.cookie_is_valid(request, key),
         ),
+        app=demo.as_app_data(),
     )
     options = PageOptions(
         title=ACCOUNT_NAME,
@@ -358,13 +377,15 @@ def create_app(
     *,
     clock: Callable[[], float] = time.time,
     name: str = 'acme_crm',
+    api_timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> App:
   """Build the Sanic app: its stores, its routes, and the page's assets.
 
   Called once at startup by ``python -m backend`` and once per test. Access tokens and OAuth
   results start empty and live in this app's memory. ``clock`` returns the time in seconds, so
-  tests can move time; ``name`` must be unique per app in one process. Outside local mode this
-  also needs the built frontend (``pnpm build``) and serves it under ``/assets``.
+  tests can move time; ``name`` must be unique per app in one process; ``api_timeout`` is how long
+  the page waits for the demo call to Dialpad's API. Outside local mode this also needs the built
+  frontend (``pnpm build``) and serves it under ``/assets``.
   """
   app = Sanic(name, error_handler=QuietErrorHandler(), configure_logging=False)
   # The access log would print each page URL, idtoken included.
@@ -375,6 +396,7 @@ def create_app(
       tokens=AccessTokens(),
       results=OAuthResults(clock),
       clock=clock,
+      api_timeout=api_timeout,
   )
 
   @app.get('/healthz')
