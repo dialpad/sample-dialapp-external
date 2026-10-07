@@ -11,8 +11,9 @@ with every field "Acme'd" (text gets an `Acme ` prefix).
 
 It uses one Dialpad library, plus public packages:
 
-- `@dialpad/dialapp-external-sdk` (TypeScript): the headless SDK that speaks
-  Dialpad's host protocol and keeps the panel's state.
+- `@dialpad/dialapp-external-sdk` (TypeScript), from
+  [`dialapp-external`](https://github.com/dialpad/dialapp-external): the
+  headless SDK that speaks Dialpad's host protocol and keeps the panel's state.
 
 The backend carries its own small pieces of the contract, which you keep and
 adapt: `backend/idtoken.py` decodes the idtoken (and mints mock ones for local

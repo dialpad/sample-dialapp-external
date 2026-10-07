@@ -70,7 +70,7 @@ def test_not_connected_requires_an_authorization_url() -> None:
   assert connected.scopes == []
 
 
-def test_external_connection_has_the_frameworks_shape() -> None:
+def test_external_connection_has_the_contracts_shape() -> None:
   connection = ExternalConnection(
       connected=True,
       authorization_urls={

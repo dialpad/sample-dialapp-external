@@ -48,7 +48,7 @@ class IdTokenClaims(BaseModel):
 
 
 class ExternalConnection(BaseModel):
-  """The Dialpad user's connection to the partner's system, in the DialApp framework's shape.
+  """The Dialpad user's connection to the partner's system.
 
   The page data carries it so the first paint needs no request, and ``<prefix>/ext-connection``
   returns it whenever the SDK checks again (on start when not connected, and while Connect polls).

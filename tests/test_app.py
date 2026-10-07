@@ -263,7 +263,7 @@ async def test_a_stored_result_is_consumed_and_sets_the_connection_cookie(env: E
   assert body['connected'] is True
   assert body['name'] == CLIENT_NAME
   assert body['scopes'] == CONNECTED_SCOPES
-  # Even when connected there is a fresh authorize URL, as the DialApp framework's shape has it.
+  # Even when connected there is a fresh authorize URL, which the contract's shape allows.
   assert list(body['authorization_urls']) == [CLIENT_NAME]
   cookie = response.headers['set-cookie']
   assert cookie.startswith('__Host-acme_session=')

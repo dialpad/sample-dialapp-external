@@ -68,7 +68,7 @@ App = Sanic[Config, SimpleNamespace]
 
 # The name the panel shows and the page title.
 ACCOUNT_NAME = 'Acme CRM (demo)'
-# The OAuth client's name and scopes, in the DialApp framework's `external_connection` shape.
+# The OAuth client's name and scopes, as the contract's `ExternalConnection` carries them.
 CLIENT_NAME = 'acme-crm'
 CONNECTED_SCOPES = ['contacts.read']
 # The fixed authorization code the fake OAuth round trip hands back; a real CRM issues a one-time
@@ -141,7 +141,7 @@ class Backend:
     )
 
   def external_connection(self, key: UserKey, *, connected: bool) -> ExternalConnection:
-    """Build the connection status in the DialApp framework's ``external_connection`` shape.
+    """Build the connection status as the contract's ``ExternalConnection``.
 
     Used for the page data and every ``ext-connection`` answer. It always carries one authorize URL
     (even when connected, so the SDK has a fresh one ready after a disconnect); the scopes are the
