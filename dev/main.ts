@@ -1,7 +1,7 @@
 // The dev page: a stand-in for Dialpad, for running the panel locally without Dialpad.
 //
 // It is a thin wrapper around the SDK's `mountMockHostPage()`. On load it asks the backend (in local
-// mode) for the panel's page URL with a mock idtoken made by the Python toolkit, and frames it in
+// mode) for the panel's page URL with a mock idtoken made by `backend/idtoken.py`, and frames it in
 // an iframe, answering the SDK's `init` and `get/user` like Dialpad does. Connect opens the fake
 // authorize URL in a popup (a page marked as fake, with an Authorize button) and, like the desktop
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.

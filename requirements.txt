@@ -1,6 +1,8 @@
 sanic>=25.12,<26
+# The contract models (backend/contract.py) and the idtoken decoder (backend/idtoken.py).
+pydantic>=2.7,<3
+joserfc>=1.0,<2
 # Dialpad's public API client, used only by the demo call in backend/dialpad_api.py. httpx is
 # imported there for its exception types.
 python-dialpad>=3.2,<4
 httpx>=0.28,<1
-./vendor/dialpad_dialapp_toolkit-0.1.0-py3-none-any.whl

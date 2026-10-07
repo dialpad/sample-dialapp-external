@@ -16,10 +16,10 @@ The `Dockerfile` builds in two stages:
 1. **Frontend.** Node 24 with Corepack runs `pnpm install --frozen-lockfile` and
    `pnpm build`, producing `dist/` (the hashed assets and Vite's manifest). The
    SDK installs from its tarball in `vendor/`.
-2. **Backend.** A slim Python 3.14 image installs `requirements.txt` (Sanic and
-   the toolkit wheel, also from `vendor/`), then copies in `backend/` and the
-   built `dist/`. It runs as a non-root user and starts `python -m backend`,
-   which serves the page and the API, and the built assets under `/assets`.
+2. **Backend.** A slim Python 3.14 image installs `requirements.txt` (public
+   packages only), then copies in `backend/` and the built `dist/`. It runs as a
+   non-root user and starts `python -m backend`, which serves the page and the
+   API, and the built assets under `/assets`.
 
 The image sets `HOST=0.0.0.0` and `PORT=8080`. It does not contain any secret or
 URL: the environment variables below are passed when the container runs.
@@ -99,8 +99,8 @@ gcloud builds submit \
   --tag REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest .
 ```
 
-`vendor/` is tracked in git, so it is uploaded with the source; the image needs
-it.
+`vendor/` is tracked in git, so it is uploaded with the source; the image's
+frontend stage needs the SDK tarball in it.
 
 ### 3. Choose the secret values
 

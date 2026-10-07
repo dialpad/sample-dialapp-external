@@ -1,4 +1,4 @@
-# Keep the build context to what the image needs. vendor/ is needed: both libraries install from it.
+# Keep the build context to what the image needs. vendor/ is needed: the SDK installs from it.
 .git
 .gitignore
 .codegraph

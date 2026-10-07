@@ -1,12 +1,12 @@
-// Pulls new copies of Dialpad's two libraries into vendor/ and installs them.
+// Pulls a new copy of Dialpad's SDK into vendor/ and installs it.
 //
 //   pnpm run vendor <dir>
 //
-// <dir> holds exactly one dialpad-dialapp-external-sdk-<version>.tgz and one
-// dialpad_dialapp_toolkit-<version>-py3-none-any.whl (the libraries' `artifacts/` folder).
-// The script replaces everything in vendor/ with those two files, points package.json and
-// requirements.txt at them, then installs them into node_modules and .venv. Running it twice with
-// the same files gives the same result. It needs no packages of its own.
+// <dir> holds exactly one dialpad-dialapp-external-sdk-<version>.tgz (the library's `artifacts/`
+// folder); any other file in it is ignored. The script replaces everything in vendor/ with that
+// tarball, points package.json at it, then installs the packages into node_modules and the Python
+// requirements into .venv. Running it twice with the same file gives the same result. It needs no
+// packages of its own.
 import { spawnSync } from 'node:child_process';
 import {
   copyFileSync,
@@ -22,9 +22,8 @@ import { fileURLToPath } from 'node:url';
 
 /** The repository root (this file lives in `scripts/`). */
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-/** The file names the libraries' packaging produces; the capture group is the version. */
+/** The file name the SDK's packaging produces; the capture group is the version. */
 const SDK = /^dialpad-dialapp-external-sdk-(.+)\.tgz$/;
-const TOOLKIT = /^dialpad_dialapp_toolkit-(.+)-py3-none-any\.whl$/;
 
 /** Print a `vendor:` error and exit with status 1. Nothing after it runs. */
 function fail(message) {
@@ -66,7 +65,7 @@ function run(command, args) {
 
 const argument = process.argv[2];
 if (!argument || process.argv.length > 3) {
-  fail('usage: pnpm run vendor <dir containing the .tgz and the .whl>');
+  fail('usage: pnpm run vendor <dir containing the SDK .tgz>');
 }
 const source = resolve(argument);
 if (!existsSync(source)) {
@@ -80,12 +79,6 @@ const sdk = findOne(
   'SDK tarball (dialpad-dialapp-external-sdk-<version>.tgz)',
   source,
 );
-const toolkit = findOne(
-  files,
-  TOOLKIT,
-  'toolkit wheel (dialpad_dialapp_toolkit-<version>-py3-none-any.whl)',
-  source,
-);
 
 const python = join(root, '.venv', 'bin', 'python');
 if (!existsSync(python)) {
@@ -94,39 +87,25 @@ if (!existsSync(python)) {
   );
 }
 
-// Replace vendor/ with the two files.
+// Replace vendor/ with the tarball.
 const vendor = join(root, 'vendor');
 rmSync(vendor, { recursive: true, force: true });
 mkdirSync(vendor);
 copyFileSync(join(source, sdk), join(vendor, sdk));
-copyFileSync(join(source, toolkit), join(vendor, toolkit));
 
-// Point the two references at them.
+// Point package.json at it.
 replaceOnce(
   join(root, 'package.json'),
   /("@dialpad\/dialapp-external-sdk":\s*")file:vendor\/[^"]+(")/,
   `$1file:vendor/${sdk}$2`,
   'the @dialpad/dialapp-external-sdk dependency',
 );
-replaceOnce(
-  join(root, 'requirements.txt'),
-  /^\.\/vendor\/.*\.whl$/m,
-  `./vendor/${toolkit}`,
-  'the ./vendor/...whl line',
-);
 
-// Install them. The lockfile's checksum for the tarball changes with every build, even at the same
-// version, so the install is not frozen. The wheel is force-reinstalled for the same reason: pip
-// would otherwise keep an already-installed copy of the same version.
+// Install. The lockfile's checksum for the tarball changes with every build, even at the same
+// version, so the install is not frozen. The Python requirements (which requirements-dev.txt
+// includes) come from public packages and do not depend on the SDK; they are installed here so a
+// fresh .venv is complete after one command.
 run('pnpm', ['install', '--no-frozen-lockfile']);
-run(python, [
-  '-m',
-  'pip',
-  'install',
-  '--force-reinstall',
-  '--no-deps',
-  `./vendor/${toolkit}`,
-]);
 run(python, ['-m', 'pip', 'install', '-r', 'requirements-dev.txt']);
 
-console.log(`vendor: done. SDK ${sdk}, toolkit ${toolkit}`);
+console.log(`vendor: done. SDK ${sdk}`);

@@ -2,7 +2,7 @@
   "name": "sample-dialapp-external",
   "version": "0.1.0",
   "private": true,
-  "description": "Reference app for partners building a Dialpad rightbar panel. A fictional Acme CRM shows the whole flow: a Sanic backend on the toolkit decodes the launch token and serves the page, the Vue panel runs on the SDK and its Connect flow, and tests drive it against the SDK's mock Dialpad host.",
+  "description": "Reference app for partners building a Dialpad rightbar panel. A fictional Acme CRM shows the whole flow: a Sanic backend decodes the launch token and serves the page, the Vue panel runs on the SDK and its Connect flow, and tests drive it against the SDK's mock Dialpad host.",
   "type": "module",
   "packageManager": "pnpm@12.9.1",
   "engines": {

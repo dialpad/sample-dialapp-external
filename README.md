@@ -9,12 +9,16 @@ data flow by showing the Dialpad user, the active call, the OAuth scopes and the
 open Dialpad contact (plus the call's own contact when it is a different person)
 with every field "Acme'd" (text gets an `Acme ` prefix).
 
-It uses only Dialpad's two libraries and public packages:
+It uses one Dialpad library, plus public packages:
 
-- `dialpad-dialapp-toolkit` (Python): decodes the idtoken, renders the page and
-  the close-popup page, and defines the contract models.
 - `@dialpad/dialapp-external-sdk` (TypeScript): the headless SDK that speaks
   Dialpad's host protocol and keeps the panel's state.
+
+The backend carries its own small pieces of the contract, which you keep and
+adapt: `backend/idtoken.py` decodes the idtoken (and mints mock ones for local
+mode), `backend/pages.py` renders the panel, close-popup and error pages with
+their security headers, and `backend/contract.py` has the models the SDK reads.
+They are built on `pydantic` and `joserfc`.
 
 The backend is bare Sanic on Python 3.14; the frontend is Vite, Vue 3,
 TypeScript and Dialtone 10. Copy this repository and replace the parts listed
@@ -33,30 +37,27 @@ python3.14 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
 ```
 
-The two libraries are installed from files in `vendor/`, exactly as you install
-what Dialpad sends you: `package.json` points at
-`vendor/dialpad-dialapp-external-sdk-<version>.tgz` and `requirements.txt` at
-`vendor/dialpad_dialapp_toolkit-<version>-py3-none-any.whl`. Nothing here needs
-Dialpad's private registry.
+The SDK is installed from a file in `vendor/`, exactly as you install what
+Dialpad sends you: `package.json` points at
+`vendor/dialpad-dialapp-external-sdk-<version>.tgz`. Nothing here needs
+Dialpad's private registry. The Python side installs only public packages.
 
-### Upgrading the libraries
+### Upgrading the SDK
 
-Put the new `dialpad-dialapp-external-sdk-<version>.tgz` and
-`dialpad_dialapp_toolkit-<version>-py3-none-any.whl` in one folder and run:
+Put the new `dialpad-dialapp-external-sdk-<version>.tgz` in a folder and run:
 
 ```sh
 pnpm run vendor <folder>
 ```
 
-It replaces everything in `vendor/` with those two files, updates the two
-references (the `file:vendor/...` dependency in `package.json` and the
-`./vendor/...` line in `requirements.txt`), then installs them with
-`pnpm install --no-frozen-lockfile` and
-`pip install --force-reinstall --no-deps` into `.venv`, which must already
-exist. The install is not frozen because a new build changes the tarball's
-checksum even at the same version. The folder must contain exactly one of each
-file; otherwise the command stops with a message before changing anything.
-Running it twice with the same files is safe.
+It replaces everything in `vendor/` with that file, updates the
+`file:vendor/...` dependency in `package.json`, then installs with
+`pnpm install --no-frozen-lockfile` and `pip install -r requirements-dev.txt`
+into `.venv`, which must already exist. The install is not frozen because a new
+build changes the tarball's checksum even at the same version. The folder must
+contain exactly one SDK tarball (other files in it are ignored); otherwise the
+command stops with a message before changing anything. Running it twice with the
+same file is safe.
 
 ## Run locally, without Dialpad (local mode)
 
@@ -74,11 +75,11 @@ pnpm dev                                    # Vite on http://localhost:5173
 ```
 
 Open <http://localhost:5173/dev/>. The dev page stands in for Dialpad: it asks
-the backend for a page URL carrying a mock idtoken (made by the toolkit with its
-test secret), frames the app, answers `init`, opens the first of three contacts,
-and offers buttons to change contact (cycling through the three), change the
-call state (ringing, connected, ended, and a new call ringing), and switch light
-and dark.
+the backend for a page URL carrying a mock idtoken (made by `backend/idtoken.py`
+with its test secret), frames the app, answers `init`, opens the first of three
+contacts, and offers buttons to change contact (cycling through the three),
+change the call state (ringing, connected, ended, and a new call ringing), and
+switch light and dark.
 
 Click **Connect**. The fake authorize URL opens in a popup showing a page that
 says it is a fake OAuth page, with an **Authorize** button. The popup stays
@@ -123,7 +124,7 @@ loads a `.env` file, so export them in your shell or your host's settings.
 
 | Variable                | Required                | Purpose                                                                                                                                                                                                                                            |
 | ----------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DIALPAD_CLIENT_SECRET` | yes, outside local mode | The OAuth app's client secret; decodes the idtoken. At least 48 characters (Dialpad's are 50). Local mode defaults to the toolkit's test secret                                                                                                    |
+| `DIALPAD_CLIENT_SECRET` | yes, outside local mode | The OAuth app's client secret; decodes the idtoken. At least 48 characters (Dialpad's are 50). Local mode defaults to this app's own test secret (`TEST_CLIENT_SECRET` in `backend/idtoken.py`)                                                    |
 | `DIALPAD_ORIGIN`        | yes, outside local mode | `https://dialpadbeta.com` for beta or `https://dialpad.com` for production; the page's `frame-ancestors`. Must be a bare origin (scheme, host, optional port; no trailing slash or path), checked at startup. Local mode defaults to `VITE_ORIGIN` |
 | `APP_SECRET`            | yes, outside local mode | A random secret that signs the OAuth `state` and the connection cookie. Local mode defaults to a fixed development value                                                                                                                           |
 | `BASE_URL`              | yes, outside local mode | The public HTTPS URL of the backend, without a trailing slash; used to build the authorize and callback URLs. Local mode defaults to `http://localhost:8000`                                                                                       |
@@ -141,13 +142,13 @@ To run it as a container, for example on Cloud Run, see
 ## How it works
 
 1. **Page.** Dialpad loads `GET /?idtoken=…`. The backend decodes the token with
-   the toolkit, looks up or issues this user's access token, and renders the
-   page with the toolkit: the access token and an `external_connection` (whether
-   the user is connected, one authorize URL for the `acme-crm` client, and its
-   scopes). The page carries no user data, so nothing from the idtoken's profile
-   reaches the browser, and the idtoken's `api_key` never does either. The one
-   extra thing it embeds is the result of a demo call to Dialpad's API (see
-   [below](#the-demo-call-to-dialpads-api)).
+   `backend/idtoken.py`, looks up or issues this user's access token, and
+   renders the page with `backend/pages.py`: the access token and an
+   `external_connection` (whether the user is connected, one authorize URL for
+   the `acme-crm` client, and its scopes). The page carries no user data, so
+   nothing from the idtoken's profile reaches the browser, and the idtoken's
+   `api_key` never does either. The one extra thing it embeds is the result of a
+   demo call to Dialpad's API (see [below](#the-demo-call-to-dialpads-api)).
 2. **User.** The SDK asks Dialpad for the user (`get/user`) once it starts, and
    the panel shows it from `state.user`.
 3. **API.** Every call afterwards carries
@@ -156,7 +157,7 @@ To run it as a container, for example on Cloud Run, see
 4. **Connect.** The SDK asks Dialpad to open the authorize URL, which shows the
    fake authorize page. When the user presses Authorize, the callback verifies a
    signed `state`, records "connected" for that user in server memory for 5
-   minutes, and returns the toolkit's close-popup page. The next
+   minutes, and returns the close-popup page from `backend/pages.py`. The next
    `/dialpad/ext-connection` check (the reply-triggered one, a poll, or the next
    iframe's bootstrap check) consumes it and sets the connection cookie.
 5. **Later contacts and sessions.** The cookie is signed and bound to the user
@@ -209,6 +210,12 @@ a background job or a webhook handler as much as from a page load.
 | `src/components/ConnectGate.vue`                | Copy it and change the copy; it renders the SDK's `connection` state                                  |
 | `ACCOUNT_NAME` in `backend/app.py`              | Your CRM's account name                                                                               |
 | `backend/dialpad_api.py`, `DialpadApiCard.vue`  | Delete both, and the call in the `page` handler. Store the api key and call Dialpad when you need to  |
+
+Keep `backend/idtoken.py` (the decoder), `backend/pages.py` (the page,
+close-popup and error rendering with their security headers) and
+`backend/contract.py` (the models the SDK reads): they are the contract's
+backend half, and the OAuth callback's close-popup page stays as it is. Replace
+`TEST_CLIENT_SECRET` and `encode_mock_idtoken` only if you drop local mode.
 
 Access tokens and OAuth results live in one process's memory. That is a
 reference-app shortcut, not something to copy: a real partner stores tokens

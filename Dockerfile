@@ -28,9 +28,8 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# requirements.txt installs the toolkit from its wheel in vendor/, so copy that first.
+# The backend's requirements are all public packages.
 COPY requirements.txt ./
-COPY vendor ./vendor
 RUN pip install -r requirements.txt
 
 COPY backend ./backend
