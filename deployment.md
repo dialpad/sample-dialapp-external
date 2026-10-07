@@ -70,6 +70,11 @@ let Cloud Build do the build (below).
 
 ## Deploy
 
+You need `gcloud` signed in (`gcloud auth login`) with permission to enable APIs
+and create Cloud Run services, Artifact Registry repositories and Cloud Build
+builds in the project. The project owner role does. Pass `--project` on every
+command, as below, so nothing depends on your default project.
+
 These are the commands the reference app was deployed with, on a project with
 nothing enabled yet. Replace `PROJECT`, `REGION` and the names to suit. Cloud
 Run's commands change over time, so check them against the current
@@ -157,6 +162,63 @@ trailing slash, for example `https://acme-crm-demo-xxxxxxxx-uc.a.run.app/`,
 following Dialpad's runbook. Dialpad appends `?idtoken=...` itself. Open a
 contact in dialpadbeta and the panel should appear.
 
+## Day two
+
+### Deploy a new version
+
+Build again and roll out a new revision. Rebuilding the same `:latest` tag is
+enough: Cloud Run resolves the tag to the new image when you deploy, and the
+service keeps its environment variables, scaling settings and URL. (These two
+commands were run to redeploy this app.)
+
+```sh
+gcloud builds submit \
+  --tag REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest --project PROJECT .
+
+gcloud run deploy acme-crm-demo --project PROJECT --region REGION \
+  --image REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest
+```
+
+The new revision takes all traffic once it is ready. Open panels hold the old
+revision's access tokens only in that instance's memory, so after a rollout they
+get `401` and show "Reload the panel".
+
+To change a setting without rebuilding, use
+`gcloud run services update ... --update-env-vars` (as for `BASE_URL` above).
+
+### Look at it
+
+```sh
+gcloud run revisions list --service acme-crm-demo --project PROJECT --region REGION
+gcloud run services logs read acme-crm-demo --project PROJECT --region REGION --limit 50
+```
+
+The service has two equivalent URLs: the one `gcloud run services describe`
+prints in `status.url` (`https://acme-crm-demo-<hash>-uc.a.run.app`) and a
+second form built from the project number
+(`https://acme-crm-demo-<project-number>.<region>.run.app`). Use the same one
+for `BASE_URL` and the sidebar URI so the OAuth popup and the panel share an
+origin.
+
+### Roll back, or remove it (not run here)
+
+```sh
+gcloud run services update-traffic acme-crm-demo --project PROJECT --region REGION \
+  --to-revisions REVISION=100
+
+gcloud run services delete acme-crm-demo --project PROJECT --region REGION
+```
+
+Deleting the service leaves the image in Artifact Registry and the enabled APIs
+in the project.
+
+### Cost
+
+`--min-instances 1` keeps one instance running all the time, which is billed
+even with no traffic. Set `--min-instances 0` to stop that, at the price of
+losing the in-memory state (every open panel shows "Reload the panel") each time
+the service scales to zero.
+
 ## What to know before relying on it
 
 - **State is in memory.** Access tokens and finished OAuth results live in one
@@ -216,6 +278,9 @@ On Cloud Run, from a deployment to a project that had nothing enabled:
   set the cookie with all its attributes.
 - `/healthz` on the public URL returns Google's 404, not the app's `ok`.
 - The app's own logs held no idtoken; Cloud Run's request log did (see above).
+- A second build and `gcloud run deploy` rolled out a new revision with the same
+  environment variables and instance limits, and the new bundle was being
+  served.
 
 Not checked: the panel framed by dialpadbeta itself, which needs the OAuth app's
 conversation sidebar URI to point at the service.
