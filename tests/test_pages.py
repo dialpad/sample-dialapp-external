@@ -137,7 +137,7 @@ def test_a_closing_script_tag_in_page_data_is_escaped_inside_the_element() -> No
 def test_page_data_is_a_versioned_element_in_the_head() -> None:
   page = render_page(make_page_data(), nonce=NONCE, assets=ASSETS)
 
-  [(attrs, _)] = [script for script in _scripts(page.html) if script[0].get('id')]
+  [(attrs, _)] = [script for script in _scripts(page.html) if 'id' in script[0]]
   assert attrs == {'type': 'application/json', 'id': 'dialpad-page-data', 'nonce': NONCE}
   assert _page_data_json(page.html)['version'] == 1
 

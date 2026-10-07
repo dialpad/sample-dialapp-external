@@ -78,7 +78,7 @@ class PageAssets:
     return cls(
         scripts=(urljoin(base, manifest[entry]['file']),),
         styles=tuple(dict.fromkeys(styles)),
-        origins=(origin,) if origin else (),
+        origins=(origin,) if origin is not None else (),
     )
 
 

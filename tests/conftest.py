@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 APP_SECRET = 'test-app-secret'
 DIALPAD_ORIGIN = 'https://dialpadbeta.com'
 BASE_URL = 'https://acme.example.com'
-# Finds the JSON the toolkit embeds in the page: the SDK reads the same element by its id.
+# Finds the JSON the page embeds for the SDK: the SDK reads the same element by its id.
 PAGE_DATA = re.compile(
     r'<script type="application/json" id="dialpad-page-data"[^>]*>(.*?)</script>',
     re.DOTALL,
@@ -167,13 +167,13 @@ class Env:
     header value a browser would send, from ``cookie_header``.
     """
     token = idtoken if idtoken is not None else encode_mock_idtoken(TEST_CLIENT_SECRET)
-    headers = {'Cookie': cookie} if cookie else {}
+    headers = {'Cookie': cookie} if cookie is not None else {}
     return await self.get('/', params={'idtoken': token}, headers=headers)
 
   async def page_data(self,
                       idtoken: str | None = None,
                       cookie: str | None = None) -> dict[str, Any]:
-    """Load the page and return the page data the toolkit embedded in it, as a dict."""
+    """Load the page and return the page data embedded in it, as a dict."""
     return page_data_of(await self.load_page(idtoken, cookie))
 
 

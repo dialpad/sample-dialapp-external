@@ -105,7 +105,7 @@ class Settings:
 def _required(env: dict[str, str], name: str) -> str:
   """Return the environment variable ``name``, or raise ``ConfigurationError`` if unset or empty."""
   value = env.get(name)
-  if not value:
+  if value is None or value == '':
     message = f'{name} is required'
     raise ConfigurationError(message)
   return value
@@ -119,8 +119,9 @@ def listen_port(base_url: str, env: dict[str, str] | None = None) -> int:
   ``http://localhost:8000`` supplies the port, which keeps local runs to one setting.
   """
   env = dict(os.environ) if env is None else env
-  if env.get('PORT'):
-    return int(env['PORT'])
+  port = env.get('PORT', '')
+  if port:
+    return int(port)
   return urlsplit(base_url).port or DEFAULT_PORT
 
 

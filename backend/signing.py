@@ -142,7 +142,7 @@ def cookie_is_valid(
   user from the access token). One browser profile can switch Dialpad users, so a cookie issued to
   another user, like a missing, forged or 30-day-old one, means "not connected", never an error.
   """
-  if not value:
+  if value is None or value == '':
     return False
   payload = verify(value, secret)
   if payload is None or payload.get('kind') != _COOKIE:

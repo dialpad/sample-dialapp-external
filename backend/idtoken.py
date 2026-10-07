@@ -58,7 +58,7 @@ def decode_idtoken(idtoken: str | None, client_secret: str) -> IdTokenClaims:
   client secret itself is shorter than 48 characters (a configuration error, not a bad token).
   """
   jwe_key = _jwe_key(client_secret)
-  if not idtoken:
+  if idtoken is None or idtoken == '':
     msg = 'idtoken is missing'
     raise IdTokenError(msg)
 
