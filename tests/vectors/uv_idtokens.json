@@ -1,0 +1,48 @@
+{
+  "description": "idtokens built with python-jose exactly as ubervoice OAuthAppTokenHandler builds them",
+  "client_secret": "Zr8kQ2vN5xW1pL7mT4cB9hJ6fD3sA0gYuEiOoRtKwVnXbMqP12",
+  "cases": [
+    {
+      "name": "full_profile",
+      "idtoken": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTkyQ0JDLUhTMzg0In0..eu75xN3R4shb24hJ-Ss2EA.Iz-bR6b6rge1lwfszgbm--nh1bkDU93O3RFm3hzi2dJuXS0tkWexYD7gzDvP0zgjs3-ms-gM2r0NRgbucqFHda6wmSH3Y--vEL0QvWpQY45EAg-FZU5Ce93W9v2eWjLCcYTWzC4trQaHKuD2ObW58J9DNxguf4unbobrhk9LB7AiuQNbbH4bZi6_JHQANmNpv_0kyPD9LfLJvDbu2zA9Dui8vMVT18T3JaYjh3hhqIpL5I8n0h2zWlr3JuTj9jMWHjEuoyG8MEqDaeW4ioR31z4rT9GdliegJkcRRzTr99sAvMwjjvbdnovfC6XyVn13TyraJ-5m4yGubW3-yhMLQttux5OQvWi_HtSQs_7QeeBOGC9VrTixXSPXPceyFtNl8-HEw9oUkOAUgPGm4qJofsqbqFEcbEBiMAiaRvUONg4Q87N_l1gTSup1WstoszskXjg_aXYUvl0Sb-qou-d8L7-5CDt6UxBRdHcsMZOs3ZlzM8Ex4fX9K0r4ZMrY11OiYX9bRlUqQaAP_tOMhMrNEX0bBf50vv0hbQyyqYbz_tWoN9dH6bbVY_mx1UWTsabHAzBtas3I-tW3LXO2Nb99fDYDlYnyaUiEHXEUQs92dLKGEaZepJdzlhknZp0OVcACS89OdJqY2FX0YrreLA9seV-lK0lC8d3WkOxd93Gd3IQo6XQhBpWm9a_UvNc64Ghf.dWxP3sdfdevmGVffTnO7yDBLw2yPvTt8",
+      "expected_claims": {
+        "api_key": "uv-api-key-0001",
+        "user_id": 5094091200462848,
+        "company_id": 6488037214437376,
+        "office_id": 5629499534213120,
+        "name": "Ada Lovelace",
+        "phone_number": "+14155550123",
+        "email": "ada@example.com",
+        "image_url": "https://dialpad.example/avatar/ada.png"
+      }
+    },
+    {
+      "name": "sparse_profile",
+      "idtoken": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTkyQ0JDLUhTMzg0In0..S0bio_43-ReaCHMNns4duw.2q1peQHnjVUpp6Wm-UyMdMqNpHhSLUDaX19S5e6WKmtiJIZmeSR_4ZSqY7t06jHe_yAfTtaIAWEfOi44lNO9ZM6jVubGzYBj3tw_0f4p0rDF_FoRafvS5_D6Zn1Dob5khXbCWeV5avGF44Zh0UzQ26lWsapguGqEWASlvsbdOGyeE0P0ferc36CXC36bwTxsGzE51m95Y-Mbju-JLLVh41f8oMc6O-2cPSDAPh3-_SsoPojHskIIyan6A1RPw_kQGAJhMDSl4MoCQl-9jICs4aayPU3oZNXTEyvNWk6jZ7VBhqoieuJiRr5toQJEmJEMUIIa2f4T5tY0_uXS8S_GBKICYJrQEoJwj1h_rEwQ8y_IfLf9PmaGWQS2Vs8vBArVpnaC2d0xDtOxvfMCt8T7j8kwK_An7I7rE8SF4KD1AFABUe8Ud7ET4YzTyBRuq4zhErDZyjynsTwobyPd2v_bfH61c62fhK7nETukxi4FpV8.KlBjIKpbRmei55bXfPYCbtgT03BpKjp0",
+      "expected_claims": {
+        "api_key": "uv-api-key-0002",
+        "user_id": 42,
+        "company_id": 7,
+        "office_id": 8,
+        "name": "Grace",
+        "phone_number": null,
+        "email": null,
+        "image_url": null
+      }
+    },
+    {
+      "name": "unknown_claim",
+      "idtoken": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTkyQ0JDLUhTMzg0In0..S28i1qswwUGUFKsjW01H3A.Y05mm4ntGUcrnDihh9lM5GNxE3eedXEzvM3bAvKve20R3UXZ3m-Q9dP2cyQhoF7tSME53D5ZCJHroL-V_dWI_RE32m8s79tugSSxdWrzAY8nqw4OJyT1Uo7iLeriLJty73e_GCYy6dsEPR7L22kIr1u5U3TLgcklibOhCFiNIxGj97b6PJPnO4hTtWyCcYNn1N4rSQUJueI5ruisBVQkVj5tg0hvS0piHRofxJ5F1lBc_77HR__doloKfk1HY2XSQlIuQkqbLicE0tXw1g-VMMqhof5caLU18n6AUgjIlD40vtw9IhxACH8_KAw4UyFVOuf__Dq1QezdT3WdzjpoyVl7SPGFYzcmI7bGWQyAookOZt4YrV2_LCjhdtG_Zd2da0pkyFFSW0B5SmoXGqPl6TJSDn8sDwpWyl-mPaOsn4hdIg47pfZUTC6Bp4i9mw_K2_3MEeCWWywZIdh2sOUmAlbnIBay6F3v1BtfWNb-QDwkuROIuHS9a6dpd4V6NQ2S.CAuV7sCxKQicUrlwWFfoygl8MFjr5h1C",
+      "expected_claims": {
+        "api_key": "uv-api-key-0003",
+        "user_id": 1,
+        "company_id": 2,
+        "office_id": 3,
+        "name": null,
+        "phone_number": null,
+        "email": null,
+        "image_url": null
+      }
+    }
+  ]
+}

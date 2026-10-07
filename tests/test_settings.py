@@ -1,8 +1,8 @@
 """Settings: validation at startup and the defaults local mode fills in (backend/settings.py)."""
 
 import pytest
-from dialpad_dialapp_toolkit.testing import TEST_CLIENT_SECRET
 
+from backend.idtoken import TEST_CLIENT_SECRET
 from backend.settings import ConfigurationError
 from backend.settings import Settings
 from backend.settings import listen_port

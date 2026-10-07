@@ -9,13 +9,13 @@ from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 
 import pytest
-from dialpad_dialapp_toolkit.testing import TEST_CLIENT_SECRET
-from dialpad_dialapp_toolkit.testing import encode_mock_idtoken
 
 from backend import signing
 from backend.app import CLIENT_NAME
 from backend.app import CONNECTED_SCOPES
 from backend.app import FAKE_CODE
+from backend.idtoken import TEST_CLIENT_SECRET
+from backend.idtoken import encode_mock_idtoken
 from tests.conftest import APP_SECRET
 from tests.conftest import Env
 from tests.conftest import bearer

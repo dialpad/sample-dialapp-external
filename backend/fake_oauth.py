@@ -9,7 +9,7 @@ with an Authorize button, clearly labelled as fake, so the popup stays open long
 from html import escape
 from typing import TYPE_CHECKING
 
-from dialpad_dialapp_toolkit import RenderedPage
+from backend.pages import RenderedPage
 
 if TYPE_CHECKING:
   from collections.abc import Sequence

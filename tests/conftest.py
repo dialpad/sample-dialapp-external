@@ -21,13 +21,13 @@ from typing import cast
 from typing import override
 
 import pytest
-from dialpad_dialapp_toolkit.testing import TEST_CLIENT_SECRET
-from dialpad_dialapp_toolkit.testing import encode_mock_idtoken
 from sanic import Sanic
 
 from backend.app import COOKIE_HEADER_NAME
 from backend.app import App
 from backend.app import create_app
+from backend.idtoken import TEST_CLIENT_SECRET
+from backend.idtoken import encode_mock_idtoken
 from backend.settings import Settings
 
 if TYPE_CHECKING:

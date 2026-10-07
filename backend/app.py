@@ -1,4 +1,4 @@
-"""The Acme CRM backend: bare Sanic, built on the toolkit's contract.
+"""The Acme CRM backend: bare Sanic, built on its own copy of the DialApp contract.
 
 Routes, in the order a user meets them:
 
@@ -23,19 +23,6 @@ from typing import TYPE_CHECKING
 from typing import override
 from urllib.parse import urlencode
 
-from dialpad_dialapp_toolkit import DEFAULT_API_PREFIX
-from dialpad_dialapp_toolkit import ErrorResponse
-from dialpad_dialapp_toolkit import ExternalConnection
-from dialpad_dialapp_toolkit import IdTokenError
-from dialpad_dialapp_toolkit import PageData
-from dialpad_dialapp_toolkit import PageOptions
-from dialpad_dialapp_toolkit import RenderedPage
-from dialpad_dialapp_toolkit import decode_idtoken
-from dialpad_dialapp_toolkit import generate_nonce
-from dialpad_dialapp_toolkit import render_close_popup
-from dialpad_dialapp_toolkit import render_error_page
-from dialpad_dialapp_toolkit import render_page
-from dialpad_dialapp_toolkit.testing import encode_mock_idtoken
 from sanic import HTTPResponse
 from sanic import Request
 from sanic import Sanic
@@ -48,10 +35,23 @@ from sanic.response import text
 
 from backend import signing
 from backend.assets import build_assets
+from backend.contract import DEFAULT_API_PREFIX
+from backend.contract import ErrorResponse
+from backend.contract import ExternalConnection
+from backend.contract import PageData
 from backend.dialpad_api import DEFAULT_TIMEOUT_SECONDS
 from backend.dialpad_api import fetch_dialpad_user
 from backend.dialpad_api import skipped
 from backend.fake_oauth import render_fake_authorize_page
+from backend.idtoken import IdTokenError
+from backend.idtoken import decode_idtoken
+from backend.idtoken import encode_mock_idtoken
+from backend.pages import PageOptions
+from backend.pages import RenderedPage
+from backend.pages import generate_nonce
+from backend.pages import render_close_popup
+from backend.pages import render_error_page
+from backend.pages import render_page
 from backend.stores import AccessTokens
 from backend.stores import OAuthResults
 from backend.stores import UserKey
@@ -59,8 +59,7 @@ from backend.stores import UserKey
 if TYPE_CHECKING:
   from collections.abc import Callable
 
-  from dialpad_dialapp_toolkit import PageAssets
-
+  from backend.assets import PageAssets
   from backend.settings import Settings
 
 logger = logging.getLogger('acme_crm')
@@ -168,7 +167,7 @@ class Backend:
 
 
 def _rendered(page: RenderedPage) -> HTTPResponse:
-  """Turn a page the toolkit rendered into a response, with the toolkit's status and headers."""
+  """Turn a page from ``backend.pages`` into a response, with its status and headers."""
   return html(page.html, status=page.status, headers=page.headers)
 
 
@@ -338,7 +337,7 @@ def _register_fake_oauth(app: App, backend: Backend) -> None:
     ``code`` for CRM tokens and store them here. This version only verifies the signed ``state``
     and remembers "connected" for that user for 5 minutes; the SDK's next ``ext-connection`` check
     consumes it. An expired, forged or mismatched ``state`` renders an error page and records
-    nothing. The reply is the toolkit's close-popup page, which tells Dialpad and closes the
+    nothing. The reply is the close-popup page, which tells Dialpad and closes the
     window. No cookie is set: the popup is a separate window from the panel's iframe.
     """
     state = str(request.args.get('state', ''))

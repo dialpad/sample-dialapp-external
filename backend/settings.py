@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from urllib.parse import urlsplit
 
-from dialpad_dialapp_toolkit.testing import TEST_CLIENT_SECRET
+from backend.idtoken import TEST_CLIENT_SECRET
 
 # The idtoken's JWE is keyed with the first 48 characters of the client secret; Dialpad's secrets
 # are 50 characters.
@@ -33,8 +33,8 @@ def _is_bare_origin(value: str) -> bool:
   """Whether ``value`` is exactly ``scheme://host[:port]``: no path, query, spaces or ``;``.
 
   The Dialpad origin goes into the page's Content-Security-Policy header, where a stray ``;`` or
-  space would add directives, so it is checked at startup (the toolkit refuses it at render time
-  too). A trailing slash, the likeliest typo, fails the exact comparison.
+  space would add directives, so it is checked at startup (``backend.pages`` refuses it at render
+  time too). A trailing slash, the likeliest typo, fails the exact comparison.
   """
   if ';' in value or any(char.isspace() for char in value):
     return False
@@ -129,9 +129,10 @@ def settings_from_env(env: dict[str, str] | None = None) -> Settings:
 
   Called once, at startup. ``HOST`` (default ``127.0.0.1``) is the address to listen on and
   applies in both modes. ``LOCAL_MODE=1`` fills in every value a local run needs, including the
-  toolkit's test client secret, which is also what the dev page signs its mock idtoken with. Any
-  of those can still be overridden. Outside local mode the client secret, app secret, Dialpad
-  origin and base URL are all required, and a missing one raises ``ConfigurationError``.
+  test client secret from ``backend.idtoken``, which is also what the dev page signs its mock
+  idtoken with. Any of those can still be overridden. Outside local mode the client secret, app
+  secret, Dialpad origin and base URL are all required, and a missing one raises
+  ``ConfigurationError``.
   """
   env = dict(os.environ) if env is None else env
   if env.get('LOCAL_MODE') == '1':
