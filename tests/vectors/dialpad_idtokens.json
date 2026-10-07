@@ -1,5 +1,5 @@
 {
-  "description": "idtokens built with python-jose exactly as ubervoice OAuthAppTokenHandler builds them",
+  "description": "idtokens built with python-jose exactly as Dialpad builds them",
   "client_secret": "Zr8kQ2vN5xW1pL7mT4cB9hJ6fD3sA0gYuEiOoRtKwVnXbMqP12",
   "cases": [
     {
