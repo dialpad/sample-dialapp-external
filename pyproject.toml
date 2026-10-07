@@ -21,8 +21,9 @@ pythonpath = ["."]
 asyncio_mode = "auto"
 
 [tool.ruff]
+# Must match `column_limit` in .style.yapf. yapf does the formatting, but ruff's E501 still flags
+# the comments, docstrings and strings that yapf can't wrap (88, ruff's default, would flag many).
 line-length = 100
-indent-width = 2
 target-version = "py314"
 
 [tool.ruff.lint]
