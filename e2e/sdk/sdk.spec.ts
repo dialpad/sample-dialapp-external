@@ -89,19 +89,6 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await page.getByRole('button', { name: 'Change contact' }).click();
   await expect(contact).toContainText('Acme Pat Customer');
 
-  // Calls reach the panel too: the button steps through ringing, connected and ended, and the
-  // next click is a new call ringing.
-  const call = panel.getByTestId('call-card');
-  await expect(call).toContainText('No active call');
-  await page.getByRole('button', { name: 'Change call state' }).click();
-  await expect(call).toContainText('Ringing');
-  await page.getByRole('button', { name: 'Change call state' }).click();
-  await expect(call).toContainText('Connected');
-  await page.getByRole('button', { name: 'Change call state' }).click();
-  await expect(call).toContainText('Ended');
-  await page.getByRole('button', { name: 'Change call state' }).click();
-  await expect(call).toContainText('Ringing');
-
   // A new iframe (the dev page reloaded) carries the cookie, so the first paint is connected.
   await page.reload();
   await expect(panel.getByTestId('connected-view')).toBeVisible();
@@ -111,6 +98,41 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await panel.getByTestId('disconnect-button').click();
   await panel.getByTestId('disconnect-confirm').click();
   await expect(panel.getByTestId('connect-gate')).toBeVisible();
+});
+
+test("calls reach the panel, with the call's contact when it differs", async ({
+  page,
+}) => {
+  const panel = await openDevPage(page);
+  await authorizeAndPoll(page, panel, await startConnect(page, panel));
+
+  // The button steps a call through ringing, connected and ended; the next click is a new call.
+  const call = panel.getByTestId('call-card');
+  const nextCallState = page.getByRole('button', { name: 'Change call state' });
+  await expect(call).toContainText('No active call');
+  await nextCallState.click();
+  await expect(call).toContainText('Ringing');
+
+  // The call's contact is the one open when it started, so while they are the same person there is
+  // one contact section. Changing the panel's contact mid-call shows both; changing it back hides
+  // the call's again.
+  const contact = panel.getByTestId('acme-contact');
+  const callContact = panel.getByTestId('call-contact');
+  await expect(callContact).toHaveCount(0);
+  await page.getByRole('button', { name: 'Change contact' }).click();
+  await expect(contact).toContainText('Acme Sam Prospect');
+  await expect(callContact).toContainText('Acme Pat Customer');
+  await page.getByRole('button', { name: 'Change contact' }).click();
+  await page.getByRole('button', { name: 'Change contact' }).click();
+  await expect(contact).toContainText('Acme Pat Customer');
+  await expect(callContact).toHaveCount(0);
+
+  await nextCallState.click();
+  await expect(call).toContainText('Connected');
+  await nextCallState.click();
+  await expect(call).toContainText('Ended');
+  await nextCallState.click();
+  await expect(call).toContainText('Ringing');
 });
 
 test('opened outside Dialpad, the panel asks to be opened from Dialpad', async ({

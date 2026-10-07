@@ -6,7 +6,8 @@ popup, and the panel shows data Dialpad passes in.
 
 The partner system here is a fictional "Acme CRM" with no data. The panel proves
 data flow by showing the Dialpad user, the active call, the OAuth scopes and the
-open Dialpad contact with every field "Acme'd" (text gets an `Acme ` prefix).
+open Dialpad contact (plus the call's own contact when it is a different person)
+with every field "Acme'd" (text gets an `Acme ` prefix).
 
 It uses only Dialpad's two libraries and public packages:
 

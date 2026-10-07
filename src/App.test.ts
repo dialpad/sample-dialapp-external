@@ -386,6 +386,49 @@ describe('Connected view', () => {
     expect(wrapper.get('[data-testid="call-card"]').text()).toContain('Ended');
   });
 
+  it("shows one contact section when the call's contact is the panel's contact", async () => {
+    const { wrapper, host } = await setup({ connected: true });
+    const pat = makeContact({ id: '1', displayName: 'Pat Customer' });
+
+    host.sendContact(pat);
+    host.sendCall(makeCall({ state: 'ringing', contact: pat }));
+    await host.settle();
+
+    expect(wrapper.find('[data-testid="call-contact"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+      'Acme Pat Customer',
+    );
+  });
+
+  it("shows the call's contact as well when it is a different contact", async () => {
+    const { wrapper, host } = await setup({ connected: true });
+
+    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
+    host.sendCall(
+      makeCall({
+        state: 'ringing',
+        contact: makeContact({ id: '2', displayName: 'Sam Prospect' }),
+      }),
+    );
+    await host.settle();
+
+    expect(wrapper.get('[data-testid="call-contact"]').text()).toContain(
+      'Acme Sam Prospect',
+    );
+    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+      'Acme Pat Customer',
+    );
+  });
+
+  it('shows no call contact section when the call has no contact', async () => {
+    const { wrapper, host } = await setup({ connected: true });
+
+    host.sendCall(makeCall({ state: 'ringing', contact: null }));
+    await host.settle();
+
+    expect(wrapper.find('[data-testid="call-contact"]').exists()).toBe(false);
+  });
+
   it('opens a new contact without disconnecting', async () => {
     const { wrapper, host } = await setup({ connected: true });
 

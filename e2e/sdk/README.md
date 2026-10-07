@@ -13,9 +13,10 @@ with Playwright's clock so polling and timeouts cost no real time. They read
 what the mock host believes through `window.mockHost`, which `dev/main.ts`
 exposes.
 
-| Test                        | What it checks                                                                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Connect, reload, disconnect | The whole flow: Connect through the fake OAuth page and polling, the Acme'd contact, a reload that starts connected, and Disconnect  |
-| Opened outside Dialpad      | The framing check (`not_framed`): the panel page opened directly, not in an iframe, shows "Open this panel from Dialpad"             |
-| Connect times out           | Polling gives up after 2 minutes: the timeout state with Try again, and the host is still told "not connected"                       |
-| Disconnect from the menu    | The host's panel menu Disconnect: the SDK calls `/dialpad/ext-disconnect`, shows the Connect gate and tells the host "not connected" |
+| Test                        | What it checks                                                                                                                                     |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Connect, reload, disconnect | The flow: Connect through the fake OAuth page and polling, the Acme'd contact and changing it, a reload that starts connected, and Disconnect      |
+| Calls                       | The call card follows a call (ringing, connected, ended, a new call), and the call's own contact is shown when it differs from the panel's contact |
+| Opened outside Dialpad      | The framing check (`not_framed`): the panel page opened directly, not in an iframe, shows "Open this panel from Dialpad"                           |
+| Connect times out           | Polling gives up after 2 minutes: the timeout state with Try again, and the host is still told "not connected"                                     |
+| Disconnect from the menu    | The host's panel menu Disconnect: the SDK calls `/dialpad/ext-disconnect`, shows the Connect gate and tells the host "not connected"               |

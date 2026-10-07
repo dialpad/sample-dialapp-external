@@ -93,6 +93,13 @@ const CALL_STATES = ['ringing', 'connected', 'hangup'] as const;
 /** Which of `CALL_STATES` the host last sent; -1 until the first click, when there is no call. */
 let callStateIndex = -1;
 
+/**
+ * The contact of the current call. A new call takes the contact open when it starts, as Dialpad
+ * opens the caller's contact in the right bar. Pressing "Change contact" during the call then makes
+ * the panel's contact differ from the call's, so the panel shows both.
+ */
+let callContact = CONTACTS[0];
+
 /** The theme the host is showing; the toggle button flips it. */
 let mode: 'light' | 'dark' = 'light';
 
@@ -109,7 +116,10 @@ onClick('change-call-state', () => {
   callStateIndex = (callStateIndex + 1) % CALL_STATES.length;
   const state = CALL_STATES[callStateIndex];
   if (state) {
-    host.sendCall(makeCall({ state }));
+    if (state === 'ringing') {
+      callContact = CONTACTS[contactIndex];
+    }
+    host.sendCall(makeCall({ state, contact: callContact }));
   }
 });
 onClick('toggle-theme', () => {
