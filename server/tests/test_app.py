@@ -452,6 +452,42 @@ async def test_a_connected_user_gets_the_contact_back_acmed_without_the_empty_fi
   assert 'set-cookie' not in response.headers
 
 
+async def test_the_contact_route_prefixes_text_and_lists_and_shows_other_values_as_json(
+    env: Env,) -> None:
+  panel = await env.open_panel()
+  await connect(env, panel)
+  contact = {
+      'displayName': 'Pat Customer',
+      'phones': ['+1 555 0199', '+1 555 0100'],
+      'extension': 42,
+      'recorded': True,
+      'ratio': 1.5,
+      'zero': 0,
+      'no': False,
+      'custom': {
+          'tier': 'gold'
+      },
+      'tags': ['vip', None],
+      'firstName': None,
+      'jobTitle': '',
+      'emails': [],
+  }
+
+  response = await post_contact(env, panel, {'contact': contact})
+
+  assert [(row['label'], row['value']) for row in json_of(response)['fields']] == [
+      ('displayName', 'Acme Pat Customer'),
+      ('phones', 'Acme +1 555 0199, Acme +1 555 0100'),
+      ('extension', '42'),
+      ('recorded', 'true'),
+      ('ratio', '1.5'),
+      ('zero', '0'),
+      ('no', 'false'),
+      ('custom', '{"tier": "gold"}'),
+      ('tags', 'Acme vip, null'),
+  ]
+
+
 async def test_the_contact_route_authenticates_like_the_sdks_routes(env: Env) -> None:
   panel = await env.open_panel()
   await connect(env, panel)

@@ -247,8 +247,9 @@ server because it needs the user's CRM credentials.
 
 **What the demo does.** There is no CRM, so there is no mapping. The iframe panel
 (`client/src/components/AcmeContact.vue`) sends the Dialpad contact to
-`POST /api/contact`, and the server (`server/acme_crm/contacts.py`) answers with
-every non-empty field prefixed `Acme `. That proves the contact reached the server
+`POST /api/contact`, and the server (`server/acme_crm/endpoints/app/contact.py`,
+whose docstring also describes the real thing) answers with every non-empty field
+prefixed `Acme `. That proves the contact reached the server
 and came back, and that the request was authenticated as the right user. The iframe
 panel shows a loading state and a failure message, and ignores a late answer for a
 contact that is no longer open.
@@ -628,15 +629,15 @@ Other protections around the page:
 
 ## What to replace
 
-| Here                                                                   | With                                                                                                                                                                                                  |
-| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/oauth/fake-authorize`, `/oauth/callback`                             | Your CRM's real authorize URL and callback; delete `server/acme_crm/fake_oauth.py`. Keep the close-popup page                                                                                         |
-| `server/acme_crm/stores.py` (in-memory)                                | Nothing: store the CRM tokens in the callback and answer from them (see above)                                                                                                                        |
-| The session cookie (`server/acme_crm/database.py`, `signing.py`)       | Your stored CRM tokens, and a real session (a durable store or expiring tokens). The signed cookie is this demo's persistent storage of the access token and the connection, not part of the contract |
-| `server/acme_crm/contacts.py`, `client/src/components/AcmeContact.vue` | The contact lookup: map the Dialpad contact to a CRM record with the user's CRM token, and return its fields (see [above](#the-contact-lookup-demo-vs-a-real-app))                                    |
-| `client/src/components/ConnectGate.vue`                                | Copy it and change the copy; it renders the SDK's `connection` state                                                                                                                                  |
-| `ACCOUNT_NAME` in `server/acme_crm/context.py`                         | Your CRM's account name                                                                                                                                                                               |
-| `server/acme_crm/dialpad_api.py`, `DialpadApiCard.vue`                 | Delete both, and the call in `endpoints/dialpad/page.py`. Store the api key and call Dialpad when you need to                                                                                         |
+| Here                                                                                | With                                                                                                                                                                                                  |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/oauth/fake-authorize`, `/oauth/callback`                                          | Your CRM's real authorize URL and callback; delete `server/acme_crm/fake_oauth.py`. Keep the close-popup page                                                                                         |
+| `server/acme_crm/stores.py` (in-memory)                                             | Nothing: store the CRM tokens in the callback and answer from them (see above)                                                                                                                        |
+| The session cookie (`server/acme_crm/database.py`, `signing.py`)                    | Your stored CRM tokens, and a real session (a durable store or expiring tokens). The signed cookie is this demo's persistent storage of the access token and the connection, not part of the contract |
+| `server/acme_crm/endpoints/app/contact.py`, `client/src/components/AcmeContact.vue` | The contact lookup: map the Dialpad contact to a CRM record with the user's CRM token, and return its fields (see [above](#the-contact-lookup-demo-vs-a-real-app))                                    |
+| `client/src/components/ConnectGate.vue`                                             | Copy it and change the copy; it renders the SDK's `connection` state                                                                                                                                  |
+| `ACCOUNT_NAME` in `server/acme_crm/context.py`                                      | Your CRM's account name                                                                                                                                                                               |
+| `server/acme_crm/dialpad_api.py`, `DialpadApiCard.vue`                              | Delete both, and the call in `endpoints/dialpad/page.py`. Store the api key and call Dialpad when you need to                                                                                         |
 
 Keep `server/acme_crm/idtoken.py` (the decoder), `server/acme_crm/pages.py` (the
 page, close-popup and error rendering with their security headers) and

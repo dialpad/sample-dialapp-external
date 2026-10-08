@@ -9,7 +9,7 @@
 // contact's phone numbers and emails), fetches that record and returns the fields to show. Once the
 // panel has the record it calls the SDK's `linkRecord(...)` so Dialpad can offer "View record" in
 // the panel menu and use the record's URL for screen pops. The server side is described in
-// `server/acme_crm/contacts.py`.
+// `server/acme_crm/endpoints/app/contact.py`.
 import type { Contact } from '@dialpad/dialapp-external-sdk';
 
 import { api } from './api';
