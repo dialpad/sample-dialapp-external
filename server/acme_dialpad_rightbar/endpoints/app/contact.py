@@ -1,5 +1,8 @@
 """``POST /api/contact``: the CRM's view of a Dialpad contact, an iframe panel's own route.
 
+A sample endpoint that the client library doesn't invoke, but the application's own frontend does,
+showcasing feature extensibility.
+
 Dialpad tells the iframe panel which contact is open, but that is Dialpad's contact: a name, phone
 numbers and emails from Dialpad's directory. What a partner's iframe panel exists to show is the
 partner's own record for that person. Getting from one to the other is the "contact mapping", and

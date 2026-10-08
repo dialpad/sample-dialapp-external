@@ -1,7 +1,8 @@
 """The application's own endpoints, as opposed to the DialApp contract's (``endpoints/dialpad/``).
 
-* ``POST /api/contact``: an example of a route the iframe panel adds for itself (``contact.py``).
-  A real application has many such routes: contacts, notes, search, and so on.
+* ``POST /api/contact``: a sample endpoint that the client library doesn't invoke, but the
+  application's own frontend does, showcasing feature extensibility (``contact.py``). A real
+  application has many such routes: contacts, notes, search, and so on.
 * ``GET /oauth/fake-authorize``: a stand-in for the partner CRM's consent screen, clearly labelled
   fake (``oauth_fake_authorize.py``). A real partner replaces it with their CRM's authorize URL.
 * ``GET /oauth/callback``: the OAuth redirect URI, which a real app has too (``oauth_callback.py``).
