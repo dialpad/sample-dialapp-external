@@ -104,8 +104,8 @@ class AppContext:
   """Everything the route handlers share: configuration, stores, assets and the clock.
 
   One instance is created per app by ``create_app`` and captured by the handlers. ``clock`` is
-  injectable so tests can move time (the OAuth ``state`` expires after 10 minutes, a stored OAuth
-  result after 5, the cookie after 30 days).
+  injectable so tests can move time: the OAuth ``state`` expires after 10 minutes, a stored OAuth
+  result after 5 minutes, and the connection cookie after 30 days.
   """
 
   settings: Settings
