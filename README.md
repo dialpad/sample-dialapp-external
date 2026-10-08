@@ -35,17 +35,20 @@ code never touches it:
 language. It only has to do four things: decode the idtoken, serve the page with
 the page data in it (an access token and the connection status), answer the two
 endpoints the SDK calls (`GET /dialpad/ext-connection` and
-`POST /dialpad/ext-disconnect`), and serve your own routes. The pieces in
+`POST /dialpad/ext-disconnect`), and serve your own routes. The first three are
+specified in [`contract/openapi.json`](contract/openapi.json) (see
+[The contract](#the-contract)). The pieces in
 `server/acme_dialpad_rightbar/` that implement the contract are `idtoken.py`,
 `pages.py` and `contract.py` (built on `pydantic` and `joserfc`); port those and
 keep the rest of your server as it is.
 
-The repository has two parts, each with its own tools and checks:
+The repository has four parts:
 
 | Folder        | What it is                                                                                                                                                                                      |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `client/`     | The iframe panel that Dialpad frames: Vite, Vue 3, TypeScript and Dialtone 10. `pnpm` project                                                                                                   |
 | `server/`     | The Python server (`acme_dialpad_rightbar/`): bare Sanic on Python 3.14, with its tests. Its endpoints are one file each, in `endpoints/dialpad/` and `endpoints/app/`. `tox` and `pip` project |
+| `contract/`   | `openapi.json`: the language-neutral contract between Dialpad, a backend and the SDK (see [below](#the-contract))                                                                               |
 | `deployment/` | The Dockerfile and how to run the app as a container on Cloud Run                                                                                                                               |
 
 The iframe panel's CSS does not use Vue's `scoped` styles. Classes are isolated
@@ -112,6 +115,10 @@ The server has nothing to update: it uses no Dialpad library.
 that Dialpad's own checks use to point this app at a freshly built tarball.
 Partners can ignore it, and delete it together with the `vendor` script in
 `client/package.json`.
+
+The [contract](#the-contract) is not part of the tarball: `contract/openapi.json` is a
+copy, and its `info.version` is the SDK version it describes. When you upgrade
+the SDK, check that it still matches.
 
 ## Run locally, without Dialpad (local mode)
 
@@ -198,6 +205,28 @@ passed in as environment variables (see [deployment/](deployment/README.md)).
 To run it as a container, for example on Cloud Run, see
 [deployment/](deployment/README.md).
 
+## The contract
+
+[`contract/openapi.json`](contract/openapi.json) is an OpenAPI 3.1 document that
+specifies what a backend must expose for the SDK and Dialpad, in any language. Its
+`info.version` is the SDK version it describes (check it against the SDK in
+`client/vendor/` when you upgrade). It is generated, so don't edit it by hand.
+
+| Operation                      | What it is                                                          |
+| ------------------------------ | ------------------------------------------------------------------- |
+| `GET /`                        | The panel page, served at the app's conversation sidebar URI        |
+| `GET /dialpad/ext-connection`  | This Dialpad user's connection to the partner's system              |
+| `POST /dialpad/ext-disconnect` | Disconnects this Dialpad user from the partner's system             |
+| `GET /oauth/callback`          | The partner's CRM OAuth callback (the path is the partner's choice) |
+
+Its schemas are `IdTokenClaims` (what decoding the idtoken returns), `PageData` (what
+the page embeds for the SDK), `ExternalConnection` (the connection status) and
+`ErrorResponse`. The `/dialpad` prefix is a default: the SDK reads the real one from
+the page data. Your own feature endpoints sit beside these and are not part of the
+contract. `server/acme_dialpad_rightbar/contract.py` is this app's Python
+implementation of the schemas. The flows in [FLOWS.md](FLOWS.md) show when each
+operation is called.
+
 ## How it works
 
 Dialpad loads the page with an idtoken; the server decodes it, starts a session
@@ -217,7 +246,7 @@ This README says how the demo simplifies them
 ([below](#how-the-demo-differs-from-a-real-app)).
 
 Each endpoint is one file under `server/acme_dialpad_rightbar/endpoints/`: the ones Dialpad or
-its SDK calls (the DialApp contract) are in `dialpad/`, and the application's own
+its SDK calls (the [contract](#the-contract)) are in `dialpad/`, and the application's own
 are in `app/`. Each folder's `__init__.py` lists them.
 
 | Endpoint                       | File                          | Behaviour                                                                                                                                                                                                                                                                                      |
@@ -639,8 +668,8 @@ Other protections around the page:
 
 Keep `server/acme_dialpad_rightbar/idtoken.py` (the decoder), `server/acme_dialpad_rightbar/pages.py` (the
 page, close-popup and error rendering with their security headers) and
-`server/acme_dialpad_rightbar/contract.py` (the models the SDK reads): they are the
-contract's server half, and the OAuth callback's close-popup page stays as it is. Replace
+`server/acme_dialpad_rightbar/contract.py` (the models the SDK reads, as specified in
+`contract/openapi.json`): they are the contract's server half, and the OAuth callback's close-popup page stays as it is. Replace
 `TEST_CLIENT_SECRET` and `encode_mock_idtoken` only if you drop local mode.
 
 ## Checks
@@ -661,7 +690,7 @@ The server's tox environments build their own virtual environments with
 [tox-uv](https://github.com/tox-dev/tox-uv) on Python 3.14, from
 `server/requirements.txt` and the groups in `server/pyproject.toml`, so they
 need no `.venv`. The pieces are: pytest (`filterwarnings = error`), Ruff
-(`select = ALL`, as `contract/` has it), ty (all rules as errors) and yapf
+(`select = ALL`), ty (all rules as errors) and yapf
 (`server/.style.yapf`). In the `.venv` from [Install](#install), the same checks
 run directly: `.venv/bin/pytest`, `.venv/bin/ruff check acme_dialpad_rightbar tests`,
 `.venv/bin/ty check acme_dialpad_rightbar tests` and

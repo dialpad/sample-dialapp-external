@@ -21,4 +21,5 @@ docs
 **/.tox
 client/e2e
 server/tests
+contract
 deployment

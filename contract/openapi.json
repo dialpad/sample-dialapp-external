@@ -1,0 +1,367 @@
+{
+  "openapi": "3.1.2",
+  "info": {
+    "title": "Dialpad partner rightbar app contract",
+    "version": "0.1.0",
+    "description": "Endpoints a partner rightbar app backend exposes. Paths other than the page are defaults under a configurable prefix (`/dialpad`), which the frontend SDK reads from the page data. The partner's own feature endpoints sit beside these, authenticated the same way, and are not part of the contract."
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "getPage",
+        "summary": "The panel page, served at the app's conversation sidebar URI",
+        "description": "Dialpad frames this URL with `?idtoken=<JWE>`. The idtoken never expires, so partners shouldn't log this endpoint's query string.",
+        "parameters": [
+          {
+            "name": "idtoken",
+            "in": "query",
+            "required": true,
+            "description": "The Dialpad idtoken (compact JWE)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The page, carrying the page data",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "Content-Security-Policy": {
+                "description": "`frame-ancestors <dialpad origin>; script-src 'self' 'nonce-<nonce>'` plus the partner's asset origin when assets live on a CDN",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "`no-referrer`, so the idtoken in the page URL never leaks",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Minimal error page (`ErrorResponse`): the token does not decode",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Minimal error page (`ErrorResponse`): the partner refuses the user",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dialpad/ext-connection": {
+      "get": {
+        "operationId": "getExtConnection",
+        "summary": "This Dialpad user's connection to the partner's system",
+        "description": "Checked by the SDK on start when the page data says not connected, and while Connect polls.",
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The connection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalConnection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The partner's own access token was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dialpad/ext-disconnect": {
+      "post": {
+        "operationId": "extDisconnect",
+        "summary": "Disconnect this Dialpad user from the partner's system",
+        "description": "Called from the SDK when the user disconnects, from the app or from Dialpad's panel menu. The SDK then shows the user as not connected.",
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Disconnected (no body)"
+          },
+          "200": {
+            "description": "Disconnected, with the connection afterwards",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalConnection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The partner's own access token was rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/oauth/callback": {
+      "get": {
+        "operationId": "oauthCallback",
+        "summary": "The partner's CRM OAuth callback (the path is the partner's choice)",
+        "description": "Authenticated by the partner's own OAuth `state`. After storing the tokens, it returns the close-popup page, which posts `close_popup` to the Dialpad origin only when it has an opener, then closes itself.",
+        "responses": {
+          "200": {
+            "description": "The close-popup page",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "description": "Returned with `401` on a bad or missing idtoken and `403` when the partner refuses the user.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "ExternalConnection": {
+        "additionalProperties": false,
+        "description": "The Dialpad user's connection to the partner's system.\n\nThe page data carries it so the first paint needs no request, and `<prefix>/ext-connection`\nreturns it whenever the SDK checks again (on start when not connected, and while Connect polls).",
+        "properties": {
+          "connected": {
+            "description": "Whether this Dialpad user has a working connection in the partner's store",
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "authorization_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Where Connect sends the user, keyed by OAuth client name. Most apps have one entry; a company with several OAuth clients has one per client. Required when not connected.",
+            "title": "Authorization Urls",
+            "type": "object"
+          },
+          "name": {
+            "description": "The name of the integration's OAuth client, for example `hubspot`",
+            "title": "Name",
+            "type": "string"
+          },
+          "scopes": {
+            "description": "The OAuth scopes the connection's client has, which apps can gate features on. Empty when not connected.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Scopes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "connected",
+          "name"
+        ],
+        "title": "ExternalConnection",
+        "type": "object"
+      },
+      "IdTokenClaims": {
+        "description": "What decoding a Dialpad idtoken returns.\n\nThe `csr` claim is dropped while decoding and never exposed, and unknown claims are ignored so new\nclaims from Dialpad don't break partners. `api_key` is server-side only: `PageData` has no field\nfor it, and no claim goes into the page.\n\nNot sent over HTTP: what a partner backend gets from decoding the idtoken.",
+        "properties": {
+          "user_id": {
+            "title": "User Id",
+            "type": "integer"
+          },
+          "company_id": {
+            "title": "Company Id",
+            "type": "integer"
+          },
+          "office_id": {
+            "title": "Office Id",
+            "type": "integer"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Email"
+          },
+          "phone_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Phone Number"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Image Url"
+          },
+          "api_key": {
+            "description": "Dialpad public API key for this user and app. Server-side only: never rendered into the page or sent to the browser.",
+            "format": "password",
+            "title": "Api Key",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "user_id",
+          "company_id",
+          "office_id",
+          "api_key"
+        ],
+        "title": "IdTokenClaims",
+        "type": "object"
+      },
+      "PageData": {
+        "additionalProperties": false,
+        "description": "Embedded in the page by the partner's backend and read by the frontend SDK.\n\nIt carries no user: the SDK asks Dialpad for the user (`get/user`) once it starts.\n\nCarried in the page as `<script type=\"application/json\" id=\"dialpad-page-data\" nonce=\"...\">`, whose JSON is this object plus `\"version\": 1`. The frontend SDK rejects versions it does not know with `bad_page_data`.",
+        "properties": {
+          "dialpad_origin": {
+            "description": "The Dialpad origin for this environment; the SDK talks only to it",
+            "title": "Dialpad Origin",
+            "type": "string"
+          },
+          "api_prefix": {
+            "default": "/dialpad",
+            "description": "Prefix for the contract endpoints",
+            "title": "Api Prefix",
+            "type": "string"
+          },
+          "access_token": {
+            "description": "The partner's own access token for this Dialpad user",
+            "title": "Access Token",
+            "type": "string"
+          },
+          "external_connection": {
+            "$ref": "#/components/schemas/ExternalConnection",
+            "description": "The connection at render time, so the first paint needs no extra request"
+          },
+          "app": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Partner-defined bootstrap data, passed through as JSON",
+            "title": "App"
+          }
+        },
+        "required": [
+          "dialpad_origin",
+          "access_token",
+          "external_connection"
+        ],
+        "title": "PageData",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "accessToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "The partner's own access token for this Dialpad user, from the page data"
+      }
+    }
+  }
+}

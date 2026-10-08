@@ -6,6 +6,10 @@ document is specific to the demo in this repository; the
 [README](README.md#how-the-demo-differs-from-a-real-app) lists what the demo
 simplifies.
 
+The endpoints and schemas these flows use (the page, `ext-connection`,
+`ext-disconnect`, the OAuth callback, the page data and the idtoken's claims) are
+specified in [`contract/openapi.json`](contract/openapi.json).
+
 1. [Initial iframe page load](#1-initial-iframe-page-load)
 2. [Authenticating every request from the iframe panel](#2-authenticating-every-request-from-the-iframe-panel)
 3. [External OAuth (Connect)](#3-external-oauth-connect)
