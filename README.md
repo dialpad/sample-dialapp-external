@@ -257,6 +257,26 @@ The demo's approach has no storage to run, but it cannot revoke a session, its
 values live in the browser (30 days, per browser), and rotating `APP_SECRET`
 signs everyone out.
 
+### How the demo authenticates requests (cookie)
+
+The demo has no session table, so the session lives in a signed cookie, and every
+request must send the bearer token **and** the cookie, which must hold the same
+token (compared in constant time, with the cookie's signature and age valid):
+
+```http
+GET /dialpad/ext-connection
+Authorization: Bearer <the access token from the page data>
+Cookie: __Host-acme_session=<signed session>
+```
+
+`ctx.state_for(request)` does that check and returns the user's
+`CookieBackedDatabaseStorage`, or `None`. The cookie has to be `SameSite=None`,
+because the iframe panel runs in a third-party iframe, so browsers also attach it
+to requests made by other sites. The header can only be added by code that holds
+the page data, so requiring the two to match is the "double submit" defence
+against cross-site request forgery. A real app, with a session table, needs only
+the header (see [Security, section 2](#2-authenticating-requests-to-your-server)).
+
 ### The contact lookup (demo vs. a real app)
 
 **What the demo does.** There is no CRM, so there is no mapping. The iframe panel
@@ -408,21 +428,29 @@ There are two kinds, and they use different credentials.
 - **Every request the iframe panel makes to your server** comes from the iframe, which
   has no idtoken. That includes the two requests the SDK makes itself
   (`ext-connection` and `ext-disconnect`, the only two the SDK invokes) and every
-  route your application adds; this demo has no others, but a real app will have
-  many. The page response therefore starts a session: it embeds a random
-  **access token** in the page data and sets a signed **session cookie** holding
-  the same token. Each request must send `Authorization: Bearer <access token>`
-  and, as the browser adds it, the cookie:
+  route your application adds, which in a real app will be many. The page
+  response therefore starts a session: the server stores a session for the Dialpad
+  user (its token's hash, the user and an expiry) and embeds the random, opaque
+  **access token** in the page data. Each request must send it as a bearer token:
 
   ```http
   GET /dialpad/ext-connection
   Authorization: Bearer <the access token from the page data>
-  Cookie: __Host-acme_session=<signed session>
   ```
 
-  The server answers only when the two tokens match (compared in constant
-  time) and the cookie's signature and age are valid. Otherwise it answers
-  `401`, and the iframe panel asks the user to reload.
+  The server looks the token up and answers only when it finds an unexpired
+  session; the session says which Dialpad user is asking. Otherwise it answers
+  `401`, and the iframe panel asks the user to reload. Deleting the session row
+  revokes it.
+
+**Why a header and not a cookie.** A browser attaches cookies to requests that
+other sites make, and the iframe panel runs in a third-party iframe, so a cookie
+would have to be `SameSite=None` and `Partitioned`, which some browsers refuse. It
+never adds an `Authorization` header by itself: only code that holds the page
+data, the iframe panel's own scripts, can send one. So a request from another site
+cannot carry it, and there is no cross-site request forgery to defend against.
+Keep the token in memory, not in `localStorage`, and let the CSP in
+[section 4](#4-framing-csp-and-nonces) keep injected scripts out.
 
 **Adding your own routes.** On the iframe panel side, send them through the `api()`
 wrapper in `client/src/api.ts`, which adds the bearer header (the SDK's
@@ -430,9 +458,9 @@ wrapper in `client/src/api.ts`, which adds the bearer header (the SDK's
 notice. On the server side, add a file under `server/acme_dialpad_rightbar/endpoints/app/` with
 a `register(app, ctx)` function (copy `contact.py`) and list it in that folder's
 `__init__.py`. Authenticate the route the way the SDK's own two routes do, with
-`ctx.state_for(request)`, which returns the user's `CookieBackedDatabaseStorage`
-when the header and cookie match and `None` otherwise. Use that, not the idtoken,
-to know who is asking (a sketch):
+`ctx.state_for(request)`, which turns the bearer token into the user's state, or
+`None` when it is missing or unknown. Use that, not the idtoken, to know who is
+asking (a sketch):
 
 ```python
 @app.get('/api/notes')
@@ -444,15 +472,8 @@ async def notes(request: Request) -> HTTPResponse:
   ...
 ```
 
-**Why both the header and the cookie.** The cookie has to be `SameSite=None`,
-because the iframe panel runs in a third-party iframe, so browsers also attach it to
-requests made by other sites. The header can only be added by code that holds
-the page data, that is, the iframe panel's own scripts, so a request from another site
-cannot forge it. Requiring the two to match is the "double submit" defence
-against cross-site request forgery.
-
-The contract only needs _some_ token the iframe panel can send; a signed JWT or a
-server-side session table work as well as this cookie.
+The contract only needs _some_ token the iframe panel can send; a signed JWT with a
+short expiry works as well as a session table, without the lookup.
 
 ### 3. Authenticating requests to Dialpad
 
