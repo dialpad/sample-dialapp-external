@@ -183,8 +183,10 @@ and then succeeded.
 
 Set the beta OAuth app's conversation sidebar URI to the service URL with a
 trailing slash, for example `https://acme-crm-demo-xxxxxxxx-uc.a.run.app/`
-(Dialpad sets this up for you). Dialpad appends `?idtoken=...` itself. Open a
-contact in dialpadbeta and the iframe panel should appear.
+(Dialpad sets this up for you). Dialpad appends `?idtoken=...` itself.
+
+Then enable the app from Dialpad's admin settings. Open a contact in dialpadbeta
+and the iframe panel should appear.
 
 ## Day two
 

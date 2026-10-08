@@ -147,7 +147,8 @@ that Dialpad sets up for you.
 
 2. Expose the server at that public HTTPS URL (how is up to you).
 3. Ask Dialpad to set the beta OAuth app's conversation sidebar URI to it.
-4. Open any contact in dialpadbeta: the iframe panel appears, and connect, reconnect,
+4. Enable the app from Dialpad's admin settings.
+5. Open any contact in dialpadbeta: the iframe panel appears, and connect, reconnect,
    and disconnect work against the real host.
 
 Current Chrome, Edge, Firefox and Safari 26.2 or later are supported. The
