@@ -325,10 +325,3 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
 - The app's own logs hold no idtoken; Cloud Run's request log does.
 - Redeploying as in Day two keeps the environment variables, secret references and
   instance limit, and serves the new bundle.
-
-**Not verified**
-
-- The iframe panel framed by dialpadbeta itself, which needs the OAuth app's
-  conversation sidebar URI to point at the service and a real client secret to
-  decode Dialpad's idtokens.
-- The roll back and delete commands, and the Cloud Logging exclusion.
