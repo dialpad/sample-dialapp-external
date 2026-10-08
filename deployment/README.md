@@ -74,14 +74,11 @@ let Cloud Build do the build (below).
 ## Deploy
 
 You need `gcloud` signed in (`gcloud auth login`) with permission to enable APIs
-and create Cloud Run services, Artifact Registry repositories and Cloud Build
-builds in the project. The project owner role does. Pass `--project` on every
-command, as below, so nothing depends on your default project.
-
-These are the commands the reference app was deployed with, on a project with
-nothing enabled yet. Replace `PROJECT`, `REGION` and the names to suit. Cloud
-Run's commands change over time, so check them against the current
-documentation.
+and create Cloud Run services, Artifact Registry repositories, Cloud Build builds
+and Secret Manager secrets in the project. The project owner role does. Pass
+`--project` on every command, as below, so nothing depends on your default
+project. Replace `PROJECT`, `REGION` and the names to suit. Cloud Run's commands
+change over time, so check them against the current documentation.
 
 ### 1. Enable the services and create a repository
 
@@ -92,6 +89,9 @@ gcloud services enable run.googleapis.com artifactregistry.googleapis.com \
 gcloud artifacts repositories create acme-crm \
   --repository-format=docker --location=REGION
 ```
+
+If a later command fails with a permission error right after you enable the APIs,
+wait a minute and run it again.
 
 ### 2. Build and push the image
 
@@ -175,10 +175,6 @@ Cloud Run's default startup probe (a TCP check on the port) is enough. The app's
 it. Don't point a check at it on the public URL: Cloud Run's front end answers
 that path itself (with Google's 404 page) before the request reaches the app.
 
-If a command fails with a permission error right after you enable the APIs, wait
-a minute and run it again; the first `gcloud builds submit` here did the same
-and then succeeded.
-
 ### 5. Point Dialpad at it
 
 Set the beta OAuth app's conversation sidebar URI to the service URL with a
@@ -194,8 +190,8 @@ and the iframe panel should appear.
 
 Build again and roll out a new revision. Rebuilding the same `:latest` tag is
 enough: Cloud Run resolves the tag to the new image when you deploy, and the
-service keeps its environment variables, scaling settings and URL. (Both commands
-below were run to redeploy this app.)
+service keeps its environment variables, secret references, scaling settings and
+URL.
 
 ```sh
 gcloud builds submit --config deployment/cloudbuild.yaml --project PROJECT \
@@ -229,7 +225,7 @@ second form built from the project number
 for `BASE_URL` and the sidebar URI so the OAuth popup and the iframe panel share an
 origin.
 
-### Roll back, or remove it (not run here)
+### Roll back, or remove it
 
 ```sh
 gcloud run services update-traffic acme-crm-demo --project PROJECT --region REGION \
@@ -256,20 +252,19 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
   several instances, the OAuth callback could record a result on one while the
   iframe panel's polling asked another, and Connect would never finish. A restart or a
   scale-to-zero forgets results that were in flight, so that Connect has to be
-  retried. Limiting the service to one instance, as above, avoids the several-instance
-  case for a demo. A real
-  partner has no such store: the callback saves the CRM tokens in a shared
-  database, as `server/acme_dialpad_rightbar/stores.py` says. The access tokens and the
-  "connected" state are not in memory: they are in the session cookie (see
-  Cookies below), so they survive restarts and work on any instance.
+  retried. Limiting the service to one instance avoids the several-instance case
+  for a demo. A real partner has no such store: the callback saves the CRM tokens
+  in a shared database, as `server/acme_dialpad_rightbar/stores.py` says. The access
+  tokens and the "connected" state are not in memory: they are in the session cookie
+  (see Cookies below), so they survive restarts and work on any instance.
 - **The idtoken ends up in Cloud Run's request log.** The idtoken is in the page
   URL and never expires. The app doesn't log it (no access log, and a quiet
   error handler), but Cloud Run's own request log,
   `run.googleapis.com/requests`, records the full request URL including
-  `?idtoken=...`. This was checked on a deployed service. Anyone who can read
-  the project's logs can read those tokens. Either restrict who can read them,
-  or exclude the service's request logs from the `_Default` sink (not run here;
-  check the syntax against the current Cloud Logging documentation):
+  `?idtoken=...`. Anyone who can read the project's logs can read those tokens.
+  Either restrict who can read them, or exclude the service's request logs from the
+  `_Default` sink (check the syntax against the current Cloud Logging
+  documentation):
 
   ```sh
   gcloud logging sinks update _Default --project PROJECT \
@@ -300,66 +295,40 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
   works in a third-party iframe over HTTPS. Cloud Run terminates TLS and the app
   sets the cookie regardless of the scheme it sees internally.
 
-## What was checked
+## What has been verified
 
-On a laptop, with Docker:
+**The image, locally with Docker**
 
-- The image builds for arm64 and for linux/amd64.
-- The arm64 container runs as a non-root user and serves the page,
-  `/assets/...`, `/healthz`, the fake authorize page and the callback;
-  `ext-connection` then answers "connected" and sets the cookie with all its
-  attributes. Neither the idtoken nor the access token appears in its logs.
-- With a missing or malformed setting the container exits immediately with a
-  clear message.
-- The amd64 image, run under emulation with an HTTPS `BASE_URL` and `PORT=8080`,
-  answers `/healthz` and serves the page.
+- It builds for arm64 and for linux/amd64.
+- The container runs as a non-root user and serves the page, `/assets/...`,
+  `/healthz`, the fake authorize page and the callback.
+- `ext-connection` answers `200` with the matching bearer token and cookie, and
+  `401` with only one of them or a wrong token; it still answers `200` after a
+  restart of the container.
+- The page sets the session cookie with all its attributes (`Secure`, `HttpOnly`,
+  `SameSite=None`, `Partitioned`, 30 days). Neither the idtoken nor the access
+  token appears in the container's log.
+- A missing or malformed setting makes the container exit at once with a clear
+  message. The amd64 image answers `/healthz` and serves the page under emulation.
 
-After the files moved into `client/`, `server/` and `deployment/`, the image
-was built again with `docker build -f deployment/Dockerfile .` and run: `/healthz`
-answered `ok`, the page rendered, a built asset under `/assets` was served, and a
-bad idtoken got `401`. The `cloudbuild.yaml` that replaces `--tag` has not been
-run.
+**On Cloud Run, built with `cloudbuild.yaml` and deployed with the commands above**
 
-After the access token moved into the session cookie, the image was built and run
-again: the page set the cookie (`Secure`, `HttpOnly`, `SameSite=None`,
-`Partitioned`, 30 days), `ext-connection` answered `200` with the matching bearer
-token and cookie and `401` with only one of them or a wrong token, it still
-answered `200` after `docker restart`, and neither token appeared in the logs.
-That change was later deployed, with the others since (see below).
-
-On Cloud Run, from a deployment to a project that had nothing enabled (with the
-layout and build command from before the move):
-
-- Cloud Build built the image, Artifact Registry stored it, and the service came
-  up with one instance on port 8080.
-- Over the service's HTTPS URL: the page rendered for an idtoken signed with the
-  configured client secret and returned `401` for one signed with another
-  secret; its headers (the Content-Security-Policy with `frame-ancestors`,
-  `no-store`, `no-referrer`) and its hashed assets were right; the fake
-  authorize page, the callback and `ext-connection` completed a connection and
-  set the cookie with all its attributes.
+- The service runs one instance on port 8080 with `DIALPAD_CLIENT_SECRET` and
+  `APP_SECRET` as Secret Manager references (no plain values).
+- Over the public HTTPS URL, with a mock idtoken signed with the configured
+  client secret: the page renders with the `frame-ancestors` policy, `no-store` and
+  the session cookie; a bad idtoken gets `401`; a full Connect (the fake authorize
+  page, then the callback) makes `ext-connection` answer connected;
+  `POST /api/contact` returns the prefixed fields; Disconnect answers `204` and
+  ends the connection.
 - `/healthz` on the public URL returns Google's 404, not the app's `ok`.
-- The app's own logs held no idtoken; Cloud Run's request log did (see above).
-- A second build and `gcloud run deploy` rolled out a new revision with the same
-  environment variables and instance limits, and the new bundle was being
-  served.
+- The app's own logs hold no idtoken; Cloud Run's request log does.
+- Redeploying as in Day two keeps the environment variables, secret references and
+  instance limit, and serves the new bundle.
 
-After the secrets moved to Secret Manager, the live service's new revision listed
-`DIALPAD_CLIENT_SECRET` and `APP_SECRET` as secret references (no plain value),
-took all traffic, and answered `401` for a page request without an idtoken, as
-the app does. The values were copied from the old environment variables, so the
-client secret is still the placeholder the demo was deployed with, not the OAuth
-app's own.
+**Not verified**
 
-The current app was then built with `deployment/cloudbuild.yaml` and deployed
-with the `gcloud run deploy` command above, which kept the service's settings
-and its two Secret Manager references. Against the service's public URL, with a
-mock idtoken signed with the configured client secret: the page rendered (`200`)
-with the `frame-ancestors` policy, `no-store` and the session cookie with all its
-attributes; its bundle was the new one; `ext-connection` answered `401` without
-the bearer token; a full Connect (the fake authorize page, then the callback)
-made it answer connected; `POST /api/contact` returned the prefixed fields;
-Disconnect answered `204` and the connection ended; and a bad idtoken got `401`.
-
-Not checked: the iframe panel framed by dialpadbeta itself, which needs the OAuth app's
-conversation sidebar URI to point at the service.
+- The iframe panel framed by dialpadbeta itself, which needs the OAuth app's
+  conversation sidebar URI to point at the service and a real client secret to
+  decode Dialpad's idtokens.
+- The roll back and delete commands, and the Cloud Logging exclusion.
