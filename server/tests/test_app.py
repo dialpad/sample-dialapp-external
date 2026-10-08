@@ -1,4 +1,4 @@
-"""The Sanic app (acme_crm/app.py): page, tokens, connection, fake OAuth, disconnect, logs."""
+"""The Sanic app (acme_crm/app.py, endpoints/): page, tokens, connection, OAuth, contact, logs."""
 
 import logging
 import re
@@ -12,9 +12,9 @@ from urllib.parse import urlsplit
 import pytest
 
 from acme_crm import signing
-from acme_crm.app import CLIENT_NAME
-from acme_crm.app import CONNECTED_SCOPES
-from acme_crm.app import FAKE_CODE
+from acme_crm.context import CLIENT_NAME
+from acme_crm.context import CONNECTED_SCOPES
+from acme_crm.fake_oauth import FAKE_CODE
 from acme_crm.idtoken import TEST_CLIENT_SECRET
 from acme_crm.idtoken import encode_mock_idtoken
 from tests.conftest import APP_SECRET
@@ -407,6 +407,105 @@ async def test_a_result_recorded_for_another_user_is_not_consumed(env: Env) -> N
   assert json_of(pat_check)['connected'] is False
   assert 'set-cookie' not in pat_check.headers
   assert json_of(jane_check)['connected'] is True
+
+
+# --- the example route the iframe panel adds for itself ------------------------------------------
+
+CONTACT = {
+    'id': '4800000000000001',
+    'displayName': 'Pat Customer',
+    'firstName': None,
+    'phones': ['+1 555 0199'],
+    'emails': [],
+}
+
+
+async def post_contact(env: Env, panel: Panel, body: object) -> Response:
+  """POST ``body`` as JSON to the contact route, as the panel does."""
+  return await env.post('/api/contact', headers=panel.headers, json=body)
+
+
+async def test_a_connected_user_gets_the_contact_back_acmed_without_the_empty_fields(
+    env: Env,) -> None:
+  panel = await env.open_panel()
+  await connect(env, panel)
+
+  response = await post_contact(env, panel, {'contact': CONTACT})
+
+  assert response.status_code == 200
+  assert json_of(response) == {
+      'fields': [
+          {
+              'label': 'id',
+              'value': 'Acme 4800000000000001'
+          },
+          {
+              'label': 'displayName',
+              'value': 'Acme Pat Customer'
+          },
+          {
+              'label': 'phones',
+              'value': 'Acme +1 555 0199'
+          },
+      ],
+  }
+  assert 'set-cookie' not in response.headers
+
+
+async def test_the_contact_route_authenticates_like_the_sdks_routes(env: Env) -> None:
+  panel = await env.open_panel()
+  await connect(env, panel)
+  body = {'contact': CONTACT}
+
+  no_header = await env.post('/api/contact', headers={'Cookie': panel.cookie}, json=body)
+  no_cookie = await env.post('/api/contact', headers=bearer(panel.token), json=body)
+  wrong = await env.post('/api/contact',
+                         headers=bearer('never-issued') | {'Cookie': panel.cookie},
+                         json=body)
+
+  for response in (no_header, no_cookie, wrong):
+    assert response.status_code == 401
+    assert json_of(response)['code'] == 'invalid_access_token'
+
+
+async def test_a_user_who_has_not_connected_gets_403_not_a_lookup(env: Env) -> None:
+  panel = await env.open_panel()
+
+  response = await post_contact(env, panel, {'contact': CONTACT})
+
+  assert response.status_code == 403
+  assert json_of(response)['code'] == 'not_connected'
+  assert 'Acme' not in response.text.replace('Acme account', '')
+
+
+@pytest.mark.parametrize(
+    'body',
+    [None, [], 'text', {}, {
+        'contact': None
+    }, {
+        'contact': 'Pat'
+    }, {
+        'contact': ['Pat']
+    }],
+)
+async def test_a_body_that_is_not_a_contact_object_gets_400(env: Env, body: object) -> None:
+  panel = await env.open_panel()
+  await connect(env, panel)
+
+  response = await post_contact(env, panel, body)
+
+  assert response.status_code == 400
+  assert json_of(response)['code'] == 'invalid_request'
+
+
+async def test_a_body_that_is_not_json_gets_400(env: Env) -> None:
+  panel = await env.open_panel()
+  await connect(env, panel)
+
+  response = await env.post('/api/contact', headers=panel.headers, content=b'{not json')
+
+  assert response.status_code == 400
+  assert json_of(response)['code'] == 'invalid_request'
 
 
 # --- the fake OAuth round trip -----------------------------------------------------------------

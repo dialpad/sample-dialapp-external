@@ -14,6 +14,10 @@ from acme_crm.pages import RenderedPage
 if TYPE_CHECKING:
   from collections.abc import Sequence
 
+# The fixed authorization code the fake OAuth round trip hands back; a real CRM issues a one-time
+# code that the callback exchanges for tokens.
+FAKE_CODE = 'fake-code'
+
 _TEMPLATE = """<!doctype html>
 <html lang="en">
 <head>

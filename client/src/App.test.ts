@@ -99,6 +99,72 @@ function fakeServer() {
   return server;
 }
 
+/** The rows the server's `POST /api/contact` answers with: non-empty fields, text prefixed "Acme ". */
+function acmeRows(contact: Record<string, unknown>) {
+  const acme = (value: unknown) =>
+    typeof value === 'string' ? `Acme ${value}` : String(value);
+  return Object.entries(contact)
+    .filter(
+      ([, value]) =>
+        value !== null &&
+        value !== undefined &&
+        value !== '' &&
+        !(Array.isArray(value) && value.length === 0),
+    )
+    .map(([label, value]) => ({
+      label,
+      value: Array.isArray(value)
+        ? (value as unknown[]).map(acme).join(', ')
+        : acme(value),
+    }));
+}
+
+/**
+ * A fake of the server's `POST /api/contact`, standing in for the global `fetch` the panel's own
+ * requests (the ones made through `api()`) use, and recording every request it gets.
+ *
+ * `mode` decides how it answers: `ok` (the Acme'd rows at once), `empty` (no rows), `error` (a 500),
+ * or `hold` (each answer waits in `held` until a test calls its `respond`, to answer out of order).
+ */
+function fakeContactApi() {
+  const contactApi = {
+    mode: 'ok' as 'ok' | 'empty' | 'error' | 'hold',
+    requests: [] as { method: string; path: string; body: unknown }[],
+    held: [] as { contact: Record<string, unknown>; respond: () => void }[],
+    fetch: vi.fn(
+      (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+        const path = new URL(
+          input instanceof Request ? input.url : String(input),
+          'https://acme.example.com',
+        ).pathname;
+        const body = (
+          typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
+        ) as { contact: Record<string, unknown> } | undefined;
+        contactApi.requests.push({ method: init?.method ?? 'GET', path, body });
+        if (contactApi.mode === 'error' || !body) {
+          return Promise.resolve(json({ code: 'oops', message: 'oops' }, 500));
+        }
+        const answer = () =>
+          json({
+            fields: contactApi.mode === 'empty' ? [] : acmeRows(body.contact),
+          });
+        if (contactApi.mode === 'hold') {
+          return new Promise<Response>((resolve) => {
+            contactApi.held.push({
+              contact: body.contact,
+              respond: () => {
+                resolve(answer());
+              },
+            });
+          });
+        }
+        return Promise.resolve(answer());
+      },
+    ),
+  };
+  return contactApi;
+}
+
 /** Every component mounted by `setup`, so `afterEach` can unmount them. */
 const mounted: { unmount(): void }[] = [];
 
@@ -132,6 +198,8 @@ async function setup({
 } = {}) {
   const host = createMockHost(user === undefined ? {} : { user });
   const server = fakeServer();
+  const contactApi = fakeContactApi();
+  vi.stubGlobal('fetch', contactApi.fetch);
   server.mode = mode;
   const root = document.createElement('div');
   document.body.append(root);
@@ -154,7 +222,7 @@ async function setup({
   });
   mounted.push(wrapper);
   await host.settle();
-  return { host, server, wrapper, rightbar };
+  return { host, server, contactApi, wrapper, rightbar };
 }
 
 afterEach(() => {
@@ -162,6 +230,7 @@ afterEach(() => {
     .map((call) => String(call[0]))
     .filter((message) => message.includes('[Vue warn]'));
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   if (vueWarnings.length > 0) {
     throw new Error(`Vue warnings:\n${vueWarnings.join('\n')}`);
   }
@@ -347,6 +416,7 @@ describe('Connected view', () => {
       }),
     );
     await host.settle();
+    await flushPromises();
 
     const contact = wrapper.get('[data-testid="acme-contact"]').text();
     expect(contact).toContain('displayName');
@@ -416,6 +486,87 @@ describe('Connected view', () => {
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
+  it('asks the server for the CRM view of the contact, with the contact as the body', async () => {
+    const { host, contactApi } = await setup({ connected: true });
+    const pat = makeContact({ id: '1', displayName: 'Pat Customer' });
+
+    host.sendContact(pat);
+    await host.settle();
+    await flushPromises();
+
+    expect(contactApi.requests).toEqual([
+      {
+        method: 'POST',
+        path: '/api/contact',
+        body: { contact: JSON.parse(JSON.stringify(pat)) as unknown },
+      },
+    ]);
+  });
+
+  it('shows that the contact is loading until the server answers, then the rows', async () => {
+    const { wrapper, host, contactApi } = await setup({ connected: true });
+    contactApi.mode = 'hold';
+
+    host.sendContact(makeContact({ displayName: 'Pat Customer' }));
+    await host.settle();
+    await flushPromises();
+    const loading = wrapper.get('[data-testid="acme-contact"]').text();
+    contactApi.held[0]?.respond();
+    await flushPromises();
+
+    expect(loading).toContain('Loading the contact');
+    expect(loading).not.toContain('Acme Pat Customer');
+    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+      'Acme Pat Customer',
+    );
+  });
+
+  it('says so when the server cannot answer for the contact, and the rest of the panel works', async () => {
+    const { wrapper, host, contactApi } = await setup({ connected: true });
+    contactApi.mode = 'error';
+
+    host.sendContact(makeContact({ displayName: 'Pat Customer' }));
+    await host.settle();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+      "Couldn't load the contact",
+    );
+    expect(wrapper.find('[data-testid="user-card"]').exists()).toBe(true);
+  });
+
+  it('ignores a late answer for an earlier contact once a newer contact is open', async () => {
+    const { wrapper, host, contactApi } = await setup({ connected: true });
+    contactApi.mode = 'hold';
+
+    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
+    await host.settle();
+    host.sendContact(makeContact({ id: '2', displayName: 'Sam Prospect' }));
+    await host.settle();
+    await flushPromises();
+    contactApi.held[1]?.respond();
+    await flushPromises();
+    contactApi.held[0]?.respond();
+    await flushPromises();
+
+    const shown = wrapper.get('[data-testid="acme-contact"]').text();
+    expect(shown).toContain('Acme Sam Prospect');
+    expect(shown).not.toContain('Acme Pat Customer');
+  });
+
+  it('says there are no details when the server answers with no rows', async () => {
+    const { wrapper, host, contactApi } = await setup({ connected: true });
+    contactApi.mode = 'empty';
+
+    host.sendContact(makeContact({ displayName: 'Pat Customer' }));
+    await host.settle();
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+      'There are no details for this contact',
+    );
+  });
+
   it('shows no active call until Dialpad sends one', async () => {
     const { wrapper } = await setup({ connected: true });
 
@@ -435,18 +586,21 @@ describe('Connected view', () => {
       }),
     );
     await host.settle();
+    await flushPromises();
     const ringing = wrapper.get('[data-testid="call-card"]').text();
     expect(ringing).toContain('Ringing');
     expect(ringing).toContain('inbound · +15555550199');
 
     host.sendCall(makeCall({ state: 'connected' }));
     await host.settle();
+    await flushPromises();
     expect(wrapper.get('[data-testid="call-card"]').text()).toContain(
       'Connected',
     );
 
     host.sendCall(makeCall({ state: 'hangup' }));
     await host.settle();
+    await flushPromises();
     expect(wrapper.get('[data-testid="call-card"]').text()).toContain('Ended');
   });
 
@@ -457,6 +611,7 @@ describe('Connected view', () => {
     host.sendContact(pat);
     host.sendCall(makeCall({ state: 'ringing', contact: pat }));
     await host.settle();
+    await flushPromises();
 
     expect(wrapper.find('[data-testid="call-contact"]').exists()).toBe(false);
     expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
@@ -475,6 +630,7 @@ describe('Connected view', () => {
       }),
     );
     await host.settle();
+    await flushPromises();
 
     expect(wrapper.get('[data-testid="call-contact"]').text()).toContain(
       'Acme Sam Prospect',
@@ -489,6 +645,7 @@ describe('Connected view', () => {
 
     host.sendCall(makeCall({ state: 'ringing', contact: null }));
     await host.settle();
+    await flushPromises();
 
     expect(wrapper.find('[data-testid="call-contact"]').exists()).toBe(false);
   });
@@ -498,8 +655,10 @@ describe('Connected view', () => {
 
     host.sendContact(makeContact({ displayName: 'Pat Customer' }));
     await host.settle();
+    await flushPromises();
     host.sendContact(makeContact({ displayName: 'Sam Prospect' }));
     await host.settle();
+    await flushPromises();
 
     expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
       'Acme Sam Prospect',
@@ -535,6 +694,7 @@ describe('Connected view', () => {
     await wrapper.get('[data-testid="disconnect-confirm"]').trigger('click');
     await host.settle();
     await flushPromises();
+    await flushPromises();
 
     expect(server.calls).toContainEqual({
       method: 'POST',
@@ -558,6 +718,7 @@ describe('Connected view', () => {
     await wrapper.get('[data-testid="disconnect-button"]').trigger('click');
     await wrapper.get('[data-testid="disconnect-confirm"]').trigger('click');
     await host.settle();
+    await flushPromises();
     await flushPromises();
 
     expect(wrapper.get('[role="alert"]').text()).toContain(

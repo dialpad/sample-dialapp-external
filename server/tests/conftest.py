@@ -23,9 +23,9 @@ from typing import override
 import pytest
 from sanic import Sanic
 
-from acme_crm.app import COOKIE_HEADER_NAME
-from acme_crm.app import App
 from acme_crm.app import create_app
+from acme_crm.context import COOKIE_HEADER_NAME
+from acme_crm.context import App
 from acme_crm.idtoken import TEST_CLIENT_SECRET
 from acme_crm.idtoken import encode_mock_idtoken
 from acme_crm.settings import Settings
