@@ -11,7 +11,7 @@
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 import { computed } from 'vue';
 
-import { readDialpadApi } from '../dialpadApi';
+import { readDialpadApi } from '../customPageAppData';
 
 const { rightbar } = useRightbar();
 

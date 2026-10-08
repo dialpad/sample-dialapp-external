@@ -1,4 +1,7 @@
-// The result of the server's demo call to Dialpad's API, read from the page data's `app` field.
+// The custom data the server puts in the page data's `app` field: whatever bootstrap data this
+// application wants its iframe panel to start with. The SDK passes the field through unchecked as
+// `rightbar.app`, so it is validated here before use. The demo's only entry is the result of its
+// call to Dialpad's API, `app.dialpadApi`.
 //
 // The server calls `GET /api/v2/users/me` with the idtoken's api key while it renders the page, and
 // puts the outcome in `app.dialpadApi`. That call is unnecessary for the app and exists for demo
