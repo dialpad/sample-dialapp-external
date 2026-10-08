@@ -181,34 +181,118 @@ To run it as a container, for example on Cloud Run, see
 
 Dialpad loads the page with an idtoken; the server decodes it, starts a session
 and renders the iframe panel; the panel authenticates every later request with an
-access token (header) that must match the session cookie; the user connects
-through an OAuth popup and the panel then shows their data and the CRM's view of
-the open contact. Each flow has its own diagrams, files and "demo vs. a real app"
-notes in **[FLOWS.md](FLOWS.md)**:
+access token in a header; the user connects through an OAuth popup and the panel
+then shows their data and the CRM's view of the open contact.
 
-1. [Initial iframe page load](FLOWS.md#1-initial-iframe-page-load), including
-   [the demo call to Dialpad's API](FLOWS.md#the-demo-call-to-dialpads-api)
-2. [Authenticating every request from the iframe panel](FLOWS.md#2-authenticating-every-request-from-the-iframe-panel)
-3. [External OAuth (Connect)](FLOWS.md#3-external-oauth-connect), including
-   [why a note is kept in server memory](FLOWS.md#why-a-note-is-kept-in-server-memory-demo-only)
-4. [External disconnect](FLOWS.md#4-external-disconnect)
-5. [External contact pulling](FLOWS.md#5-external-contact-pulling)
-6. [Everything else the demo does](FLOWS.md#6-everything-else-the-demo-does)
+**[FLOWS.md](FLOWS.md)** explains each flow of a real partner app with diagrams:
+[page load](FLOWS.md#1-initial-iframe-page-load),
+[authenticating requests](FLOWS.md#2-authenticating-every-request-from-the-iframe-panel),
+[OAuth](FLOWS.md#3-external-oauth-connect),
+[disconnect](FLOWS.md#4-external-disconnect),
+[contact pulling](FLOWS.md#5-external-contact-pulling),
+[server-to-server calls to Dialpad's API](FLOWS.md#6-server-to-server-calling-dialpads-api)
+and [event subscriptions and webhooks](FLOWS.md#7-event-subscriptions-and-webhooks).
+This README says how the demo simplifies them
+([below](#how-the-demo-differs-from-a-real-app)).
 
 Each endpoint is one file under `server/acme_crm/endpoints/`: the ones Dialpad or
 its SDK calls (the DialApp contract) are in `dialpad/`, and the application's own
 are in `app/`. Each folder's `__init__.py` lists them.
 
-| Endpoint                       | File                          | Behaviour                                                                                                                                                |
-| ------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /`                        | `dialpad/page.py`             | The page. `401` HTML if the idtoken doesn't decode                                                                                                       |
-| `GET /dialpad/ext-connection`  | `dialpad/ext_connection.py`   | Bearer token matching the cookie's. Consumes a stored OAuth result, else answers from the cookie. Fresh authorize URL                                    |
-| `POST /dialpad/ext-disconnect` | `dialpad/ext_disconnect.py`   | Bearer token matching the cookie's. Turns the connection off in the cookie, answers `204` with no body                                                   |
-| `POST /api/contact`            | `app/contact.py`              | Bearer token matching the cookie's, user connected. Answers with the CRM's view of a Dialpad contact (see [flow 5](FLOWS.md#5-external-contact-pulling)) |
-| `GET /oauth/fake-authorize`    | `app/oauth_fake_authorize.py` | Demo only. A page labelled fake, with an Authorize button that goes to the callback with `state` and a fixed `code`                                      |
-| `GET /oauth/callback`          | `app/oauth_callback.py`       | Demo only. Verifies `state`, records the result, close-popup page                                                                                        |
-| `GET /healthz`                 | `app/healthz.py`              | Answers `ok`                                                                                                                                             |
-| `GET /dev/frame-url`           | `app/dev_frame_url.py`        | Local mode only. The dev host's page URL with a mock idtoken                                                                                             |
+| Endpoint                       | File                          | Behaviour                                                                                                                                                  |
+| ------------------------------ | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /`                        | `dialpad/page.py`             | The page. `401` HTML if the idtoken doesn't decode                                                                                                         |
+| `GET /dialpad/ext-connection`  | `dialpad/ext_connection.py`   | Bearer token matching the cookie's. Consumes a stored OAuth result, else answers from the cookie. Fresh authorize URL                                      |
+| `POST /dialpad/ext-disconnect` | `dialpad/ext_disconnect.py`   | Bearer token matching the cookie's. Turns the connection off in the cookie, answers `204` with no body                                                     |
+| `POST /api/contact`            | `app/contact.py`              | Bearer token matching the cookie's, user connected. Answers with the CRM's view of a Dialpad contact (see [below](#the-contact-lookup-demo-vs-a-real-app)) |
+| `GET /oauth/fake-authorize`    | `app/oauth_fake_authorize.py` | Demo only. A page labelled fake, with an Authorize button that goes to the callback with `state` and a fixed `code`                                        |
+| `GET /oauth/callback`          | `app/oauth_callback.py`       | Demo only. Verifies `state`, records the result, close-popup page                                                                                          |
+| `GET /healthz`                 | `app/healthz.py`              | Answers `ok`                                                                                                                                               |
+| `GET /dev/frame-url`           | `app/dev_frame_url.py`        | Local mode only. The dev host's page URL with a mock idtoken                                                                                               |
+
+## How the demo differs from a real app
+
+| Flow                                                                                        | This demo                                                                                                                                    | A real app                                                                                 |
+| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [1. Page load](FLOWS.md#1-initial-iframe-page-load)                                         | Embeds a random access token and sets a signed session cookie that holds it; uses the `api_key` once for a demo call and drops it            | Stores the `api_key`, creates a session row, no cookie                                     |
+| [2. Authenticating requests](FLOWS.md#2-authenticating-every-request-from-the-iframe-panel) | The bearer token must equal the cookie's token (a double submit)                                                                             | Looks the bearer token up in a session table; no cookie                                    |
+| [3. OAuth](FLOWS.md#3-external-oauth-connect)                                               | A fake authorize page; the callback leaves an in-memory note that the iframe panel's next check collects, and the cookie records "connected" | The CRM's authorize page; the callback exchanges the `code` for CRM tokens and stores them |
+| [4. Disconnect](FLOWS.md#4-external-disconnect)                                             | Turns "connected" off in the cookie, in that browser only                                                                                    | Revokes and deletes the user's CRM tokens                                                  |
+| [5. Contact pulling](FLOWS.md#5-external-contact-pulling)                                   | Prefixes every text field with `Acme `                                                                                                       | Maps the contact to a CRM record, fetches it with the CRM token, calls `linkRecord`        |
+| [6. Server to server](FLOWS.md#6-server-to-server-calling-dialpads-api)                     | One call on the page request                                                                                                                 | Stores the key and calls Dialpad's API whenever needed                                     |
+| [7. Webhooks](FLOWS.md#7-event-subscriptions-and-webhooks)                                  | Not implemented                                                                                                                              | A receiver that verifies each event's signed JWT                                           |
+
+### The contact lookup (demo vs. a real app)
+
+**What the demo does.** There is no CRM, so there is no mapping. The iframe panel
+(`client/src/components/AcmeContact.vue`) sends the Dialpad contact to
+`POST /api/contact`, and the server (`server/acme_crm/endpoints/app/contact.py`,
+whose docstring also describes the real thing) answers with every non-empty field
+prefixed `Acme `. That proves the contact reached the server and came back, and
+that the request was authenticated as the right user. The iframe panel shows a
+loading state and a failure message, and ignores a late answer for a contact that
+is no longer open. A real app does what
+[flow 5](FLOWS.md#5-external-contact-pulling) describes.
+
+### The demo call to Dialpad's API
+
+**Unnecessary for the app, and for demo purposes only.** While it renders the
+page, the server uses the idtoken's `api_key` to call Dialpad's public API, to
+show how the key is used: `GET {DIALPAD_ORIGIN}/api/v2/users/me` with
+`Authorization: Bearer <api_key>`, made by Dialpad's own Python client
+([`python-dialpad`](https://pypi.org/project/python-dialpad/)), in
+`server/acme_crm/dialpad_api.py`. The iframe panel shows the user's name, email, id
+and state in a "From Dialpad's API" card.
+
+- The call has a 3 second timeout and no retry. If Dialpad's API refuses the
+  key, fails or is slow, the page renders anyway and the card says "Dialpad API
+  unavailable".
+- Local mode makes no call (the mock idtoken's key isn't real), and the card
+  says so.
+- The key is used for this one call and dropped. It is never put in the page,
+  logged or returned, and the idtoken is not stored.
+- Doc 11 of the partner rightbar PRD lists calling the public API with the key
+  as out of scope; this demo does it anyway, to show the key in use.
+
+A real application would not work this way: it **persists the api key in
+long-term storage** and **uses it to call Dialpad as and when needed**
+([flow 6](FLOWS.md#6-server-to-server-calling-dialpads-api)).
+
+### Why connection results are kept in memory (demo only)
+
+The Connect flow in short: the iframe panel's page says "not connected" with an
+authorize URL; Connect makes Dialpad open it in a popup while the iframe panel polls
+`/dialpad/ext-connection`; the user approves at the CRM, which sends the popup
+to `/oauth/callback`; the callback verifies the signed `state` and closes the
+popup; the iframe panel's next poll learns it is connected and gets its session cookie
+rewritten with the connection on.
+
+The catch is that the callback and the iframe panel are different windows. The
+callback runs in the popup, and the session cookie belongs to the iframe panel
+(it is `Partitioned`), so the callback cannot set it. The only thing both sides know
+is which Dialpad user this is, so the callback leaves a short-lived note in
+server memory ("this user finished connecting", kept for 5 minutes and
+collected once), and the iframe panel's next check picks it up. That note is
+`OAuthResults` in `server/acme_crm/stores.py`, whose docstring tells the whole
+flow.
+
+**This exists only because the demo has no real CRM.** A real partner's
+callback exchanges the `code` for CRM tokens and stores them durably, keyed by
+the Dialpad user, and `ext-connection` answers "connected" when those tokens
+exist, from the database, on any instance and after any restart. Then there is
+no handoff and no expiry, and both `OAuthResults` and the cookie can go.
+
+Without a database, this demo keeps what has to last, the user's access token
+and "this user is connected to external CRM", in the browser: the signed, 30-day
+session cookie is its persistent storage. It survives a server restart or
+scale-to-zero, and it is signed so it can't be forged. Changing `APP_SECRET`
+signs everyone out: every open iframe panel gets `401` and shows "Reload the
+panel". The cookie is not encrypted (it is `HttpOnly`, so page scripts can't read
+it), it is per browser (Disconnect changes it only in the browser that asked), a
+browser that refuses it can't use the iframe panel, and the server can't revoke
+one early. A real partner's stored tokens, looked up by Dialpad user, have none of
+those limits, and a real partner would keep a durable session or issue expiring
+tokens instead of this cookie.
 
 ## Security: what the demo shows
 
@@ -286,7 +370,7 @@ Dialpad user, store it in long-term storage keyed by company and user id
 (protected like your CRM tokens: encrypted at rest, never logged), and replace
 it whenever a newer idtoken carries a different one. This demo stores nothing: it
 uses the key once, on the page request, for the demo call described in
-[The demo call to Dialpad's API](FLOWS.md#the-demo-call-to-dialpads-api), and drops it.
+[The demo call to Dialpad's API](#the-demo-call-to-dialpads-api), and drops it.
 
 The idtoken has no expiry that this app checks, and it travels in a URL, so
 treat that URL as a secret: the page is served with `Referrer-Policy:
@@ -769,7 +853,7 @@ function createContactSection(rightbar) {
 
 A real app would also call `rightbar.linkRecord(...)` here once the server has
 returned a mapped CRM record (see
-[The contact lookup](FLOWS.md#5-external-contact-pulling)).
+[The contact lookup](#the-contact-lookup-demo-vs-a-real-app)).
 
 ### Tests and build
 
@@ -1027,7 +1111,7 @@ export function Panel() {
   and the panel's next `ext-connection` call can land on different instances. Use
   Redis or a database for that handoff, or, better, store the CRM tokens in the
   callback as a real app does and drop the handoff (see
-  [Why a note is kept in server memory](FLOWS.md#why-a-note-is-kept-in-server-memory-demo-only)).
+  [Why connection results are kept in memory](#why-connection-results-are-kept-in-memory-demo-only)).
   A single long-running Node server (for example in a container) can keep the
   in-memory map, with the same single-instance caveat as the Python server.
 - **Environment variables.** `DIALPAD_CLIENT_SECRET` and `APP_SECRET` must be
