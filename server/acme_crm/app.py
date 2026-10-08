@@ -11,13 +11,18 @@ Routes, in the order a user meets them:
 * ``GET /dev/frame-url`` (local mode only) and ``GET /healthz``: development helpers.
 
 Identity comes from the idtoken on the page request only. Every later API call carries the app's own
-per-user access token as a bearer token.
+per-user access token as a bearer token, which must match the one in the session cookie.
 
-Whether a user is connected is the one thing this demo has to remember for good, and it remembers it
-in the browser: a signed cookie (HMAC-SHA256 with ``APP_SECRET``, bound to the Dialpad user and
-company, valid for 30 days) is the app's persistent storage of the connection. The server keeps no
-database. A real partner stores the CRM tokens it gets from the OAuth callback instead, and answers
-from those; see ``acme_crm.stores.OAuthResults`` and ``acme_crm.signing``.
+What this demo has to remember for good, the user's access token and whether they are connected,
+it keeps in the browser: one signed session cookie (HMAC-SHA256 with ``APP_SECRET``, bound to the
+Dialpad user and company, valid for 30 days) is the app's persistent storage. The server keeps no
+database. The page load sets the cookie and embeds the same token in the page data; the contract
+endpoints accept a call only when its ``Authorization: Bearer`` value equals the token in the
+cookie. The handlers read and change that state only through ``CookieBackedDatabaseStorage``
+(``acme_crm.state``), whose getters are ``get_access_token`` and ``is_external_connected``: it plays
+the per-user database row a real partner would keep. A real partner stores the CRM tokens it gets
+from the OAuth callback instead, and answers from those; see ``acme_crm.stores.OAuthResults`` and
+``acme_crm.signing``.
 """
 
 import logging
@@ -58,7 +63,7 @@ from acme_crm.pages import generate_nonce
 from acme_crm.pages import render_close_popup
 from acme_crm.pages import render_error_page
 from acme_crm.pages import render_page
-from acme_crm.stores import AccessTokens
+from acme_crm.state import CookieBackedDatabaseStorage
 from acme_crm.stores import OAuthResults
 from acme_crm.stores import UserKey
 
@@ -80,7 +85,7 @@ CONNECTED_SCOPES = ['contacts.read']
 # The fixed authorization code the fake OAuth round trip hands back; a real CRM issues a one-time
 # code that the callback exchanges for tokens.
 FAKE_CODE = 'fake-code'
-# The connection cookie, sent by browsers as `__Host-acme_session`.
+# The session cookie (access token and connection state), sent by browsers as `__Host-acme_session`.
 COOKIE_NAME = 'acme_session'
 # Sanic prefixes the name with `__Host-` when host_prefix is set, and reports it that way back.
 COOKIE_HEADER_NAME = f'__Host-{COOKIE_NAME}'
@@ -107,16 +112,15 @@ class QuietErrorHandler(ErrorHandler):
 
 @dataclass
 class AppContext:
-  """Everything the route handlers share: configuration, stores, assets and the clock.
+  """Everything the route handlers share: configuration, the OAuth store, assets and the clock.
 
   One instance is created per app by ``create_app`` and captured by the handlers. ``clock`` is
   injectable so tests can move time: the OAuth ``state`` expires after 10 minutes, a stored OAuth
-  result after 5 minutes, and the connection cookie after 30 days.
+  result after 5 minutes, and the session cookie after 30 days.
   """
 
   settings: Settings
   assets: PageAssets
-  tokens: AccessTokens
   results: OAuthResults
   clock: Callable[[], float]
   # Seconds the page request waits for the demo call to Dialpad's API (see `dialpad_api`).
@@ -132,21 +136,23 @@ class AppContext:
     state = signing.issue_state(key.user_id, key.company_id, self.settings.app_secret, self.clock())
     return f'{self.settings.authorize_url}?{urlencode({"state": state})}'
 
-  def cookie_is_valid(self, request: Request, key: UserKey) -> bool:
-    """Whether the request carries a valid connection cookie for exactly this user.
+  def state_from_cookie(self, request: Request) -> CookieBackedDatabaseStorage | None:
+    """Read this browser's state from the request's session cookie, if it has a valid one.
 
-    The cookie is this app's persistent storage of "this user is connected": reading it is how a
-    page load, or an ``ext-connection`` check, learns the connection state without any server-side
-    record. False when the cookie is missing, forged, too old, or issued to another user or company
-    (one browser profile can switch Dialpad users). Reads the cookie only; never sets it.
+    The cookie is this app's persistent storage (see ``acme_crm.state``): reading it is how a page
+    load, or an API call, learns the access token and whether the user is connected, with no
+    server-side record. ``None`` when it is missing, forged or too old. Reads the cookie only;
+    never sets it.
     """
-    return signing.cookie_is_valid(
+    return CookieBackedDatabaseStorage.from_cookie(
         request.cookies.get(COOKIE_HEADER_NAME),
-        key.user_id,
-        key.company_id,
         self.settings.app_secret,
         self.clock(),
     )
+
+  def save_state(self, reply: HTTPResponse, state: CookieBackedDatabaseStorage) -> None:
+    """Write ``state`` to ``reply`` as the session cookie, which lasts 30 days from now."""
+    _set_session_cookie(reply, state.to_cookie(self.settings.app_secret, self.clock()))
 
   def external_connection(self, key: UserKey, *, connected: bool) -> ExternalConnection:
     """Build the connection status as the contract's ``ExternalConnection``.
@@ -162,16 +168,20 @@ class AppContext:
         scopes=CONNECTED_SCOPES if connected else [],
     )
 
-  def user_for(self, request: Request) -> UserKey | None:
-    """Authenticate an API call by its ``Authorization: Bearer`` access token.
+  def state_for(self, request: Request) -> CookieBackedDatabaseStorage | None:
+    """Authenticate an API call: its ``Authorization: Bearer`` token must be the cookie's token.
 
-    Returns the user the token was issued to at page load, or ``None`` when the header is missing,
-    malformed or unknown (for example after a server restart, which forgets every token).
+    Returns the state in the cookie when the header's token matches the state's access token,
+    else ``None``: no header, no cookie, a forged or expired cookie, or a token that isn't the
+    cookie's, for example a panel left open after the browser's cookie changed to another user's
+    or after ``APP_SECRET`` changed. Requiring both is what stops a cross-site request, which
+    carries the ``SameSite=None`` cookie but can't know the token.
     """
     header = request.headers.get('Authorization', '')
-    if not header.startswith(BEARER):
+    state = self.state_from_cookie(request)
+    if state is None or not header.startswith(BEARER):
       return None
-    return self.tokens.lookup(header.removeprefix(BEARER))
+    return state if state.has_access_token(header.removeprefix(BEARER)) else None
 
 
 def _rendered(page: RenderedPage) -> HTTPResponse:
@@ -185,23 +195,22 @@ def _connection_response(connection: ExternalConnection) -> HTTPResponse:
 
 
 def _unauthorized() -> HTTPResponse:
-  """Answer ``401`` for a missing or unknown access token.
+  """Answer ``401`` for a missing, unmatched or expired session.
 
-  This is the app's own token being rejected; the panel reacts by asking the user to reload.
+  This is the app's own access token being rejected (no cookie, or a token that isn't the
+  cookie's); the panel reacts by asking the user to reload.
   """
   error = ErrorResponse(code='invalid_access_token', message='Reload the panel.')
   return json(error.model_dump(mode='json'), status=401)
 
 
-def _set_cookie(reply: HTTPResponse, value: str, max_age: int) -> None:
-  """Set the connection cookie on ``reply``, or clear it with ``max_age=0``.
+def _set_session_cookie(reply: HTTPResponse, value: str) -> None:
+  """Set the session cookie on ``reply``, for ``COOKIE_MAX_AGE_SECONDS`` from now.
 
-  The cookie is where this demo persists the connection (see ``acme_crm.signing``): setting it
-  connects the user in this browser, clearing it disconnects them there.
-
-  The attributes are the same either way (a browser only clears a cookie that matches them):
-  ``Secure``, ``HttpOnly``, ``SameSite=None`` and ``Partitioned``, because the panel runs in a
-  third-party iframe, and the ``__Host-`` prefix, which pins it to this host and path ``/``.
+  The cookie is where this demo persists the user's access token and connection (see
+  ``acme_crm.signing``). Its attributes are ``Secure``, ``HttpOnly``, ``SameSite=None`` and
+  ``Partitioned``, because the panel runs in a third-party iframe, and the ``__Host-`` prefix, which
+  pins it to this host and path ``/``.
   """
   reply.add_cookie(
       COOKIE_NAME,
@@ -212,7 +221,7 @@ def _set_cookie(reply: HTTPResponse, value: str, max_age: int) -> None:
       samesite='None',
       partitioned=True,
       host_prefix=True,
-      max_age=max_age,
+      max_age=signing.COOKIE_MAX_AGE_SECONDS,
   )
 
 
@@ -225,11 +234,12 @@ def _register_page(app: App, ctx: AppContext) -> None:
     """Render the panel page for the user in the ``idtoken`` query parameter.
 
     Invoked when Dialpad (or the dev host) loads the iframe. A token that doesn't decode gets a
-    ``401`` HTML page. Otherwise the user's access token is created on first use (and reused
-    after), and the page embeds it with the connection as the cookie says it is: connected for
-    a valid cookie, not connected (with an authorize URL) otherwise. The page data's ``app`` field
-    carries the result of the demo call to Dialpad's API (never the api key itself). Nothing is
-    stored beyond the token, and no cookie is set here: only ``ext-connection`` sets it.
+    ``401`` HTML page. Otherwise the page starts or continues this browser's session: a valid
+    session cookie for this same user keeps its access token and connection state, and anything
+    else (no cookie, a forged or old one, another user's) starts a new token, not connected. The
+    page embeds the token and the connection (with an authorize URL when not connected), and sets
+    the session cookie, which refreshes its 30 days. The page data's ``app`` field carries the
+    result of the demo call to Dialpad's API (never the api key itself). The server stores nothing.
     """
     try:
       claims = decode_idtoken(request.args.get('idtoken'), settings.client_secret)
@@ -250,13 +260,16 @@ def _register_page(app: App, ctx: AppContext) -> None:
         origin=settings.dialpad_origin,
         timeout=ctx.api_timeout,
     )
+    existing = ctx.state_from_cookie(request)
+    state = existing if existing and existing.belongs_to(key) else CookieBackedDatabaseStorage.new(
+        key)
     page_data = PageData(
         dialpad_origin=settings.dialpad_origin,
         api_prefix=DEFAULT_API_PREFIX,
-        access_token=ctx.tokens.issue(key),
+        access_token=state.get_access_token(),
         external_connection=ctx.external_connection(
             key,
-            connected=ctx.cookie_is_valid(request, key),
+            connected=state.is_external_connected(),
         ),
         app=demo.as_app_data(),
     )
@@ -264,56 +277,55 @@ def _register_page(app: App, ctx: AppContext) -> None:
         title=ACCOUNT_NAME,
         extra_connect_src=(settings.vite_websocket_origin,) if settings.local_mode else (),
     )
-    return _rendered(
+    reply = _rendered(
         render_page(page_data, nonce=generate_nonce(), assets=ctx.assets, options=options),)
+    ctx.save_state(reply, state)
+    return reply
 
 
 def _register_contract(app: App, ctx: AppContext) -> None:
   """Register the two contract endpoints the SDK calls with the access token."""
-  settings = ctx.settings
-
   @app.get(f'{DEFAULT_API_PREFIX}/ext-connection')
   async def ext_connection(request: Request) -> HTTPResponse:
     """Answer whether the calling user is connected to Acme.
 
     The SDK calls this on start when the page said "not connected", after Dialpad replies to
     Connect, on every poll while the OAuth popup is open, and after a disconnect for a fresh
-    authorize URL. If the OAuth callback has recorded a result for this user, it is consumed here:
-    the answer is "connected" and the connection cookie is set (the only place it is set), so the
-    next page load starts connected. Otherwise the cookie alone decides: it is this app's
-    persistent storage of the connection, signed with ``APP_SECRET`` so it can't be forged. The
-    consumed result is a demo-only handoff from the popup to this iframe; a real partner answers
-    from the CRM tokens its callback stored (see ``acme_crm.stores.OAuthResults``).
+    authorize URL. The call must carry the access token as ``Authorization: Bearer`` and the
+    session cookie, and the two tokens must match (``401`` otherwise). If the OAuth callback has
+    recorded a result for this user, it is consumed here: the answer is "connected" and the
+    session cookie is rewritten with ``connected`` on, so the next page load starts connected.
+    Otherwise the cookie alone decides: it is this app's persistent storage of the connection,
+    signed with ``APP_SECRET`` so it can't be forged. The consumed result is a demo-only handoff
+    from the popup to this iframe; a real partner answers from the CRM tokens its callback stored
+    (see ``acme_crm.stores.OAuthResults``).
     """
-    key = ctx.user_for(request)
-    if key is None:
+    state = ctx.state_for(request)
+    if state is None:
       return _unauthorized()
+    key = state.user_key()
     if ctx.results.consume(key):
       reply = _connection_response(ctx.external_connection(key, connected=True))
-      cookie = signing.issue_cookie(
-          key.user_id,
-          key.company_id,
-          settings.app_secret,
-          ctx.clock(),
-      )
-      _set_cookie(reply, cookie, signing.COOKIE_MAX_AGE_SECONDS)
+      ctx.save_state(reply, state.with_external_connected(connected=True))
       return reply
-    connected = ctx.cookie_is_valid(request, key)
-    return _connection_response(ctx.external_connection(key, connected=connected))
+    connection = ctx.external_connection(key, connected=state.is_external_connected())
+    return _connection_response(connection)
 
   @app.post(f'{DEFAULT_API_PREFIX}/ext-disconnect')
   async def ext_disconnect(request: Request) -> HTTPResponse:
-    """End the connection: clear the cookie and answer ``204`` with no body.
+    """End the connection: turn ``connected`` off in the session cookie and answer ``204``.
 
-    Invoked from the panel's Disconnect button or the host's panel menu. After it the user is not
-    connected; the SDK marks the panel disconnected and calls ``ext-connection`` once more for a
-    fresh authorize URL. A real partner would also delete the user's CRM tokens here.
+    Invoked from the panel's Disconnect button or the host's panel menu, with the same
+    authentication as ``ext-connection``. After it the user is not connected; the SDK marks the
+    panel disconnected and calls ``ext-connection`` once more for a fresh authorize URL, which is
+    why the cookie keeps its access token instead of being cleared: that next call must still
+    authenticate. A real partner would also delete the user's CRM tokens here.
     """
-    key = ctx.user_for(request)
-    if key is None:
+    state = ctx.state_for(request)
+    if state is None:
       return _unauthorized()
     reply = empty(status=204)
-    _set_cookie(reply, '', 0)
+    ctx.save_state(reply, state.with_external_connected(connected=False))
     return reply
 
 
@@ -394,10 +406,11 @@ def create_app(
     name: str = 'acme_crm',
     api_timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> App:
-  """Build the Sanic app: its stores, its routes, and the page's assets.
+  """Build the Sanic app: its OAuth store, its routes, and the page's assets.
 
-  Called once at startup by ``python -m acme_crm`` and once per test. Access tokens and OAuth
-  results start empty and live in this app's memory. ``clock`` returns the time in seconds, so
+  Called once at startup by ``python -m acme_crm`` and once per test. Finished OAuth results start
+  empty and live in this app's memory; everything else the app remembers is in the browsers'
+  session cookies. ``clock`` returns the time in seconds, so
   tests can move time; ``name`` must be unique per app in one process; ``api_timeout`` is how long
   the page waits for the demo call to Dialpad's API. Outside local mode this also needs the built
   frontend (``pnpm build``) and serves it under ``/assets``.
@@ -408,7 +421,6 @@ def create_app(
   ctx = AppContext(
       settings=settings,
       assets=build_assets(settings),
-      tokens=AccessTokens(),
       results=OAuthResults(clock),
       clock=clock,
       api_timeout=api_timeout,

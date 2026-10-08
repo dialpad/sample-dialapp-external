@@ -1,13 +1,12 @@
-"""In-memory stores, for the demo only.
+"""The in-memory store of finished OAuth round trips, for the demo only.
 
-SHORTCUT: both live in one process's memory. A real partner keeps access tokens durably in a
-persistent database, so a restart or a second instance doesn't log users out. It also has no use
-for ``OAuthResults`` at all: see that class for why this demo needs it and what replaces it.
-Upgrade trigger: the app runs on more than one instance, must survive a restart, or connects to a
-real CRM.
+SHORTCUT: ``OAuthResults`` lives in one process's memory. A real partner has no use for it at all:
+see that class for why this demo needs it and what replaces it. Everything that must last (the
+user's access token and whether they are connected) lives in the signed session cookie, see
+``acme_crm.state.CookieBackedDatabaseStorage`` and ``acme_crm.signing``. Upgrade trigger: the app
+runs on more than one instance or connects to a real CRM.
 """
 
-import secrets
 from typing import TYPE_CHECKING
 from typing import NamedTuple
 
@@ -22,40 +21,11 @@ OAUTH_RESULT_TTL_SECONDS = 5 * 60
 class UserKey(NamedTuple):
   """A Dialpad user, identified by the company and user ids the idtoken carries.
 
-  It is the key of both stores below, and is hashable so it can index a dict.
+  It is the key of the ``OAuthResults`` store below, and is hashable so it can index a dict.
   """
 
   company_id: int
   user_id: int
-
-
-class AccessTokens:
-  """One random access token per Dialpad user, issued on first page load and reused after.
-
-  The token is what the SDK sends as ``Authorization: Bearer`` on every API call. It is the
-  user's session with this server, separate from the idtoken (which only authenticates the page
-  request). Everything is lost when the process restarts, after which open panels get ``401``.
-  """
-  def __init__(self) -> None:
-    """Start empty."""
-    self._by_user: dict[UserKey, str] = {}
-    self._by_token: dict[str, UserKey] = {}
-
-  def issue(self, key: UserKey) -> str:
-    """Return this user's access token, creating it the first time the user's page loads.
-
-    Later page loads (a new contact, a new day) get the same token back, so open panels stay valid.
-    """
-    token = self._by_user.get(key)
-    if token is None:
-      token = secrets.token_urlsafe(32)
-      self._by_user[key] = token
-      self._by_token[token] = key
-    return token
-
-  def lookup(self, token: str) -> UserKey | None:
-    """Authenticate a token: return the user it was issued to, or ``None`` if unknown."""
-    return self._by_token.get(token)
 
 
 class OAuthResults:
@@ -76,14 +46,15 @@ class OAuthResults:
      stores them durably, keyed by the Dialpad user. This demo has no CRM and so no tokens; the
      only fact it has is "this user pressed Authorize", and it records that here.**
   5. The panel's next ``ext-connection`` check collects the record (``consume``), answers
-     "connected", and sets the connection cookie. The cookie, not this store, is the demo's
-     persistent record of the connection (see ``acme_crm.signing``): it is signed, lasts 30 days,
-     and later page loads see it and start connected, even after a server restart.
+     "connected", and rewrites the session cookie with the connection on. The cookie, not this
+     store, is the demo's persistent record of the connection (see ``acme_crm.signing``): it is
+     signed, lasts 30 days, and later page loads see it and start connected, even after a server
+     restart.
 
   **Why the result is kept in memory**
 
   The callback and the panel are in different places. The callback runs in the popup, a separate
-  window with its own cookies, while the connection cookie is ``Partitioned`` and belongs to the
+  window with its own cookies, while the session cookie is ``Partitioned`` and belongs to the
   panel's iframe, so a cookie set by the callback would never reach the iframe. The two only share
   one thing, the Dialpad user, which the callback learns from the ``state`` and the panel's check
   learns from its access token. So the callback leaves a note for that user, and the panel's check
@@ -94,8 +65,9 @@ class OAuthResults:
 
   In a real app the note is the CRM tokens themselves. The callback stores them, and
   ``ext-connection`` answers "connected" when tokens exist for the user, from the database, on any
-  instance, after any restart. There is then no handoff to make, and the signed cookie that this
-  demo uses as its persistent storage of the connection is not needed either.
+  instance, after any restart. There is then no handoff to make, and the signed session cookie that
+  this demo uses as its persistent storage (the access token and the connection) is not needed
+  either.
 
   A record lives for five minutes (``OAUTH_RESULT_TTL_SECONDS``): longer than the SDK's 2-minute
   polling window plus a slow sign-in, short enough that abandoned records don't pile up.

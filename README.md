@@ -127,9 +127,11 @@ that Dialpad sets up for you.
 4. Open any contact in dialpadbeta: the panel appears, and connect, reconnect,
    and disconnect work against the real host.
 
-Current Chrome, Edge, Firefox and Safari 26.2 or later are supported (the
-connection cookie is `Partitioned`). Older Safari rejects partitioned cookies,
-so there the panel asks the user to connect again on each new iframe.
+Current Chrome, Edge, Firefox and Safari 26.2 or later are supported. The
+session cookie is `Partitioned` and holds the panel's access token, so a browser
+that rejects it (older Safari rejects partitioned cookies, and some browsers block
+third-party cookies) can't use the panel at all: every API call gets `401` and
+the panel asks the user to reload.
 
 ## Configuration
 
@@ -156,39 +158,52 @@ To run it as a container, for example on Cloud Run, see
 ## How it works
 
 1. **Page.** Dialpad loads `GET /?idtoken=…`. The server decodes the token with
-   `server/acme_crm/idtoken.py`, looks up or issues this user's access token, and
-   renders the page with `server/acme_crm/pages.py`: the access token and an
-   `external_connection` (whether the user is connected, one authorize URL for
-   the `acme-crm` client, and its scopes). The page carries no user data, so
+   `server/acme_crm/idtoken.py`, then starts or continues this browser's
+   session: a valid session cookie for the same user keeps its access token and
+   connection state, anything else gets a new random token, not connected. It
+   renders the page with `server/acme_crm/pages.py`, embedding the access token
+   and an `external_connection` (whether the user is connected, one authorize URL
+   for the `acme-crm` client, and its scopes), and sets the session cookie. The
+   page carries no user data, so
    nothing from the idtoken's profile reaches the browser, and the idtoken's
    `api_key` never does either. The one extra thing it embeds is the result of a
    demo call to Dialpad's API (see [below](#the-demo-call-to-dialpads-api)).
 2. **User.** The SDK asks Dialpad for the user (`get/user`) once it starts, and
    the panel shows it from `state.user`.
 3. **API.** Every call afterwards carries
-   `Authorization: Bearer <access token>`. The idtoken is used only on the page
+   `Authorization: Bearer <access token>` and, as the browser adds it, the
+   session cookie. The server accepts the call only when the two tokens match
+   (compared in constant time). The cookie is `SameSite=None`, so a cross-site
+   request would carry it too, but only code that holds the page data knows the
+   token to put in the header, which is what keeps another site from driving
+   `ext-connection` and `ext-disconnect`. The idtoken is used only on the page
    request (for the user's identity and the demo call below), and is not stored.
 4. **Connect.** The SDK asks Dialpad to open the authorize URL, which shows the
    fake authorize page. When the user presses Authorize, the callback verifies a
    signed `state`, records "connected" for that user in server memory for 5
    minutes, and returns the close-popup page from `server/acme_crm/pages.py`. The next
    `/dialpad/ext-connection` check (the reply-triggered one, a poll, or the next
-   iframe's bootstrap check) consumes it and sets the connection cookie.
-5. **Later contacts and sessions.** The cookie is this demo's persistent storage
-   of the connection (the server keeps no database). It is signed with
-   `APP_SECRET`, bound to the user and company, and lasts 30 days, so the first
-   paint is already the connected view, even after a server restart.
-6. **Disconnect.** `POST /dialpad/ext-disconnect` clears the cookie and answers
-   `204`; the SDK then calls `/dialpad/ext-connection` once for a fresh
-   authorize URL.
+   iframe's bootstrap check) consumes it and rewrites the session cookie with the
+   connection on.
+5. **Later contacts and sessions.** The session cookie is this demo's persistent
+   storage: it holds the access token and the connection, and the server keeps no
+   database. The handlers reach it only through `CookieBackedDatabaseStorage`
+   (`server/acme_crm/state.py`), whose getters `get_access_token` and
+   `is_external_connected` stand in for reading a per-user database row. It is signed with `APP_SECRET`, bound to the user and company, and
+   lasts 30 days (each page load refreshes it), so the first paint is already
+   the connected view, even after a server restart.
+6. **Disconnect.** `POST /dialpad/ext-disconnect` turns the connection off in
+   the cookie (it keeps the token, so the SDK's next call still authenticates)
+   and answers `204`; the SDK then calls `/dialpad/ext-connection` once for a
+   fresh authorize URL.
 
-| Endpoint                       | Behaviour                                                                                                           |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `GET /`                        | The page. `401` HTML if the idtoken doesn't decode                                                                  |
-| `GET /dialpad/ext-connection`  | Bearer token. Consumes a stored OAuth result, else answers from the cookie. Always a fresh authorize URL            |
-| `POST /dialpad/ext-disconnect` | Bearer token. Clears the cookie, answers `204` with no body                                                         |
-| `GET /oauth/fake-authorize`    | Demo only. A page labelled fake, with an Authorize button that goes to the callback with `state` and a fixed `code` |
-| `GET /oauth/callback`          | Demo only. Verifies `state`, records the result, close-popup page                                                   |
+| Endpoint                       | Behaviour                                                                                                             |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `GET /`                        | The page. `401` HTML if the idtoken doesn't decode                                                                    |
+| `GET /dialpad/ext-connection`  | Bearer token matching the cookie's. Consumes a stored OAuth result, else answers from the cookie. Fresh authorize URL |
+| `POST /dialpad/ext-disconnect` | Bearer token matching the cookie's. Turns the connection off in the cookie, answers `204` with no body                |
+| `GET /oauth/fake-authorize`    | Demo only. A page labelled fake, with an Authorize button that goes to the callback with `state` and a fixed `code`   |
+| `GET /oauth/callback`          | Demo only. Verifies `state`, records the result, close-popup page                                                     |
 
 ### The demo call to Dialpad's API
 
@@ -217,15 +232,15 @@ a background job or a webhook handler as much as from a page load.
 
 ## What to replace
 
-| Here                                                   | With                                                                                                                    |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `/oauth/fake-authorize`, `/oauth/callback`             | Your CRM's real authorize URL and callback; delete `server/acme_crm/fake_oauth.py`. Keep the close-popup page           |
-| `server/acme_crm/stores.py` (in-memory)                | A durable store for access tokens and OAuth results (see below)                                                         |
-| The cookie (`server/acme_crm/signing.py`, `app.py`)    | Your stored CRM tokens. The signed cookie is this demo's persistent storage of the connection, not part of the contract |
-| `client/src/acme.ts`, `AcmeContact.vue`                | Your CRM's data, matched to the Dialpad contact                                                                         |
-| `client/src/components/ConnectGate.vue`                | Copy it and change the copy; it renders the SDK's `connection` state                                                    |
-| `ACCOUNT_NAME` in `server/acme_crm/app.py`             | Your CRM's account name                                                                                                 |
-| `server/acme_crm/dialpad_api.py`, `DialpadApiCard.vue` | Delete both, and the call in the `page` handler. Store the api key and call Dialpad when you need to                    |
+| Here                                                          | With                                                                                                                                                                                                  |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/oauth/fake-authorize`, `/oauth/callback`                    | Your CRM's real authorize URL and callback; delete `server/acme_crm/fake_oauth.py`. Keep the close-popup page                                                                                         |
+| `server/acme_crm/stores.py` (in-memory)                       | Nothing: store the CRM tokens in the callback and answer from them (see below)                                                                                                                        |
+| The session cookie (`server/acme_crm/state.py`, `signing.py`) | Your stored CRM tokens, and a real session (a durable store or expiring tokens). The signed cookie is this demo's persistent storage of the access token and the connection, not part of the contract |
+| `client/src/acme.ts`, `AcmeContact.vue`                       | Your CRM's data, matched to the Dialpad contact                                                                                                                                                       |
+| `client/src/components/ConnectGate.vue`                       | Copy it and change the copy; it renders the SDK's `connection` state                                                                                                                                  |
+| `ACCOUNT_NAME` in `server/acme_crm/app.py`                    | Your CRM's account name                                                                                                                                                                               |
+| `server/acme_crm/dialpad_api.py`, `DialpadApiCard.vue`        | Delete both, and the call in the `page` handler. Store the api key and call Dialpad when you need to                                                                                                  |
 
 Keep `server/acme_crm/idtoken.py` (the decoder), `server/acme_crm/pages.py` (the
 page, close-popup and error rendering with their security headers) and
@@ -239,12 +254,12 @@ The Connect flow in short: the panel's page says "not connected" with an
 authorize URL; Connect makes Dialpad open it in a popup while the panel polls
 `/dialpad/ext-connection`; the user approves at the CRM, which sends the popup
 to `/oauth/callback`; the callback verifies the signed `state` and closes the
-popup; the panel's next poll learns it is connected and receives the connection
-cookie.
+popup; the panel's next poll learns it is connected and gets its session cookie
+rewritten with the connection on.
 
 The catch is that the callback and the panel are different windows. The
-callback runs in the popup, and the cookie belongs to the panel's iframe (it is
-`Partitioned`), so the callback cannot set it. The only thing both sides know
+callback runs in the popup, and the session cookie belongs to the panel's iframe
+(it is `Partitioned`), so the callback cannot set it. The only thing both sides know
 is which Dialpad user this is, so the callback leaves a short-lived note in
 server memory ("this user finished connecting", kept for 5 minutes and
 collected once), and the panel's next check picks it up. That note is
@@ -257,18 +272,16 @@ the Dialpad user, and `ext-connection` answers "connected" when those tokens
 exist, from the database, on any instance and after any restart. Then there is
 no handoff and no expiry, and both `OAuthResults` and the cookie can go.
 
-Without a database, this demo keeps the one thing that has to last, "this user
-is connected", in the browser: the signed, 30-day connection cookie is its
-persistent storage. It survives a server restart or scale-to-zero (changing
-`APP_SECRET` disconnects everyone), and it is signed so it can't be forged, but
-it is not encrypted, it is per browser (Disconnect clears it only in the browser
-that asked), and the server can't revoke one early. Stored CRM tokens have none
-of those limits.
-
-Access tokens live in one process's memory too. That is a reference-app
-shortcut, not something to copy: a real partner stores tokens durably so a
-restart or a second instance doesn't log users out. Here, open panels get `401`
-after a restart and show "Reload the panel".
+Without a database, this demo keeps what has to last, the user's access token
+and "this user is connected", in the browser: the signed, 30-day session cookie
+is its persistent storage. It survives a server restart or scale-to-zero, and it
+is signed so it can't be forged. Changing `APP_SECRET` signs everyone out: every
+open panel gets `401` and shows "Reload the panel". The cookie is not encrypted
+(it is `HttpOnly`, so page scripts can't read it), it is per browser (Disconnect
+changes it only in the browser that asked), a browser that refuses it can't use
+the panel, and the server can't revoke one early. A real partner's stored tokens,
+looked up by Dialpad user, have none of those limits, and a real partner would
+keep a durable session or issue expiring tokens instead of this cookie.
 
 ## Checks
 

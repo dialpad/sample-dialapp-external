@@ -137,6 +137,29 @@ class FakeDialpad:
 
 
 @dataclass
+class Panel:
+  """A panel as its browser holds it: the page data and the session cookie the page set.
+
+  The test client's cookie jar won't resend a ``Secure`` cookie over plain HTTP, so tests keep the
+  ``Cookie`` header value here and send it themselves. Replace ``cookie`` with a response's new one
+  (``cookie_header``) whenever the response sets one, as a browser would.
+  """
+
+  data: dict[str, Any]
+  cookie: str
+
+  @property
+  def token(self) -> str:
+    """The access token the page embedded, which the SDK sends as ``Authorization: Bearer``."""
+    return str(self.data['access_token'])
+
+  @property
+  def headers(self) -> dict[str, str]:
+    """The headers of an API call from this panel: the bearer token and the session cookie."""
+    return bearer(self.token) | {'Cookie': self.cookie}
+
+
+@dataclass
 class Env:
   """An app under test, its clock and its settings, with request helpers that return responses.
 
@@ -169,6 +192,32 @@ class Env:
     token = idtoken if idtoken is not None else encode_mock_idtoken(TEST_CLIENT_SECRET)
     headers = {'Cookie': cookie} if cookie is not None else {}
     return await self.get('/', params={'idtoken': token}, headers=headers)
+
+  async def open_panel(self, idtoken: str | None = None, cookie: str | None = None) -> Panel:
+    """Open the panel as a browser does: load the page and keep the session cookie it sets.
+
+    ``cookie`` is what the browser already held (for example from an earlier visit); the page may
+    keep its session or replace it.
+    """
+    response = await self.load_page(idtoken, cookie)
+    assert response.status_code == HTTPStatus.OK
+    return Panel(data=page_data_of(response), cookie=cookie_header(response))
+
+  def restarted(self, settings: Settings | None = None) -> Env:
+    """Return the same app after a server restart: a new app with empty memory.
+
+    It has the same settings unless ``settings`` is given (for example a rotated ``APP_SECRET``).
+    The clock and the fake Dialpad API stay, since they are outside the server. Browsers keep
+    their cookies, so a ``Panel`` from before the restart is still usable.
+    """
+    settings = settings or self.settings
+    app = create_app(
+        settings,
+        clock=self.clock,
+        name=f'acme_test_{next(_app_names)}',
+        api_timeout=0.5,
+    )
+    return Env(app=app, clock=self.clock, settings=settings, dialpad=self.dialpad)
 
   async def page_data(self,
                       idtoken: str | None = None,

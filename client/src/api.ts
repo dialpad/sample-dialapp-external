@@ -7,9 +7,11 @@ import { ref } from 'vue';
 /**
  * True once the server has answered `401` to a request carrying the access token.
  *
- * The server keeps access tokens in memory, so after a restart the token this panel got at page
- * load is unknown. Nothing can fix that from here; `App.vue` shows "reload the panel" while this
- * is set, and a reload gets a new page with a new token.
+ * The server accepts the token only while it matches the one in the browser's session cookie, so a
+ * 401 means the cookie is gone or expired, or now belongs to another session (another Dialpad user
+ * opened a panel in this browser, or the server's secret changed). Nothing can fix that from here;
+ * `App.vue` shows "reload the panel" while this is set, and a reload gets a new page with a new
+ * token and cookie.
  */
 export const sessionExpired = ref(false);
 

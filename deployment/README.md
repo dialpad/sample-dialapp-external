@@ -139,7 +139,7 @@ gcloud run deploy acme-crm-demo \
 - **`--allow-unauthenticated`:** Dialpad's iframe has to reach the service
   without a Google login.
 - **`--min-instances 1 --max-instances 1`:** see the next section; this keeps
-  the in-memory state in one place.
+  the in-memory OAuth results in one place.
 - **`BASE_URL` placeholder:** the service's URL isn't known until it exists, but
   the app refuses to start without a `BASE_URL`. Deploy with a placeholder, then
   set the real one:
@@ -187,9 +187,11 @@ gcloud run deploy acme-crm-demo --project PROJECT --region REGION \
   --image REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest
 ```
 
-The new revision takes all traffic once it is ready. Open panels hold the old
-revision's access tokens only in that instance's memory, so after a rollout they
-get `401` and show "Reload the panel".
+The new revision takes all traffic once it is ready. Open panels keep working
+across the rollout: their access token and connection are in the browser's
+session cookie, signed with `APP_SECRET`, which the new revision accepts. Only a
+Connect that was in flight loses its in-memory OAuth result and has to be
+retried.
 
 To change a setting without rebuilding, use
 `gcloud run services update ... --update-env-vars` (as for `BASE_URL` above).
@@ -224,19 +226,21 @@ in the project.
 
 `--min-instances 1` keeps one instance running all the time, which is billed
 even with no traffic. Set `--min-instances 0` to stop that, at the price of
-losing the in-memory state (every open panel shows "Reload the panel") each time
-the service scales to zero.
+losing the in-memory OAuth results each time the service scales to zero (a
+Connect in flight has to be retried; connected users stay connected).
 
 ## What to know before relying on it
 
-- **State is in memory.** Access tokens and finished OAuth results live in one
-  instance's memory. If Cloud Run ran several instances, the OAuth callback
-  could record a result on one while the panel's polling asked another, and
-  Connect would never finish. A restart or a scale-to-zero also forgets every
-  access token, so open panels show "Reload the panel". Pinning to one instance,
-  as above, avoids this for a demo. Anything beyond a demo needs a shared store
-  (Redis, Firestore) and a durable access token store, as `server/acme_crm/stores.py`
-  says.
+- **OAuth results are in memory.** Finished OAuth results (the demo-only handoff
+  from the popup to the panel) live in one instance's memory. If Cloud Run ran
+  several instances, the OAuth callback could record a result on one while the
+  panel's polling asked another, and Connect would never finish. A restart or a
+  scale-to-zero forgets results that were in flight, so that Connect has to be
+  retried. Pinning to one instance, as above, avoids this for a demo. A real
+  partner has no such store: the callback saves the CRM tokens in a shared
+  database, as `server/acme_crm/stores.py` says. The access tokens and the
+  "connected" state are not in memory: they are in the session cookie (see
+  Cookies below), so they survive restarts and work on any instance.
 - **The idtoken ends up in Cloud Run's request log.** The idtoken is in the page
   URL and never expires. The app doesn't log it (no access log, and a quiet
   error handler), but Cloud Run's own request log,
@@ -262,14 +266,16 @@ the service scales to zero.
   or stored.
 - **The OAuth is fake.** `/oauth/fake-authorize` and `/oauth/callback` stand in
   for a CRM; a real partner replaces them (see the README's "What to replace").
-- **Cookies.** The connection cookie is the app's persistent storage of "this
-  user is connected": signed with `APP_SECRET` (changing it disconnects
-  everyone), valid for 30 days, and kept in the browser, so it survives a
-  restart or scale-to-zero while the in-memory state does not. It is `Secure`,
-  `HttpOnly`, `SameSite=None` and `Partitioned`, so it works in a third-party
-  iframe over HTTPS. Cloud Run
-  terminates TLS and the app sets the cookie regardless of the scheme it sees
-  internally.
+- **Cookies.** The session cookie is the app's persistent storage of the user's
+  access token and whether they are connected. It is signed with `APP_SECRET`
+  (changing the secret signs everyone out: every open panel gets `401` and
+  shows "Reload the panel"), valid for 30 days, and kept in the browser, so it
+  survives a restart or scale-to-zero and works on any instance. The API calls
+  need the bearer token and the cookie to match, so a browser that refuses the
+  cookie (older Safari, or one blocking third-party cookies) can't use the
+  panel. It is `Secure`, `HttpOnly`, `SameSite=None` and `Partitioned`, so it
+  works in a third-party iframe over HTTPS. Cloud Run terminates TLS and the app
+  sets the cookie regardless of the scheme it sees internally.
 
 ## What was checked
 
@@ -290,6 +296,13 @@ was built again with `docker build -f deployment/Dockerfile .` and run: `/health
 answered `ok`, the page rendered, a built asset under `/assets` was served, and a
 bad idtoken got `401`. The `cloudbuild.yaml` that replaces `--tag` has not been
 run.
+
+After the access token moved into the session cookie, the image was built and run
+again: the page set the cookie (`Secure`, `HttpOnly`, `SameSite=None`,
+`Partitioned`, 30 days), `ext-connection` answered `200` with the matching bearer
+token and cookie and `401` with only one of them or a wrong token, it still
+answered `200` after `docker restart`, and neither token appeared in the logs.
+The Cloud Run service itself was not redeployed with this change.
 
 On Cloud Run, from a deployment to a project that had nothing enabled (with the
 layout and build command from before the move):
