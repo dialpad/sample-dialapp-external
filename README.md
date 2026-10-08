@@ -384,8 +384,8 @@ tokens instead of this cookie.
 
 A rightbar iframe panel is a web page that Dialpad frames, opened with a long-lived
 credential in its URL, that then talks to your server. This section lists what
-the app does about each risk, where it lives, and which tests cover it. The last
-subsection says what it deliberately does not do.
+the app does about each risk. The last subsection says what it deliberately does
+not do.
 
 **Which secret is which.** Four different secrets appear below, and they are not
 interchangeable:
@@ -606,20 +606,6 @@ Other protections around the page:
   sessions or expiring tokens.
 - **No event-subscription receiver** (section 3), and no replay protection for
   the idtoken beyond keeping it out of logs, caches and referrers.
-
-| Measure                                                   | Code                                                                         | Tests                                                                                                                                          |
-| --------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Idtoken algorithms, secret length, vectors from Dialpad   | `idtoken.py`                                                                 | `test_idtoken.py`                                                                                                                              |
-| Api key and `csr` never in page, responses, headers, logs | `contract.py`, `endpoints/dialpad/page.py`, `dialpad_api.py`                 | `test_the_page_embeds_page_data_and_never_the_api_key_or_csr`, `test_the_api_key_never_reaches_the_page_or_the_logs`                           |
-| Bearer token must match the session cookie                | `database.py`, `context.py`                                                  | `test_a_call_needs_the_bearer_token_and_the_cookie_to_match`                                                                                   |
-| CSP, nonce, security headers                              | `pages.py`                                                                   | `test_page_headers_match_the_contract`, `test_every_script_on_the_page_carries_the_nonce`, `test_close_popup_*`                                |
-| Escaping and origin validation                            | `pages.py`, `settings.py`                                                    | `test_hostile_page_data_stays_inside_its_element_and_round_trips`, `test_error_page_escapes_*`, `test_renderers_refuse_anything_but_an_origin` |
-| Signed `state` and session cookie                         | `signing.py`                                                                 | `test_signing.py`, `test_the_page_sets_the_session_cookie_that_holds_the_access_token`                                                         |
-| Nothing secret is logged                                  | `app.py`                                                                     | `test_neither_the_idtoken_nor_the_access_token_is_logged`                                                                                      |
-| Local mode only loosens the CSP in three places           | `endpoints/dialpad/page.py`, `endpoints/app/dev_frame_url.py`, `settings.py` | `test_local_mode_changes_the_csp_in_three_places_only`, `test_the_dev_route_exists_only_in_local_mode`                                         |
-| The SDK refuses to run outside Dialpad's iframe           | the SDK, `client/src/bootstrap.ts`                                           | `client/e2e/sdk/sdk.spec.ts` (opened outside Dialpad)                                                                                          |
-
-(Server files are in `server/acme_dialpad_rightbar/` and tests in `server/tests/`.)
 
 ## What to replace
 
