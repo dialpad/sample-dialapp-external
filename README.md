@@ -263,6 +263,21 @@ A real application would not work this way: it **persists the api key in
 long-term storage** and **uses it to call Dialpad as and when needed**
 ([flow 6](FLOWS.md#6-server-to-server-calling-dialpads-api)).
 
+Dialpad's public API, with every endpoint and its rate limit, is documented at
+[developers.dialpad.com](https://developers.dialpad.com/).
+
+**Event subscriptions.** Instead of polling the API, a real app can ask Dialpad
+to push events (calls, SMS, contacts, agent status, change logs) to it. It
+creates a webhook and subscriptions through the same API with a key, as
+described in Dialpad's
+[Event Subscriptions](https://developers.dialpad.com/docs/event-subscriptions)
+guide. When an event occurs, Dialpad calls the webhook URL on your server (the
+**webhook callback**) with the event as a JWT signed with a secret you chose, so
+the callback verifies the signature before trusting it. The demo has no
+subscriptions and no webhook receiver;
+[flow 7](FLOWS.md#7-event-subscriptions-and-webhooks) shows how to set one up
+and validate the callbacks.
+
 ### Why connection results are kept in memory (demo only)
 
 The Connect flow in short: the iframe panel's page says "not connected" with an
