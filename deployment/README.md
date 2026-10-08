@@ -5,8 +5,8 @@ container on Google Cloud Run so Dialpad can frame it over HTTPS (for example in
 dialpadbeta). Any container host works the same way; only the Cloud Run commands
 are specific.
 
-> **A demo, not a production setup.** The OAuth round trip is fake, and access
-> tokens and finished OAuth results live in one process's memory. See
+> **A demo, not a production setup.** The OAuth round trip is fake, and finished
+> OAuth results live in one process's memory. See
 > [What to know before relying on it](#what-to-know-before-relying-on-it).
 
 ## What is in the image
@@ -87,7 +87,7 @@ documentation.
 
 ```sh
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com \
-  cloudbuild.googleapis.com
+  cloudbuild.googleapis.com secretmanager.googleapis.com
 
 gcloud artifacts repositories create acme-crm \
   --repository-format=docker --location=REGION
@@ -108,21 +108,35 @@ gcloud builds submit --config deployment/cloudbuild.yaml \
 `client/vendor/` is tracked in git, so it is uploaded with the source; the
 image's iframe panel stage needs the SDK tarball in it.
 
-### 3. Choose the secret values
+### 3. Put the secrets in Secret Manager
 
-There is no Secret Manager step: this reference app takes everything as plain
-environment variables, so anyone can deploy and test it with one command. Have
-these ready:
+`DIALPAD_CLIENT_SECRET` and `APP_SECRET` are kept in Secret Manager, not in the
+service's plain environment variables, which anyone who can view the service
+(the console, `gcloud run services describe`) can read. Create one secret for each:
 
 ```sh
-export DIALPAD_CLIENT_SECRET=...        # the OAuth app's client secret, from Dialpad
-export APP_SECRET=$(openssl rand -hex 32)
+# The OAuth app's client secret, from Dialpad
+printf %s "$DIALPAD_CLIENT_SECRET" | gcloud secrets create dialpad-client-secret --data-file=-
+# A random secret of your own that signs `state` and the session cookie
+openssl rand -hex 32 | tr -d '\n' | gcloud secrets create acme-app-secret --data-file=-
 ```
 
-Environment variables on a Cloud Run service are visible to anyone who can view
-the service in the project (the console, `gcloud run services describe`). That
-is fine for a demo. For anything real, store them in Secret Manager and pass
-them with `--set-secrets` instead of `--set-env-vars`.
+Then let the service's runtime service account read them. Unless you set another,
+that is the default Compute Engine account, `PROJECT_NUMBER-compute@developer.gserviceaccount.com`:
+
+```sh
+RUNTIME_SA=$(gcloud projects describe PROJECT --format='value(projectNumber)')-compute@developer.gserviceaccount.com
+for s in dialpad-client-secret acme-app-secret; do
+  gcloud secrets add-iam-policy-binding $s --project PROJECT \
+    --member serviceAccount:$RUNTIME_SA --role roles/secretmanager.secretAccessor
+done
+```
+
+Cloud Run reads the secrets when an instance starts and gives them to the app as
+the environment variables of the same names, so the app needs no change. To
+change a value, add a version (`gcloud secrets versions add NAME --data-file=-`)
+and deploy a new revision, so new instances start with it. Changing `APP_SECRET`
+signs everyone out.
 
 ### 4. Deploy
 
@@ -132,14 +146,18 @@ gcloud run deploy acme-crm-demo \
   --region REGION \
   --allow-unauthenticated \
   --port 8080 \
-  --min-instances 1 --max-instances 1 \
-  --set-env-vars "DIALPAD_ORIGIN=https://dialpadbeta.com,BASE_URL=https://placeholder.example.com,DIALPAD_CLIENT_SECRET=$DIALPAD_CLIENT_SECRET,APP_SECRET=$APP_SECRET"
+  --max-instances 1 \
+  --set-env-vars "DIALPAD_ORIGIN=https://dialpadbeta.com,BASE_URL=https://placeholder.example.com" \
+  --set-secrets "DIALPAD_CLIENT_SECRET=dialpad-client-secret:latest,APP_SECRET=acme-app-secret:latest"
 ```
 
 - **`--allow-unauthenticated`:** Dialpad's iframe has to reach the service
   without a Google login.
-- **`--min-instances 1 --max-instances 1`:** see the next section; this keeps
-  the in-memory OAuth results in one place.
+- **`--max-instances 1`:** keeps the in-memory OAuth results in one place (see
+  [What to know](#what-to-know-before-relying-on-it)). There is no minimum:
+  Cloud Run typically keeps an instance running long enough for a Connect to
+  finish (the SDK gives up after 2 minutes), though it may stop one at any time.
+- **`--set-secrets`:** the two secrets from step 3, as environment variables.
 - **`BASE_URL` placeholder:** the service's URL isn't known until it exists, but
   the app refuses to start without a `BASE_URL`. Deploy with a placeholder, then
   set the real one:
@@ -152,10 +170,10 @@ gcloud run services update acme-crm-demo --region REGION --update-env-vars BASE_
 Until that update finishes, the authorize URLs the app builds point at the
 placeholder.
 
-Cloud Run's default startup probe (a TCP check on the port) is enough. Don't
-point a check at `/healthz` on the public URL: Cloud Run's front end answers
+Cloud Run's default startup probe (a TCP check on the port) is enough. The app's
+`/healthz` exists mainly for the Playwright end-to-end tests, and you can ignore
+it. Don't point a check at it on the public URL: Cloud Run's front end answers
 that path itself (with Google's 404 page) before the request reaches the app.
-The app's `/healthz` is for local runs and containers outside Cloud Run.
 
 If a command fails with a permission error right after you enable the APIs, wait
 a minute and run it again; the first `gcloud builds submit` here did the same
@@ -194,7 +212,8 @@ Connect that was in flight loses its in-memory OAuth result and has to be
 retried.
 
 To change a setting without rebuilding, use
-`gcloud run services update ... --update-env-vars` (as for `BASE_URL` above).
+`gcloud run services update ... --update-env-vars` (as for `BASE_URL` above); for
+a secret, see step 3.
 
 ### Look at it
 
@@ -224,10 +243,11 @@ in the project.
 
 ### Cost
 
-`--min-instances 1` keeps one instance running all the time, which is billed
-even with no traffic. Set `--min-instances 0` to stop that, at the price of
-losing the in-memory OAuth results each time the service scales to zero (a
-Connect in flight has to be retried; connected users stay connected).
+With no minimum, the service scales to zero when idle and is billed only while it
+serves requests. The first request after an idle period waits for an instance to
+start. A scale-to-zero (or any restart) forgets in-memory OAuth results, so a
+Connect in flight has to be retried; connected users stay connected. To keep an
+instance warm anyway, add `--min-instances 1`, which is billed even with no traffic.
 
 ## What to know before relying on it
 
@@ -236,7 +256,8 @@ Connect in flight has to be retried; connected users stay connected).
   several instances, the OAuth callback could record a result on one while the
   iframe panel's polling asked another, and Connect would never finish. A restart or a
   scale-to-zero forgets results that were in flight, so that Connect has to be
-  retried. Pinning to one instance, as above, avoids this for a demo. A real
+  retried. Limiting the service to one instance, as above, avoids the several-instance
+  case for a demo. A real
   partner has no such store: the callback saves the CRM tokens in a shared
   database, as `server/acme_crm/stores.py` says. The access tokens and the
   "connected" state are not in memory: they are in the session cookie (see
@@ -320,6 +341,13 @@ layout and build command from before the move):
 - A second build and `gcloud run deploy` rolled out a new revision with the same
   environment variables and instance limits, and the new bundle was being
   served.
+
+After the secrets moved to Secret Manager, the live service's new revision listed
+`DIALPAD_CLIENT_SECRET` and `APP_SECRET` as secret references (no plain value),
+took all traffic, and answered `401` for a page request without an idtoken, as
+the app does. The values were copied from the old environment variables, so the
+client secret is still the placeholder the demo was deployed with, not the OAuth
+app's own.
 
 Not checked: the iframe panel framed by dialpadbeta itself, which needs the OAuth app's
 conversation sidebar URI to point at the service.

@@ -1,7 +1,10 @@
 """``GET /healthz``: answers ``ok`` once the app is up.
 
-The browser tests' setup polls it before starting. On Cloud Run the public URL never reaches it
-(Google's front end answers that path itself), so it is for local runs and other container hosts.
+This exists mainly for the browser end-to-end tests: Playwright's ``webServer`` setup polls it to
+know when the server is ready before the tests start. Partners can ignore it, and need not copy it.
+Nothing else uses it (no Dockerfile ``HEALTHCHECK``, no probe). On Cloud Run the public URL never
+reaches it (Google's front end answers that path itself); a container host that wants a health
+check can point one at it.
 """
 
 from typing import TYPE_CHECKING

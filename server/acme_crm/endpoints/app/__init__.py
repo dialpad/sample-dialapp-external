@@ -6,7 +6,8 @@
   round trip, with a clearly fake Authorize page in between (``oauth_fake_authorize.py``,
   ``oauth_callback.py``). A real partner replaces these two with their CRM's authorize URL and
   callback.
-* ``GET /healthz``: answers ``ok`` once the app is up (``healthz.py``).
+* ``GET /healthz``: answers ``ok`` once the app is up. Used by the Playwright e2e setup; partners
+  can ignore it (``healthz.py``).
 * ``GET /dev/frame-url``: local mode only, hands the dev host a page URL with a mock idtoken
   (``dev_frame_url.py``).
 """

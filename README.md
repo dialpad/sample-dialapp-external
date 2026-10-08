@@ -207,7 +207,7 @@ are in `app/`. Each folder's `__init__.py` lists them.
 | `POST /api/contact`            | `app/contact.py`              | Bearer token matching the cookie's, user connected. Answers with the CRM's view of a Dialpad contact (see [below](#the-contact-lookup-demo-vs-a-real-app)) |
 | `GET /oauth/fake-authorize`    | `app/oauth_fake_authorize.py` | Demo only. A page labelled fake, with an Authorize button that goes to the callback with `state` and a fixed `code`                                        |
 | `GET /oauth/callback`          | `app/oauth_callback.py`       | Demo only. Verifies `state`, records the result, close-popup page                                                                                          |
-| `GET /healthz`                 | `app/healthz.py`              | Answers `ok`                                                                                                                                               |
+| `GET /healthz`                 | `app/healthz.py`              | Answers `ok`. Mainly for the Playwright e2e setup; partners can ignore it                                                                                  |
 | `GET /dev/frame-url`           | `app/dev_frame_url.py`        | Local mode only. The dev host's page URL with a mock idtoken                                                                                               |
 
 ## How the demo differs from a real app
