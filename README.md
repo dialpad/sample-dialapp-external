@@ -1017,5 +1017,6 @@ Everything else maps one to one: `App.vue` to `App`, `ConnectGate.vue` to
 `useRightbar().authorize()`), the cards to components, `sessionExpired` (a Vue
 `ref`) to a small store or context read through `useSyncExternalStore`. Tests use
 React Testing Library with the SDK's mock host, and the Playwright tests do not
-change. Build with `@vitejs/plugin-react`, and point the server's `ENTRY` at
-`src/main.tsx`.
+change. Build with `@vitejs/plugin-react`, and point the server's `ENTRY`
+(`server/acme_dialpad_rightbar/assets.py`) and `rollupOptions.input` in
+`vite.config.ts` at `src/main.tsx`.
