@@ -269,7 +269,8 @@ Dialpad's public API, with every endpoint and its rate limit, is documented at
 **Event subscriptions.** A real app often has to react to what happens in
 Dialpad when nobody has the panel open, for example logging a finished call or
 an SMS on the CRM's record. Dialpad can push such events (calls, SMS, contacts,
-agent status, change logs) to it. The app creates a webhook and subscriptions
+agent status, change logs) to a webhook URL on the app's server. The app
+registers that URL as a webhook, and the events it wants as subscriptions,
 through the same API with a key, as described in Dialpad's
 [Event Subscriptions](https://developers.dialpad.com/docs/event-subscriptions)
 guide. When an event occurs, Dialpad calls the webhook URL on your server (the
