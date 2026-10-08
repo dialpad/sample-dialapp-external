@@ -214,6 +214,10 @@ are in `app/`. Each folder's `__init__.py` lists them.
 
 ## How the demo differs from a real app
 
+The demo uses a signed cookie as its persistent storage, to avoid needing a real
+database. Everywhere a real app would keep a row (the session, the connection,
+the CRM tokens), the demo keeps it in that cookie.
+
 | Flow                                                                                        | This demo                                                                                                                                    | A real app                                                                                 |
 | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | [1. Page load](FLOWS.md#1-initial-iframe-page-load)                                         | Embeds a random access token and sets a signed session cookie that holds it; uses the `api_key` once for a demo call and drops it            | Stores the `api_key`, creates a session row, no cookie                                     |
