@@ -59,20 +59,34 @@ Dialpad's private registry. The server installs only public packages:
 
 ### Upgrading the SDK
 
-Put the new `dialpad-dialapp-external-sdk-<version>.tgz` in a folder and run,
-from `client/`:
+Dialpad sends you each SDK build as a `dialpad-dialapp-external-sdk-<version>.tgz`
+file. To move to a new one, from `client/`:
 
-```sh
-pnpm run vendor <folder>
-```
+1. Replace the old tarball in `vendor/` with the new one (delete the old file).
+2. Install it, which also updates `pnpm-lock.yaml`:
 
-It replaces everything in `client/vendor/` with that file, updates the
-`file:vendor/...` dependency in `client/package.json`, then installs with
-`pnpm install --no-frozen-lockfile`. The install is not frozen because a new
-build changes the tarball's checksum even at the same version. The folder must
-contain exactly one SDK tarball (other files in it are ignored); otherwise the
-command stops with a message before changing anything. Running it twice with the
-same file is safe. The server has nothing to update: it uses no Dialpad library.
+   ```sh
+   pnpm add ./vendor/dialpad-dialapp-external-sdk-<version>.tgz
+   ```
+
+   If the version number changed, this also updates the `file:vendor/...`
+   dependency in `package.json`.
+
+3. Run the client's checks (`pnpm types:check && pnpm test:run`, and
+   `pnpm test:e2e` if you keep the browser tests).
+
+If the new file has the _same_ version number as the old one but different
+contents, `pnpm install --frozen-lockfile` fails until you run step 2: pnpm
+compares the file with the checksum in the lockfile and treats a change as a
+possible supply-chain problem. Check that the file really came from Dialpad, then
+run `pnpm add` to record the new checksum.
+
+The server has nothing to update: it uses no Dialpad library.
+
+`client/scripts/vendor.mjs` (the `pnpm run vendor` script) is internal tooling
+that Dialpad's own checks use to point this app at a freshly built tarball.
+Partners can ignore it, and delete it together with the `vendor` script in
+`client/package.json`.
 
 ## Run locally, without Dialpad (local mode)
 
