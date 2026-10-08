@@ -273,7 +273,7 @@ exist, from the database, on any instance and after any restart. Then there is
 no handoff and no expiry, and both `OAuthResults` and the cookie can go.
 
 Without a database, this demo keeps what has to last, the user's access token
-and "this user is connected", in the browser: the signed, 30-day session cookie
+and "this user is connected to external CRM", in the browser: the signed, 30-day session cookie
 is its persistent storage. It survives a server restart or scale-to-zero, and it
 is signed so it can't be forged. Changing `APP_SECRET` signs everyone out: every
 open panel gets `401` and shows "Reload the panel". The cookie is not encrypted
