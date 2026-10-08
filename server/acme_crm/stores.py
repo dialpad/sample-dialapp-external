@@ -1,9 +1,10 @@
 """In-memory stores, for the demo only.
 
-SHORTCUT: both live in one process's memory. A real partner keeps access tokens durably, so a
-restart or a second instance doesn't log users out. It also has no use for ``OAuthResults`` at all:
-see that class for why this demo needs it and what replaces it. Upgrade trigger: the app runs on
-more than one instance, must survive a restart, or connects to a real CRM.
+SHORTCUT: both live in one process's memory. A real partner keeps access tokens durably in a
+persistent database, so a restart or a second instance doesn't log users out. It also has no use
+for ``OAuthResults`` at all: see that class for why this demo needs it and what replaces it.
+Upgrade trigger: the app runs on more than one instance, must survive a restart, or connects to a
+real CRM.
 """
 
 import secrets
@@ -75,8 +76,9 @@ class OAuthResults:
      stores them durably, keyed by the Dialpad user. This demo has no CRM and so no tokens; the
      only fact it has is "this user pressed Authorize", and it records that here.**
   5. The panel's next ``ext-connection`` check collects the record (``consume``), answers
-     "connected", and sets the connection cookie. Later page loads see the cookie and start
-     connected.
+     "connected", and sets the connection cookie. The cookie, not this store, is the demo's
+     persistent record of the connection (see ``acme_crm.signing``): it is signed, lasts 30 days,
+     and later page loads see it and start connected, even after a server restart.
 
   **Why the result is kept in memory**
 
@@ -92,10 +94,8 @@ class OAuthResults:
 
   In a real app the note is the CRM tokens themselves. The callback stores them, and
   ``ext-connection`` answers "connected" when tokens exist for the user, from the database, on any
-  instance, after any restart. There is no handoff, so no five-minute expiry, no consume-once rule
-  and no need for the cookie. This class exists only because the demo has nothing durable to
-  check. It is lost on restart (an in-flight Connect then just times out and can be retried) and is
-  not shared between instances.
+  instance, after any restart. There is then no handoff to make, and the signed cookie that this
+  demo uses as its persistent storage of the connection is not needed either.
 
   A record lives for five minutes (``OAUTH_RESULT_TTL_SECONDS``): longer than the SDK's 2-minute
   polling window plus a slow sign-in, short enough that abandoned records don't pile up.

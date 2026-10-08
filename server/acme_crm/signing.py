@@ -5,10 +5,19 @@ Both are ``<base64url JSON>.<base64url HMAC-SHA256>``, signed with the app secre
 
 * The ``state`` rides through the OAuth round trip (authorize URL, then callback) and says which
   user the round trip is for, so the callback can't be tricked into connecting someone else.
-* The cookie is what a browser keeps after connecting, so the next page load starts connected.
+* The cookie is what a browser keeps after connecting, so the next page load starts connected. It
+  is this demo's persistent storage of the connection: the server keeps no database, and a signed,
+  30-day cookie bound to the Dialpad user and company stands in for the CRM tokens a real partner
+  would store. It survives a server restart or scale-to-zero (unlike the in-memory stores), and
+  changing ``APP_SECRET`` invalidates every cookie, which disconnects everyone.
 
 Neither is encrypted: anyone can read the user and company ids in them, but nobody without the app
 secret can forge or alter one.
+
+Limits of keeping the connection in a cookie, which a real partner's stored tokens don't have: it is
+per browser (connecting in one browser doesn't connect another, and Disconnect only clears the
+cookie in the browser that asked), and the server cannot revoke one before its 30 days are up other
+than by changing the secret.
 """
 
 import base64

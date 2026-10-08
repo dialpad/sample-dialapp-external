@@ -262,8 +262,12 @@ the service scales to zero.
   or stored.
 - **The OAuth is fake.** `/oauth/fake-authorize` and `/oauth/callback` stand in
   for a CRM; a real partner replaces them (see the README's "What to replace").
-- **Cookies.** The connection cookie is `Secure`, `HttpOnly`, `SameSite=None`
-  and `Partitioned`, so it works in a third-party iframe over HTTPS. Cloud Run
+- **Cookies.** The connection cookie is the app's persistent storage of "this
+  user is connected": signed with `APP_SECRET` (changing it disconnects
+  everyone), valid for 30 days, and kept in the browser, so it survives a
+  restart or scale-to-zero while the in-memory state does not. It is `Secure`,
+  `HttpOnly`, `SameSite=None` and `Partitioned`, so it works in a third-party
+  iframe over HTTPS. Cloud Run
   terminates TLS and the app sets the cookie regardless of the scheme it sees
   internally.
 

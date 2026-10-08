@@ -11,7 +11,13 @@ Routes, in the order a user meets them:
 * ``GET /dev/frame-url`` (local mode only) and ``GET /healthz``: development helpers.
 
 Identity comes from the idtoken on the page request only. Every later API call carries the app's own
-per-user access token as a bearer token, and the connection itself is remembered in a signed cookie.
+per-user access token as a bearer token.
+
+Whether a user is connected is the one thing this demo has to remember for good, and it remembers it
+in the browser: a signed cookie (HMAC-SHA256 with ``APP_SECRET``, bound to the Dialpad user and
+company, valid for 30 days) is the app's persistent storage of the connection. The server keeps no
+database. A real partner stores the CRM tokens it gets from the OAuth callback instead, and answers
+from those; see ``acme_crm.stores.OAuthResults`` and ``acme_crm.signing``.
 """
 
 import logging
@@ -129,8 +135,10 @@ class AppContext:
   def cookie_is_valid(self, request: Request, key: UserKey) -> bool:
     """Whether the request carries a valid connection cookie for exactly this user.
 
-    False when the cookie is missing, forged, too old, or issued to another user or company (one
-    browser profile can switch Dialpad users). Reads the cookie only; never sets it.
+    The cookie is this app's persistent storage of "this user is connected": reading it is how a
+    page load, or an ``ext-connection`` check, learns the connection state without any server-side
+    record. False when the cookie is missing, forged, too old, or issued to another user or company
+    (one browser profile can switch Dialpad users). Reads the cookie only; never sets it.
     """
     return signing.cookie_is_valid(
         request.cookies.get(COOKIE_HEADER_NAME),
@@ -187,6 +195,9 @@ def _unauthorized() -> HTTPResponse:
 
 def _set_cookie(reply: HTTPResponse, value: str, max_age: int) -> None:
   """Set the connection cookie on ``reply``, or clear it with ``max_age=0``.
+
+  The cookie is where this demo persists the connection (see ``acme_crm.signing``): setting it
+  connects the user in this browser, clearing it disconnects them there.
 
   The attributes are the same either way (a browser only clears a cookie that matches them):
   ``Secure``, ``HttpOnly``, ``SameSite=None`` and ``Partitioned``, because the panel runs in a
@@ -269,9 +280,10 @@ def _register_contract(app: App, ctx: AppContext) -> None:
     Connect, on every poll while the OAuth popup is open, and after a disconnect for a fresh
     authorize URL. If the OAuth callback has recorded a result for this user, it is consumed here:
     the answer is "connected" and the connection cookie is set (the only place it is set), so the
-    next page load starts connected. Otherwise the cookie alone decides. The consumed result is a
-    demo-only handoff from the popup to this iframe; a real partner answers from the CRM tokens its
-    callback stored (see ``acme_crm.stores.OAuthResults``).
+    next page load starts connected. Otherwise the cookie alone decides: it is this app's
+    persistent storage of the connection, signed with ``APP_SECRET`` so it can't be forged. The
+    consumed result is a demo-only handoff from the popup to this iframe; a real partner answers
+    from the CRM tokens its callback stored (see ``acme_crm.stores.OAuthResults``).
     """
     key = ctx.user_for(request)
     if key is None:
