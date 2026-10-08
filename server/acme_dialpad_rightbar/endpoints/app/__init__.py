@@ -2,10 +2,11 @@
 
 * ``POST /api/contact``: an example of a route the iframe panel adds for itself (``contact.py``).
   A real application has many such routes: contacts, notes, search, and so on.
-* ``GET /oauth/fake-authorize`` and ``GET /oauth/callback``: a stand-in for the partner CRM's OAuth
-  round trip, with a clearly fake Authorize page in between (``oauth_fake_authorize.py``,
-  ``oauth_callback.py``). A real partner replaces these two with their CRM's authorize URL and
-  callback.
+* ``GET /oauth/fake-authorize``: a stand-in for the partner CRM's consent screen, clearly labelled
+  fake (``oauth_fake_authorize.py``). A real partner replaces it with their CRM's authorize URL.
+* ``GET /oauth/callback``: the OAuth redirect URI, which a real app has too (``oauth_callback.py``).
+  The demo only records that the user connected; a real partner exchanges the ``code`` for CRM
+  tokens here and stores them.
 * ``GET /healthz``: answers ``ok`` once the app is up. Used by the Playwright e2e setup; partners
   can ignore it (``healthz.py``).
 * ``GET /dev/frame-url``: local mode only, hands the dev host a page URL with a mock idtoken

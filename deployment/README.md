@@ -287,8 +287,10 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
   seconds, so a slow or unreachable Dialpad API delays the iframe panel's first paint
   by that much and then shows "Dialpad API unavailable". The key is not logged
   or stored.
-- **The OAuth is fake.** `/oauth/fake-authorize` and `/oauth/callback` stand in
-  for a CRM; a real partner replaces them (see the README's "What to replace").
+- **The OAuth is fake.** `/oauth/fake-authorize` stands in for the CRM's consent
+  screen, and `/oauth/callback` only records that the user connected. A real
+  partner replaces the fake page and makes the callback exchange the `code` for
+  CRM tokens (see the README's "What to replace").
 - **Cookies.** The session cookie is the app's persistent storage of the user's
   access token and whether they are connected. It is signed with `APP_SECRET`
   (changing the secret signs everyone out: every open iframe panel gets `401` and
