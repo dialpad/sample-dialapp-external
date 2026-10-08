@@ -32,13 +32,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Read the demo result from the page data's `app` field, or null when it holds none.
+ * Read the page data's `app` field: the demo's Dialpad API result, or null when it holds none.
  *
  * `app` is partner-defined JSON the SDK passes through unchecked, so each part is validated here
  * instead of trusted: an unknown status or a malformed value gives null (the iframe panel shows no card)
  * rather than an error.
  */
-export function readDialpadApi(
+export function readPageAppData(
   app: Readonly<Record<string, unknown>> | null,
 ): DialpadApiDemo | null {
   const demo = app?.dialpadApi;

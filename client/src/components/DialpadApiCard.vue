@@ -11,12 +11,12 @@
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 import { computed } from 'vue';
 
-import { readDialpadApi } from '../customPageAppData';
+import { readPageAppData } from '../customPageAppData';
 
 const { rightbar } = useRightbar();
 
 /** The server's demo result, read once: the page data's `app` never changes. */
-const demo = computed(() => readDialpadApi(rightbar.app));
+const demo = computed(() => readPageAppData(rightbar.app));
 </script>
 
 <template>
