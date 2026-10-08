@@ -1,8 +1,7 @@
 # Browser tests
 
 These tests exercise the iframe panel and `@dialpad/dialapp-external-sdk` in a
-real browser. They run from dialapp-external's CI against every new build of the
-libraries, and locally with `pnpm run test:e2e`.
+real browser. Run them with `pnpm run test:e2e`.
 
 They are not part of the template: partners can delete this folder when they
 copy the app (along with `playwright.config.ts`, the `test:e2e` script and the

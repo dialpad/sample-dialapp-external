@@ -13,9 +13,9 @@ with every field "Acme'd" (text gets an `Acme ` prefix).
 
 It uses one Dialpad library, plus public packages:
 
-- `@dialpad/dialapp-external-sdk` (TypeScript), from
-  [`dialapp-external`](https://github.com/dialpad/dialapp-external): the
-  headless SDK that speaks Dialpad's host protocol and keeps the iframe panel's state.
+- `@dialpad/dialapp-external-sdk` (TypeScript), which Dialpad provides as a tarball
+  (see [Install](#install)): the headless SDK that speaks Dialpad's host protocol
+  and keeps the iframe panel's state.
 
 The server carries its own small pieces of the contract, which you keep and
 adapt: `server/acme_dialpad_rightbar/idtoken.py` decodes the idtoken (and mints mock ones for
@@ -146,8 +146,7 @@ that Dialpad sets up for you.
    ```
 
 2. Expose the server at that public HTTPS URL (how is up to you).
-3. Point the beta OAuth app's conversation sidebar URI at it, following
-   Dialpad's runbook.
+3. Ask Dialpad to set the beta OAuth app's conversation sidebar URI to it.
 4. Open any contact in dialpadbeta: the iframe panel appears, and connect, reconnect,
    and disconnect work against the real host.
 
@@ -253,8 +252,6 @@ and state in a "From Dialpad's API" card.
   says so.
 - The key is used for this one call and dropped. It is never put in the page,
   logged or returned, and the idtoken is not stored.
-- Doc 11 of the partner rightbar PRD lists calling the public API with the key
-  as out of scope; this demo does it anyway, to show the key in use.
 
 A real application would not work this way: it **persists the api key in
 long-term storage** and **uses it to call Dialpad as and when needed**
@@ -614,7 +611,7 @@ Each folder has its own checks; there is nothing to run at the repository root.
 pnpm lint:ci && pnpm format:ci && pnpm types:check && pnpm test:run
 pnpm test:e2e                                   # browser tests
 
-# server/ (the Python server): the same tox environments as dialapp-external's contract/
+# server/ (the Python server): the tox environments
 uvx tox                                         # tests, linter, typechecker, check_python_code_style
 uvx tox -e apply_python_code_style              # reformat with yapf
 ```

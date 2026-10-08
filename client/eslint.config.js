@@ -1,5 +1,5 @@
-// A short public ESLint setup. The house rules at the end come from Dialpad's internal
-// @dialpad/eslint-config, copied here so this repository installs from public packages only.
+// A short public ESLint setup. The house rules at the end are Dialpad's own code style, written
+// out here so this repository installs from public packages only.
 import js from '@eslint/js';
 import vitest from '@vitest/eslint-plugin';
 import prettier from 'eslint-config-prettier';

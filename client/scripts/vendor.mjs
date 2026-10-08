@@ -2,10 +2,9 @@
 //
 //   pnpm run vendor <dir>
 //
-// <dir> holds exactly one dialpad-dialapp-external-sdk-<version>.tgz (the library's `artifacts/`
-// folder); any other file in it is ignored. The script replaces everything in vendor/ with that
-// tarball, points package.json at it, then installs the packages into node_modules. Run it from
-// client/ (`pnpm run vendor <dir>`). Running it twice with the same file gives the same result. It
+// <dir> holds exactly one dialpad-dialapp-external-sdk-<version>.tgz; any other file in it is
+// ignored. The script replaces everything in vendor/ with that tarball, points package.json at it,
+// then installs the packages into node_modules. Run it from client/ (`pnpm run vendor <dir>`). Running it twice with the same file gives the same result. It
 // needs no packages of its own. The server has no copy of the library: it installs only public
 // Python packages.
 import { spawnSync } from 'node:child_process';
