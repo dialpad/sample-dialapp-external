@@ -258,7 +258,7 @@ Connect in flight has to be retried; connected users stay connected).
   Entries already written stay until their retention ends.
 
 - **The page request calls Dialpad's API.** As a demo (unnecessary for the app;
-  see the README's [demo call](../README.md#the-demo-call-to-dialpads-api)),
+  see the README's [demo call](../FLOWS.md#the-demo-call-to-dialpads-api)),
   loading the page makes an outbound HTTPS request to `DIALPAD_ORIGIN` with the
   idtoken's api key, which Cloud Run allows by default. It waits at most 3
   seconds, so a slow or unreachable Dialpad API delays the iframe panel's first paint
