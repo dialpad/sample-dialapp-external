@@ -290,7 +290,7 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
 - **The OAuth is fake.** `/oauth/fake-authorize` stands in for the CRM's consent
   screen, and `/oauth/callback` only records that the user connected. A real
   partner replaces the fake page and makes the callback exchange the `code` for
-  CRM tokens (see the README's "What to replace").
+  CRM tokens and persist them in a database (see the README's "What to replace").
 - **Cookies.** The session cookie is the app's persistent storage of the user's
   access token and whether they are connected. It is signed with `APP_SECRET`
   (changing the secret signs everyone out: every open iframe panel gets `401` and

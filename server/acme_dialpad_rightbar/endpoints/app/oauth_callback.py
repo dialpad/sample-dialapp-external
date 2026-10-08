@@ -32,7 +32,7 @@ def register(app: App, ctx: AppContext) -> None:
     """Finish the OAuth round trip: record that this user connected and close the popup.
 
     Invoked inside the popup after the (fake) authorization. A real partner would exchange the
-    ``code`` for CRM tokens and store them durably here, and ``ext-connection`` would then answer
+    ``code`` for CRM tokens and persist them in a database here, and ``ext-connection`` would then answer
     from them. This demo has no CRM tokens, so it only verifies the signed ``state`` and leaves a
     short-lived in-memory note that this user connected, which the iframe panel's next
     ``ext-connection`` check consumes (see ``acme_dialpad_rightbar.stores.OAuthResults`` for the
