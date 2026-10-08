@@ -1,5 +1,3 @@
-// INTERNAL TOOLING, FOR DIALPAD'S OWN USE: partners should ignore this file.
-//
 // Pulls a new copy of Dialpad's SDK into vendor/ and installs it.
 //
 //   pnpm run vendor <dir>
