@@ -606,7 +606,6 @@ Other protections around the page:
   sessions or expiring tokens.
 - **No event-subscription receiver** (section 3), and no replay protection for
   the idtoken beyond keeping it out of logs, caches and referrers.
-- **The iframe panel page's CSP is script-focused** (section 4).
 
 | Measure                                                   | Code                                                                         | Tests                                                                                                                                          |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
