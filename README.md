@@ -266,10 +266,11 @@ long-term storage** and **uses it to call Dialpad as and when needed**
 Dialpad's public API, with every endpoint and its rate limit, is documented at
 [developers.dialpad.com](https://developers.dialpad.com/).
 
-**Event subscriptions.** Instead of polling the API, a real app can ask Dialpad
-to push events (calls, SMS, contacts, agent status, change logs) to it. It
-creates a webhook and subscriptions through the same API with a key, as
-described in Dialpad's
+**Event subscriptions.** A real app often has to react to what happens in
+Dialpad when nobody has the panel open, for example logging a finished call or
+an SMS on the CRM's record. Dialpad can push such events (calls, SMS, contacts,
+agent status, change logs) to it. The app creates a webhook and subscriptions
+through the same API with a key, as described in Dialpad's
 [Event Subscriptions](https://developers.dialpad.com/docs/event-subscriptions)
 guide. When an event occurs, Dialpad calls the webhook URL on your server (the
 **webhook callback**) with the event as a JWT signed with a secret you chose, so

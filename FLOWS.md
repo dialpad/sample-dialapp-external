@@ -425,9 +425,11 @@ sequenceDiagram
 
 ## 7. Event subscriptions and webhooks
 
-Instead of polling, your server can ask Dialpad to push events (calls, SMS,
-contacts, agent status, change logs) to a URL on your server. Dialpad then calls
-you, so **you** have to prove the request came from Dialpad. See Dialpad's
+Your server often has to react to what happens in Dialpad when no panel is open,
+for example logging a finished call or an SMS on the CRM's record. It can ask
+Dialpad to push such events (calls, SMS, contacts, agent status, change logs) to
+a URL on your server. Dialpad then calls you, so **you** have to check the
+request really came from Dialpad. See Dialpad's
 [Event Subscriptions](https://developers.dialpad.com/docs/event-subscriptions) guide.
 
 ### Setting it up (once)
