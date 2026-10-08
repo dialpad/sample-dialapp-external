@@ -893,19 +893,11 @@ check, no reactivity, so keeping the DOM in step with the snapshot is your code.
 you gain is a much smaller bundle: today's is about 116 kB gzipped (Vue, Dialtone's
 Vue components and the SDK).
 
-## Adapting the iframe panel to React or Next.js
+## Adapting the iframe panel to React
 
-There are two different questions, and they have different answers.
-
-1. **Replace only the Vue code with React**, keeping this app's Python server (or
-   any server you already have). The server does not change.
-2. **Replace the server too, with Next.js.** Next.js renders the page, so the
-   server's page, endpoints, CSP and cookie handling all have to be rebuilt in
-   Node. This is a much bigger change, and most of this section is about it.
-
-Neither is built or run in this repository; the snippets are sketches.
-
-### React with the same server
+Replace only the Vue code with React. The server does not change: it can be this
+app's Python server or any server you already have. Nothing here is built or run in
+this repository; the snippets are sketches.
 
 Everything under "What does not change" in the plain JavaScript section applies:
 the server, the SDK calls, the framework-free modules (with `sessionExpired` as a
@@ -1027,124 +1019,3 @@ Everything else maps one to one: `App.vue` to `App`, `ConnectGate.vue` to
 React Testing Library with the SDK's mock host, and the Playwright tests do not
 change. Build with `@vitejs/plugin-react`, and point the server's `ENTRY` at
 `src/main.tsx`.
-
-### Next.js as the server
-
-Next.js owns the page, so the work is moving the Python server's jobs into Next.
-The panel itself is the React code above, as a client component.
-
-| Python server piece                      | In Next.js (App Router)                                                       |
-| ---------------------------------------- | ----------------------------------------------------------------------------- |
-| `endpoints/dialpad/page.py` (`GET /`)    | `middleware.ts` plus `app/page.tsx`: authenticate, set the cookie, render     |
-| `idtoken.py` (decode the idtoken)        | `jose`: `compactDecrypt` (`dir`, `A192CBC-HS384`) then `jwtVerify` (`HS256`)  |
-| `pages.py` (CSP, nonce, escaping)        | `middleware.ts` (CSP and nonce), the page's JSON element (escaping)           |
-| `context.py`, `database.py` (cookie)     | A small `session.ts`, or a session library, called from middleware and routes |
-| `ext_connection.py`, `ext_disconnect.py` | `app/dialpad/ext-connection/route.ts`, `app/dialpad/ext-disconnect/route.ts`  |
-| `app/contact.py`                         | `app/api/contact/route.ts`                                                    |
-| `oauth_*.py`                             | `app/oauth/callback/route.ts` (and your CRM's real authorize URL)             |
-| `dialpad_api.py` (the api key call)      | A server function using `fetch` with `Authorization: Bearer <api_key>`        |
-| `stores.py` (`OAuthResults`)             | A shared store (Redis or a database), see below                               |
-| `settings.py`                            | Environment variables read on the server only                                 |
-
-**Authenticating the page request.** The idtoken arrives as `?idtoken=...` on the
-page URL. The page is a server component (`await searchParams` in Next 15), but
-two things must happen where a server component cannot do them: **setting a
-cookie** and **answering `401`**. In Next.js, cookies can be set only in
-middleware, route handlers and server actions, not while a server component
-renders, and a page cannot choose its status. So `middleware.ts` does the
-authentication: it decodes and verifies the idtoken, answers a bad one with a
-`401` response, sets the session cookie, and passes what the page needs (the
-Dialpad user and the access token) to it in request headers it adds with
-`NextResponse.next({ request: { headers } })`. The page reads those headers; it
-never sees the idtoken's `api_key` unless it needs it for the demo call.
-
-**CSP and the nonce.** Also in middleware, as in Next.js's own CSP guide:
-generate a fresh random nonce per request, set `Content-Security-Policy` on the
-request (so Next.js adds the nonce to the inline scripts it emits for hydration)
-and on the response, and pass the nonce to the page in a header. The policy is the
-one in [Framing, CSP and nonces](#4-framing-csp-and-nonces): `frame-ancestors`
-set to the Dialpad origin, `script-src 'self' 'nonce-...'`, `object-src 'none'`,
-`base-uri 'none'`, plus `Referrer-Policy: no-referrer` and `Cache-Control:
-no-store`. Three Next.js consequences:
-
-- **The page must be rendered per request.** A nonce changes every response, so
-  the page cannot be statically generated or cached: mark it dynamic
-  (`export const dynamic = 'force-dynamic'`) and send `no-store`.
-- **Next's own scripts are `'self'`** (`/_next/static/...`), so `'self'` plus the
-  nonce covers them. Development mode needs extra allowances (for example
-  `'unsafe-eval'`); Next.js's CSP guide lists them. Keep them out of production.
-- **The page data element is rendered by you.** The SDK reads
-  `<script type="application/json" id="dialpad-page-data">`. React escapes text
-  but would turn the JSON's quotes into entities, so write it with
-  `dangerouslySetInnerHTML` and the same escaping `pages.py` uses (`<`, `>`, `&`
-  and `'` as `<`-style escapes), with the nonce on the element.
-
-**The session cookie.** Same design as here: a signed cookie holding the access
-token and the connection state, with the same attributes (`__Host-` prefix,
-`Secure`, `HttpOnly`, `SameSite=None`, `Partitioned`, 30 days), signed with
-the demo's signing secret through `jose` or `crypto.createHmac`. If your Next.js version's
-cookies API does not accept `partitioned`, append that attribute to the
-`Set-Cookie` header yourself. The contract endpoints are route handlers that
-require the `Authorization: Bearer` token to equal the cookie's token, exactly as
-`ctx.state_for` does. Or, as in most Next.js apps, keep the session in a store
-(`iron-session`, Redis, a database) and put only an opaque id in the cookie; see
-[how this is usually done](#why-the-demo-has-an-app_secret).
-
-**The panel is a client component.** The SDK uses `window` and `postMessage`, so it
-must run only in the browser. Render the page shell on the server, and start the
-SDK in a client component. Start it once, outside the React lifecycle, because
-Strict Mode runs effects twice in development:
-
-```tsx
-// app/panel.tsx
-"use client";
-import { createRightbar, type Rightbar } from "@dialpad/dialapp-external-sdk";
-import { useEffect, useState } from "react";
-
-let started: Promise<Rightbar> | undefined; // one SDK instance per page load
-
-export function Panel() {
-  const [rightbar, setRightbar] = useState<Rightbar | null>(null);
-  useEffect(() => {
-    started ??= createRightbar({
-      heightRoot: document.getElementById("panel-root")!,
-      fetch: api,
-    });
-    started.then(setRightbar, () => {
-      /* not framed by Dialpad: show "Open this panel from Dialpad" */
-    });
-  }, []);
-  return (
-    <div id="panel-root">
-      {rightbar && (
-        <RightbarProvider rightbar={rightbar}>
-          <App />
-        </RightbarProvider>
-      )}
-    </div>
-  );
-}
-```
-
-**What does not carry over unchanged:**
-
-- **`OAuthResults` cannot stay in memory on serverless hosts.** On Vercel or any
-  platform that runs requests on many short-lived instances, the OAuth callback
-  and the panel's next `ext-connection` call can land on different instances. Use
-  Redis or a database for that handoff, or, better, store the CRM tokens in the
-  callback as a real app does and drop the handoff (see
-  [Why connection results are kept in memory](#why-connection-results-are-kept-in-memory-demo-only)).
-  A single long-running Node server (for example in a container) can keep the
-  in-memory map, with the same single-instance caveat as the Python server.
-- **Environment variables.** `DIALPAD_CLIENT_SECRET` and the demo's signing secret must be
-  server-only. Never give them a `NEXT_PUBLIC_` prefix: Next.js inlines those into
-  the browser bundle.
-- **Logs.** The idtoken is in the page URL. Do not log `request.url`, and expect
-  your host's request log to record it (the same caveat as Cloud Run in
-  [deployment/README.md](deployment/README.md)).
-- **Deployment.** Next's `output: 'standalone'` gives one Node image instead of the
-  two-stage Node plus Python build, and runs on Cloud Run the same way.
-- **Tests.** Route handlers are functions of a `Request`, so test them the way
-  `server/tests/` tests the Sanic app: call the handler with a request carrying the
-  bearer header and cookie, and assert on the `Response`. The SDK's mock host and
-  the Playwright tests are unchanged.
