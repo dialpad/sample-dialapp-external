@@ -4,6 +4,17 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Acme for Dialpad: dev host (stands in for Dialpad)</title>
+    <style>
+      /*
+       * The border outlines the iframe, so its width and height are visible. The mock host sets
+       * width, height and "border: 0" inline on the iframe, so only !important can win; with
+       * border-box sizing the border sits inside those dimensions.
+       */
+      #panel iframe {
+        box-sizing: border-box;
+        border: 1px dashed #c0392b !important;
+      }
+    </style>
   </head>
   <body>
     <h1>Dev host</h1>
