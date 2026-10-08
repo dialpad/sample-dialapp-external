@@ -11,17 +11,34 @@ data flow by showing the Dialpad user, the active call, the OAuth scopes and the
 open Dialpad contact (plus the call's own contact when it is a different person)
 with every field "Acme'd" (text gets an `Acme ` prefix).
 
-It uses one Dialpad library, plus public packages:
+**The frontend uses Dialpad's SDK for everything on the Dialpad side.** It is
+`@dialpad/dialapp-external-sdk` (TypeScript), which Dialpad provides as a tarball
+(see [Install](#install)). It is headless, so you build the panel with any
+framework or none (this repository uses Vue; see the sections on
+[plain JavaScript](#the-same-iframe-panel-in-plain-javascript) and
+[React](#adapting-the-iframe-panel-to-react)). The SDK does all of this, so your
+code never touches it:
 
-- `@dialpad/dialapp-external-sdk` (TypeScript), which Dialpad provides as a tarball
-  (see [Install](#install)): the headless SDK that speaks Dialpad's host protocol
-  and keeps the iframe panel's state.
+- reads the page data the server put in the iframe's HTML, and checks the page is
+  framed by Dialpad;
+- speaks the host protocol with Dialpad over `postMessage`;
+- keeps one state snapshot: the Dialpad user, the open contact, the active call,
+  the theme and the connection to your system;
+- runs Connect, the OAuth link to your CRM (the popup, the polling, the
+  disconnect), and tells Dialpad whether the user is connected;
+- sizes the panel's height, provides the `Authorization` header for your own
+  requests (`authHeaders()`), and tells Dialpad about a matched CRM record
+  (`linkRecord`);
+- provides mock Dialpad hosts for unit tests and browser tests.
 
-The server carries its own small pieces of the contract, which you keep and
-adapt: `server/acme_dialpad_rightbar/idtoken.py` decodes the idtoken (and mints mock ones for
-local mode), `server/acme_dialpad_rightbar/pages.py` renders the iframe panel, close-popup and error
-pages with their security headers, and `server/acme_dialpad_rightbar/contract.py` has the
-models the SDK reads. They are built on `pydantic` and `joserfc`.
+**The Python server is a reference, not a requirement.** Use any backend in any
+language. It only has to do four things: decode the idtoken, serve the page with
+the page data in it (an access token and the connection status), answer the two
+endpoints the SDK calls (`GET /dialpad/ext-connection` and
+`POST /dialpad/ext-disconnect`), and serve your own routes. The pieces in
+`server/acme_dialpad_rightbar/` that implement the contract are `idtoken.py`,
+`pages.py` and `contract.py` (built on `pydantic` and `joserfc`); port those and
+keep the rest of your server as it is.
 
 The repository has two parts, each with its own tools and checks:
 
