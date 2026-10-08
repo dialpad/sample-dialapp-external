@@ -277,6 +277,20 @@ the page data, so requiring the two to match is the "double submit" defence
 against cross-site request forgery. A real app, with a session table, needs only
 the header (see [Security, section 2](#2-authenticating-requests-to-your-server)).
 
+The cookie's attributes and the signed values:
+
+- **The session cookie** is `__Host-` prefixed (so `Secure`, `Path=/`, host only),
+  `Secure`, `HttpOnly`, `SameSite=None` (required in a third-party iframe),
+  `Partitioned` (kept separately per embedding site) and lasts 30 days. Its value
+  is signed with HMAC-SHA256 using the demo's signing secret: readable, but nobody
+  without the secret can forge or change it.
+- **Each signed value carries a `kind`**, so a value signed for one purpose, such
+  as an OAuth `state`, is never accepted as another, such as a session cookie.
+  Signatures and tokens are compared in constant time.
+- **The OAuth `state`** is signed too: tied to the Dialpad user, unique, and valid
+  for 10 minutes. The callback verifies it and records a result only for the user
+  it names, so a callback cannot be used to connect someone else.
+
 ### The contact lookup (demo vs. a real app)
 
 **What the demo does.** There is no CRM, so there is no mapping. The iframe panel
@@ -417,7 +431,7 @@ uses the key once, on the page request, for the demo call described in
 The idtoken has no expiry that this app checks, and it travels in a URL, so
 treat that URL as a secret: the page is served with `Referrer-Policy:
 no-referrer` and `Cache-Control: no-store`, the access log is off, and the
-idtoken is never stored (see [Secrets and logs](#6-secrets-and-logs)).
+idtoken is never stored (see [Secrets and logs](#5-secrets-and-logs)).
 
 ### 2. Authenticating requests to your server
 
@@ -563,21 +577,7 @@ Other protections around the page:
 - **The page data holds no secrets:** no api key, no user profile, only the
   access token the iframe panel needs, the connection status and the demo result.
 
-### 5. Cookies, OAuth state and signed values
-
-- **The session cookie** is `__Host-` prefixed (so `Secure`, `Path=/`, host only),
-  `Secure`, `HttpOnly`, `SameSite=None` (required in a third-party iframe),
-  `Partitioned` (kept separately per embedding site) and lasts 30 days. Its
-  value is signed with HMAC-SHA256 using the demo's signing secret: readable, but nobody
-  without the secret can forge or change it.
-- **Each signed value carries a `kind`**, so a value signed for one purpose, such
-  as an OAuth `state`, is never accepted as another, such as a session cookie.
-  Signatures and tokens are compared in constant time.
-- **The OAuth `state`** is signed, tied to the Dialpad user, unique, and valid
-  for 10 minutes. The callback verifies it and records a result only for the user
-  it names, so a callback cannot be used to connect someone else.
-
-### 6. Secrets and logs
+### 5. Secrets and logs
 
 - `DIALPAD_CLIENT_SECRET` (at least 48 characters, checked at startup) and
   the demo's signing secret are kept out of the settings' `repr`, so they cannot appear in a
@@ -592,7 +592,7 @@ Other protections around the page:
 - One thing the app cannot fix: Cloud Run's own request log records the full URL,
   idtoken included. See [deployment/README.md](deployment/README.md).
 
-### 7. What the demo does not do
+### 6. What the demo does not do
 
 - **It does not persist the api key** or call Dialpad outside the page request
   (section 1).
