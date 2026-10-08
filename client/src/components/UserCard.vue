@@ -47,12 +47,16 @@ const status = computed(() =>
 </script>
 
 <template>
-  <section aria-labelledby="user-heading" data-testid="user-card">
+  <section
+    class="acme-user"
+    aria-labelledby="user-heading"
+    data-testid="user-card"
+  >
     <h2 id="user-heading" class="acme-heading">You</h2>
     <p v-if="!user" class="acme-muted">
       Dialpad didn't send your user details.
     </p>
-    <div v-else class="acme-user">
+    <div v-else class="acme-user__row">
       <DtAvatar
         :full-name="name"
         :image-src="user.imageUrl ?? ''"
@@ -73,8 +77,8 @@ const status = computed(() =>
   </section>
 </template>
 
-<style scoped>
-.acme-user {
+<style>
+.acme-user__row {
   display: flex;
   gap: var(--dt-space-400);
   align-items: center;

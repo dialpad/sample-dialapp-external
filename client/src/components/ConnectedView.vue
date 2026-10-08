@@ -48,7 +48,7 @@ const otherCallContact = computed(() => {
   </div>
 </template>
 
-<style scoped>
+<style>
 .acme-connected {
   display: flex;
   flex-direction: column;

@@ -31,29 +31,33 @@ const fields = computed(() => (props.contact ? acmeFields(props.contact) : []));
 </script>
 
 <template>
-  <section :aria-labelledby="headingId" :data-testid="testId">
+  <section
+    class="acme-contact"
+    :aria-labelledby="headingId"
+    :data-testid="testId"
+  >
     <h2 :id="headingId" class="acme-heading">{{ title }}</h2>
     <p v-if="fields.length === 0" class="acme-muted">No contact is open.</p>
-    <dl v-else class="acme-fields">
+    <dl v-else class="acme-contact__fields">
       <template v-for="field in fields" :key="field.label">
-        <dt>{{ field.label }}</dt>
-        <dd>{{ field.value }}</dd>
+        <dt class="acme-contact__label">{{ field.label }}</dt>
+        <dd class="acme-contact__value">{{ field.value }}</dd>
       </template>
     </dl>
   </section>
 </template>
 
-<style scoped>
-.acme-fields {
+<style>
+.acme-contact__fields {
   display: grid;
   grid-template-columns: max-content 1fr;
   gap: var(--dt-space-200) var(--dt-space-400);
   margin: 0;
 }
-.acme-fields dt {
+.acme-contact__label {
   color: var(--dt-color-foreground-secondary);
 }
-.acme-fields dd {
+.acme-contact__value {
   margin: 0;
   overflow-wrap: anywhere;
 }

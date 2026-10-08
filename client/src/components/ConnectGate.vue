@@ -62,7 +62,7 @@ const errorCopy = computed(() => {
   </section>
 </template>
 
-<style scoped>
+<style>
 .acme-gate {
   display: flex;
   flex-direction: column;

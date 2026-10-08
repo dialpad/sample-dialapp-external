@@ -66,7 +66,7 @@ async function confirm(): Promise<void> {
   </div>
 </template>
 
-<style scoped>
+<style>
 .acme-disconnect {
   display: flex;
   gap: var(--dt-space-300);

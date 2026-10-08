@@ -1,5 +1,12 @@
 /* The iframe panel is about 300px wide and its height follows its content. Everything here uses
-   Dialtone tokens so it follows the host's light and dark mode. */
+   Dialtone tokens so it follows the host's light and dark mode.
+
+   Styles are plain (never Vue's `scoped`) and isolated by naming instead: BEM with an `acme-`
+   namespace, `acme-<block>__<element>--<modifier>`, one class per selector, no tag or descendant
+   selectors. The namespace keeps these classes from colliding with Dialtone's (`d-`, `dt-`) or
+   anything else on the page, and BEM keeps specificity flat so a rule never needs an override.
+   A component's own block is styled in that component's `<style>`; the few blocks shared by
+   several components (`acme-title`, `acme-heading`, `acme-muted`) are below. */
 body {
   margin: 0;
   background: var(--dt-color-surface-primary);

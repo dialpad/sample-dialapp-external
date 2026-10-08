@@ -29,6 +29,12 @@ The repository has two parts, each with its own tools and checks:
 | `server/`     | The Python server (`acme_crm/`): bare Sanic on Python 3.14, with its tests. `tox` and `pip` project |
 | `deployment/` | The Dockerfile and how to run the app as a container on Cloud Run                                   |
 
+The iframe panel's CSS does not use Vue's `scoped` styles. Classes are isolated
+by naming instead: BEM with an `acme-` namespace
+(`acme-<block>__<element>--<modifier>`), one class per selector and no tag or
+descendant selectors, so they cannot collide with Dialtone's classes or anything
+else on the page. See the comment at the top of `client/src/style.css`.
+
 Copy this repository and replace the parts listed under
 [What to replace](#what-to-replace). The security side (the idtoken and its api
 key, authenticating every request, CSP and nonces, cookies) is collected in

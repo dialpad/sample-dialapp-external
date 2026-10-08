@@ -22,6 +22,7 @@ const demo = computed(() => readDialpadApi(rightbar.app));
 <template>
   <section
     v-if="demo"
+    class="acme-api"
     aria-labelledby="dialpad-api-heading"
     data-testid="dialpad-api-card"
   >
@@ -43,7 +44,7 @@ const demo = computed(() => readDialpadApi(rightbar.app));
   </section>
 </template>
 
-<style scoped>
+<style>
 .acme-api__name {
   font-weight: var(--dt-font-weight-bold);
 }

@@ -30,7 +30,11 @@ const detail = computed(() =>
 </script>
 
 <template>
-  <section aria-labelledby="call-heading" data-testid="call-card">
+  <section
+    class="acme-call"
+    aria-labelledby="call-heading"
+    data-testid="call-card"
+  >
     <h2 id="call-heading" class="acme-heading">Call</h2>
     <p v-if="!call" class="acme-muted">No active call.</p>
     <div v-else>
@@ -40,7 +44,7 @@ const detail = computed(() =>
   </section>
 </template>
 
-<style scoped>
+<style>
 .acme-call__state {
   font-weight: var(--dt-font-weight-bold);
 }
