@@ -1,7 +1,7 @@
-"""The per-user state kept in the session cookie (acme_crm/state.py)."""
+"""The per-user state kept in the session cookie (acme_crm/database.py)."""
 
+from acme_crm.database import CookieBackedDatabaseStorage
 from acme_crm.signing import COOKIE_MAX_AGE_SECONDS
-from acme_crm.state import CookieBackedDatabaseStorage
 from acme_crm.stores import UserKey
 
 SECRET = 'app-secret'

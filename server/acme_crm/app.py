@@ -19,10 +19,10 @@ Dialpad user and company, valid for 30 days) is the app's persistent storage. Th
 database. The page load sets the cookie and embeds the same token in the page data; the contract
 endpoints accept a call only when its ``Authorization: Bearer`` value equals the token in the
 cookie. The handlers read and change that state only through ``CookieBackedDatabaseStorage``
-(``acme_crm.state``), whose getters are ``get_access_token`` and ``is_external_connected``: it plays
-the per-user database row a real partner would keep. A real partner stores the CRM tokens it gets
-from the OAuth callback instead, and answers from those; see ``acme_crm.stores.OAuthResults`` and
-``acme_crm.signing``.
+(``acme_crm.database``), whose getters are ``get_access_token`` and ``is_external_connected``: it
+plays the per-user database row a real partner would keep. A real partner stores the CRM tokens it
+gets from the OAuth callback instead, and answers from those; see ``acme_crm.stores.OAuthResults``
+and ``acme_crm.signing``.
 """
 
 import logging
@@ -50,6 +50,7 @@ from acme_crm.contract import DEFAULT_API_PREFIX
 from acme_crm.contract import ErrorResponse
 from acme_crm.contract import ExternalConnection
 from acme_crm.contract import PageData
+from acme_crm.database import CookieBackedDatabaseStorage
 from acme_crm.dialpad_api import DEFAULT_TIMEOUT_SECONDS
 from acme_crm.dialpad_api import fetch_dialpad_user
 from acme_crm.dialpad_api import skipped
@@ -63,7 +64,6 @@ from acme_crm.pages import generate_nonce
 from acme_crm.pages import render_close_popup
 from acme_crm.pages import render_error_page
 from acme_crm.pages import render_page
-from acme_crm.state import CookieBackedDatabaseStorage
 from acme_crm.stores import OAuthResults
 from acme_crm.stores import UserKey
 
@@ -139,8 +139,8 @@ class AppContext:
   def state_from_cookie(self, request: Request) -> CookieBackedDatabaseStorage | None:
     """Read this browser's state from the request's session cookie, if it has a valid one.
 
-    The cookie is this app's persistent storage (see ``acme_crm.state``): reading it is how a page
-    load, or an API call, learns the access token and whether the user is connected, with no
+    The cookie is this app's persistent storage (see ``acme_crm.database``): reading it is how a
+    page load, or an API call, learns the access token and whether the user is connected, with no
     server-side record. ``None`` when it is missing, forged or too old. Reads the cookie only;
     never sets it.
     """

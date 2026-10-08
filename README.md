@@ -188,7 +188,7 @@ To run it as a container, for example on Cloud Run, see
 5. **Later contacts and sessions.** The session cookie is this demo's persistent
    storage: it holds the access token and the connection, and the server keeps no
    database. The handlers reach it only through `CookieBackedDatabaseStorage`
-   (`server/acme_crm/state.py`), whose getters `get_access_token` and
+   (`server/acme_crm/database.py`), whose getters `get_access_token` and
    `is_external_connected` stand in for reading a per-user database row. It is signed with `APP_SECRET`, bound to the user and company, and
    lasts 30 days (each page load refreshes it), so the first paint is already
    the connected view, even after a server restart.
@@ -232,15 +232,15 @@ a background job or a webhook handler as much as from a page load.
 
 ## What to replace
 
-| Here                                                          | With                                                                                                                                                                                                  |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/oauth/fake-authorize`, `/oauth/callback`                    | Your CRM's real authorize URL and callback; delete `server/acme_crm/fake_oauth.py`. Keep the close-popup page                                                                                         |
-| `server/acme_crm/stores.py` (in-memory)                       | Nothing: store the CRM tokens in the callback and answer from them (see below)                                                                                                                        |
-| The session cookie (`server/acme_crm/state.py`, `signing.py`) | Your stored CRM tokens, and a real session (a durable store or expiring tokens). The signed cookie is this demo's persistent storage of the access token and the connection, not part of the contract |
-| `client/src/acme.ts`, `AcmeContact.vue`                       | Your CRM's data, matched to the Dialpad contact                                                                                                                                                       |
-| `client/src/components/ConnectGate.vue`                       | Copy it and change the copy; it renders the SDK's `connection` state                                                                                                                                  |
-| `ACCOUNT_NAME` in `server/acme_crm/app.py`                    | Your CRM's account name                                                                                                                                                                               |
-| `server/acme_crm/dialpad_api.py`, `DialpadApiCard.vue`        | Delete both, and the call in the `page` handler. Store the api key and call Dialpad when you need to                                                                                                  |
+| Here                                                             | With                                                                                                                                                                                                  |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/oauth/fake-authorize`, `/oauth/callback`                       | Your CRM's real authorize URL and callback; delete `server/acme_crm/fake_oauth.py`. Keep the close-popup page                                                                                         |
+| `server/acme_crm/stores.py` (in-memory)                          | Nothing: store the CRM tokens in the callback and answer from them (see below)                                                                                                                        |
+| The session cookie (`server/acme_crm/database.py`, `signing.py`) | Your stored CRM tokens, and a real session (a durable store or expiring tokens). The signed cookie is this demo's persistent storage of the access token and the connection, not part of the contract |
+| `client/src/acme.ts`, `AcmeContact.vue`                          | Your CRM's data, matched to the Dialpad contact                                                                                                                                                       |
+| `client/src/components/ConnectGate.vue`                          | Copy it and change the copy; it renders the SDK's `connection` state                                                                                                                                  |
+| `ACCOUNT_NAME` in `server/acme_crm/app.py`                       | Your CRM's account name                                                                                                                                                                               |
+| `server/acme_crm/dialpad_api.py`, `DialpadApiCard.vue`           | Delete both, and the call in the `page` handler. Store the api key and call Dialpad when you need to                                                                                                  |
 
 Keep `server/acme_crm/idtoken.py` (the decoder), `server/acme_crm/pages.py` (the
 page, close-popup and error rendering with their security headers) and

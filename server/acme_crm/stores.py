@@ -3,7 +3,7 @@
 SHORTCUT: ``OAuthResults`` lives in one process's memory. A real partner has no use for it at all:
 see that class for why this demo needs it and what replaces it. Everything that must last (the
 user's access token and whether they are connected) lives in the signed session cookie, see
-``acme_crm.state.CookieBackedDatabaseStorage`` and ``acme_crm.signing``. Upgrade trigger: the app
+``acme_crm.database.CookieBackedDatabaseStorage`` and ``acme_crm.signing``. Upgrade trigger: the app
 runs on more than one instance or connects to a real CRM.
 """
 
