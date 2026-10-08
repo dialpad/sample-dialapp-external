@@ -930,6 +930,9 @@ create two SDK instances and run the `init` handshake twice.
 ```tsx
 // main.tsx
 import { createRightbar, RightbarError } from "@dialpad/dialapp-external-sdk";
+import { initDialtoneTheme, setMode } from "@dialpad/dialtone/themes/config";
+import dp from "@dialpad/dialtone/themes/dp";
+import "@dialpad/dialtone/css";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { RightbarProvider } from "./rightbar";
@@ -939,6 +942,13 @@ const root = document.getElementById("app")!;
 try {
   const rightbar = await createRightbar({ heightRoot: root, fetch: api });
   useAuthHeaders(() => rightbar.authHeaders());
+  // Follow Dialpad's light and dark mode. Dialtone's theme module is plain
+  // JavaScript, so it works the same without Vue.
+  initDialtoneTheme(dp, rightbar.state.theme.mode);
+  rightbar.watch(
+    (state) => state.theme.mode,
+    (mode) => setMode(mode),
+  );
   createRoot(root).render(
     <RightbarProvider rightbar={rightbar}>
       <App />
