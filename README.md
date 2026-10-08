@@ -674,6 +674,12 @@ page, close-popup and error rendering with their security headers) and
 
 ## Checks
 
+GitHub Actions (`.github/workflows/ci.yaml`) runs all of these on every pull
+request and every push to `main`: the server's tox environments, the client's
+lint, format, types, unit tests and build, the Playwright browser tests, and a
+Docker build with a start-up check. The `sample-dialapp-external check` job
+passes only when all of them pass, so it is the one to require on `main`.
+
 Each folder has its own checks; there is nothing to run at the repository root.
 
 ```sh
