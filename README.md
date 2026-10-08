@@ -172,13 +172,15 @@ To run it as a container, for example on Cloud Run, see
    demo call to Dialpad's API (see [below](#the-demo-call-to-dialpads-api)).
 2. **User.** The SDK asks Dialpad for the user (`get/user`) once it starts, and
    the panel shows it from `state.user`.
-3. **API.** Every call afterwards carries
+3. **API.** Every request the panel makes to the server afterwards carries
    `Authorization: Bearer <access token>` and, as the browser adds it, the
-   session cookie. The server accepts the call only when the two tokens match
-   (compared in constant time). The cookie is `SameSite=None`, so a cross-site
-   request would carry it too, but only code that holds the page data knows the
-   token to put in the header, which is what keeps another site from driving
-   `ext-connection` and `ext-disconnect`. The idtoken is used only on the page
+   session cookie. That covers the two requests the SDK makes itself
+   (`ext-connection` and `ext-disconnect`) and every route your application adds,
+   which in a real app will be many (contacts, notes, search, and so on). The
+   server accepts a request only when the two tokens match (compared in constant
+   time). The cookie is `SameSite=None`, so a cross-site request would carry it
+   too, but only code that holds the page data knows the token to put in the
+   header, which is what keeps another site from driving any of these routes. The idtoken is used only on the page
    request (for the user's identity and the demo call below), and is not stored.
 4. **Connect.** The SDK asks Dialpad to open the authorize URL, which shows the
    fake authorize page. When the user presses Authorize, the callback verifies a
@@ -282,9 +284,36 @@ interchangeable:
 | ----------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | **OAuth app client secret** (`DIALPAD_CLIENT_SECRET`) | Dialpad, when it sets up your OAuth app     | Decrypting and verifying the **idtoken** on the page request. Nothing else in this app uses it. |
 | **`api_key`** (inside the idtoken)                    | Dialpad, per user and app                   | `Authorization: Bearer` on your server's calls to Dialpad's public API                          |
-| **App secret** (`APP_SECRET`)                         | You (a random string)                       | Signing this app's own values: the OAuth `state` and the session cookie                         |
-| **Access token** (in the page data and cookie)        | Your server, per browser session            | `Authorization: Bearer` on the panel's calls to your server                                     |
+| **App secret** (`APP_SECRET`)                         | You (a random string)                       | Signing this app's own values: the OAuth `state` and the session cookie. See below.             |
+| **Access token** (in the page data and cookie)        | Your server, per browser session            | `Authorization: Bearer` on every request the panel makes to your server                         |
 | **Webhook signing secret**                            | You, when you create a webhook with Dialpad | Verifying the JWT on events Dialpad sends to you (not implemented in this demo)                 |
+
+**Why `APP_SECRET` exists, and how it is usually done.** `APP_SECRET` is this
+demo's own device, not something Dialpad or the SDK asks for. The demo has no
+database and no cache, so it keeps what it must remember in values it signs and
+hands to the browser: the OAuth `state` carries the user and an expiry, and the
+session cookie carries the access token and the connection. Signing is what lets
+the server trust them when they come back.
+
+Applications usually keep that state on the server instead:
+
+- **Sessions.** On the first page load, create a session row in your database
+  or cache for that Dialpad user, with a random token; embed the token in the page
+  data and have the panel send it as the bearer. The server looks the token up on
+  each request. No signed cookie is needed, because the browser holds only an
+  opaque id, and you can revoke a session by deleting the row.
+- **OAuth `state`.** Generate a random `state` for each Connect, store its context
+  (the Dialpad user, where to return to) in Redis or the database with a short
+  expiry, and look it up in the callback.
+- **The connection.** The callback stores the CRM tokens durably, keyed by the
+  Dialpad user, and "connected" means those tokens exist.
+- **A secret of your own is still useful**, but for other jobs: deriving the
+  signing secret of each event subscription's webhook, and encrypting at rest what
+  you store (CRM tokens, the Dialpad `api_key`).
+
+The demo's approach has no storage to run, but it cannot revoke a session, its
+values live in the browser (30 days, per browser), and rotating `APP_SECRET`
+signs everyone out.
 
 ### 1. The idtoken and its api key
 
@@ -330,13 +359,14 @@ There are two kinds, and they use different credentials.
 
 - **The page request** is authenticated by the idtoken (above). There is no
   session yet; decoding the token with your client secret is the authentication.
-- **The panel's API calls** (`ext-connection` and `ext-disconnect`) come from
-  the iframe, which has no idtoken. The page response therefore starts a
-  session: it embeds a random **access token** in the page data and sets a signed
-  **session cookie** holding the same token. Each call must send
-  `Authorization: Bearer <access token>` (the SDK's `authHeaders()`, which
-  `client/src/api.ts` adds to every request) and, as the browser adds it, the
-  cookie:
+- **Every request the panel makes to your server** comes from the iframe, which
+  has no idtoken. That includes the two requests the SDK makes itself
+  (`ext-connection` and `ext-disconnect`, the only two the SDK invokes) and every
+  route your application adds; this demo has no others, but a real app will have
+  many. The page response therefore starts a session: it embeds a random
+  **access token** in the page data and sets a signed **session cookie** holding
+  the same token. Each request must send `Authorization: Bearer <access token>`
+  and, as the browser adds it, the cookie:
 
   ```http
   GET /dialpad/ext-connection
@@ -347,6 +377,24 @@ There are two kinds, and they use different credentials.
   The server answers only when the two tokens match (compared in constant
   time) and the cookie's signature and age are valid. Otherwise it answers
   `401`, and the panel asks the user to reload.
+
+**Adding your own routes.** On the panel side, send them through the `api()`
+wrapper in `client/src/api.ts`, which adds the bearer header (the SDK's
+`authHeaders()`) to every request and turns a `401` into the "Reload the panel"
+notice. On the server side, authenticate each one the way the two SDK routes do,
+with `ctx.state_for(request)`, which returns the user's
+`CookieBackedDatabaseStorage` when the header and cookie match and `None`
+otherwise. Use that, not the idtoken, to know who is asking (a sketch):
+
+```python
+@app.get('/api/contacts')
+async def contacts(request: Request) -> HTTPResponse:
+  state = ctx.state_for(request)
+  if state is None:
+    return _unauthorized()
+  user = state.user_key()  # the Dialpad company and user making the request
+  ...
+```
 
 **Why both the header and the cookie.** The cookie has to be `SameSite=None`,
 because the panel runs in a third-party iframe, so browsers also attach it to

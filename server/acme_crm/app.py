@@ -169,7 +169,10 @@ class AppContext:
     )
 
   def state_for(self, request: Request) -> CookieBackedDatabaseStorage | None:
-    """Authenticate an API call: its ``Authorization: Bearer`` token must be the cookie's token.
+    """Authenticate a request from the panel: its bearer token must be the cookie's token.
+
+    Every route the panel calls uses this, the SDK's two contract endpoints and any the
+    application adds.
 
     Returns the state in the cookie when the header's token matches the state's access token,
     else ``None``: no header, no cookie, a forged or expired cookie, or a token that isn't the
@@ -284,7 +287,11 @@ def _register_page(app: App, ctx: AppContext) -> None:
 
 
 def _register_contract(app: App, ctx: AppContext) -> None:
-  """Register the two contract endpoints the SDK calls with the access token."""
+  """Register the two contract endpoints the SDK calls with the access token.
+
+  These are the only two requests the SDK makes itself. An application adds many more routes for
+  the panel, and each authenticates the same way, with ``ctx.state_for(request)``.
+  """
   @app.get(f'{DEFAULT_API_PREFIX}/ext-connection')
   async def ext_connection(request: Request) -> HTTPResponse:
     """Answer whether the calling user is connected to Acme.
