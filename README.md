@@ -30,7 +30,9 @@ The repository has two parts, each with its own tools and checks:
 | `deployment/` | The Dockerfile and how to run the app as a container on Cloud Run                                   |
 
 Copy this repository and replace the parts listed under
-[What to replace](#what-to-replace).
+[What to replace](#what-to-replace). The security side (the idtoken and its api
+key, authenticating every request, CSP and nonces, cookies) is collected in
+[Security: what the demo shows](#security-what-the-demo-shows).
 
 ## Install
 
@@ -189,7 +191,8 @@ To run it as a container, for example on Cloud Run, see
    storage: it holds the access token and the connection, and the server keeps no
    database. The handlers reach it only through `CookieBackedDatabaseStorage`
    (`server/acme_crm/database.py`), whose getters `get_access_token` and
-   `is_external_connected` stand in for reading a per-user database row. It is signed with `APP_SECRET`, bound to the user and company, and
+   `is_external_connected` stand in for reading a per-user database row. The
+   cookie is signed with `APP_SECRET`, bound to the user and company, and
    lasts 30 days (each page load refreshes it), so the first paint is already
    the connected view, even after a server restart.
 6. **Disconnect.** `POST /dialpad/ext-disconnect` turns the connection off in
@@ -230,24 +233,6 @@ A real application would not work this way. The key never expires, so it
 first time it sees it, and **uses it to call Dialpad as and when needed**, from
 a background job or a webhook handler as much as from a page load.
 
-## What to replace
-
-| Here                                                             | With                                                                                                                                                                                                  |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/oauth/fake-authorize`, `/oauth/callback`                       | Your CRM's real authorize URL and callback; delete `server/acme_crm/fake_oauth.py`. Keep the close-popup page                                                                                         |
-| `server/acme_crm/stores.py` (in-memory)                          | Nothing: store the CRM tokens in the callback and answer from them (see below)                                                                                                                        |
-| The session cookie (`server/acme_crm/database.py`, `signing.py`) | Your stored CRM tokens, and a real session (a durable store or expiring tokens). The signed cookie is this demo's persistent storage of the access token and the connection, not part of the contract |
-| `client/src/acme.ts`, `AcmeContact.vue`                          | Your CRM's data, matched to the Dialpad contact                                                                                                                                                       |
-| `client/src/components/ConnectGate.vue`                          | Copy it and change the copy; it renders the SDK's `connection` state                                                                                                                                  |
-| `ACCOUNT_NAME` in `server/acme_crm/app.py`                       | Your CRM's account name                                                                                                                                                                               |
-| `server/acme_crm/dialpad_api.py`, `DialpadApiCard.vue`           | Delete both, and the call in the `page` handler. Store the api key and call Dialpad when you need to                                                                                                  |
-
-Keep `server/acme_crm/idtoken.py` (the decoder), `server/acme_crm/pages.py` (the
-page, close-popup and error rendering with their security headers) and
-`server/acme_crm/contract.py` (the models the SDK reads): they are the
-contract's server half, and the OAuth callback's close-popup page stays as it is. Replace
-`TEST_CLIENT_SECRET` and `encode_mock_idtoken` only if you drop local mode.
-
 ### Why connection results are kept in memory (demo only)
 
 The Connect flow in short: the panel's page says "not connected" with an
@@ -282,6 +267,267 @@ changes it only in the browser that asked), a browser that refuses it can't use
 the panel, and the server can't revoke one early. A real partner's stored tokens,
 looked up by Dialpad user, have none of those limits, and a real partner would
 keep a durable session or issue expiring tokens instead of this cookie.
+
+## Security: what the demo shows
+
+A rightbar panel is a web page that Dialpad frames, opened with a long-lived
+credential in its URL, that then talks to your server. This section lists what
+the app does about each risk, where it lives, and which tests cover it. The last
+subsection says what it deliberately does not do.
+
+**Which secret is which.** Five different secrets appear below, and they are not
+interchangeable:
+
+| Secret                                                | Who issues it                               | What it is used for                                                                             |
+| ----------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **OAuth app client secret** (`DIALPAD_CLIENT_SECRET`) | Dialpad, when it sets up your OAuth app     | Decrypting and verifying the **idtoken** on the page request. Nothing else in this app uses it. |
+| **`api_key`** (inside the idtoken)                    | Dialpad, per user and app                   | `Authorization: Bearer` on your server's calls to Dialpad's public API                          |
+| **App secret** (`APP_SECRET`)                         | You (a random string)                       | Signing this app's own values: the OAuth `state` and the session cookie                         |
+| **Access token** (in the page data and cookie)        | Your server, per browser session            | `Authorization: Bearer` on the panel's calls to your server                                     |
+| **Webhook signing secret**                            | You, when you create a webhook with Dialpad | Verifying the JWT on events Dialpad sends to you (not implemented in this demo)                 |
+
+### 1. The idtoken and its api key
+
+When Dialpad loads the panel it appends `?idtoken=<token>` to your conversation
+sidebar URI. The token is encrypted (a JWE using `dir` and `A192CBC-HS384`,
+keyed with the first 48 characters of your **OAuth app's client secret**, the
+`DIALPAD_CLIENT_SECRET`) and wraps a
+JWT signed with `HS256` and the full client secret. Its claims are the Dialpad
+`user_id`, `company_id` and `office_id`, the user's `name`, `email`,
+`phone_number` and `image_url`, an internal `csr` claim, and the `api_key`.
+
+**Where to use it: on your server, on that one page request, and nowhere else.**
+`decode_idtoken` (`server/acme_crm/idtoken.py`) accepts only those two
+algorithms, treats a client secret shorter than 48 characters as a configuration
+error, and raises one error type whose message never contains the token or the
+secret. A page that fails to decode gets a `401` page and no page data. The
+claims tell you who opened the panel; they are never rendered into the page, and
+`csr` is dropped while decoding.
+
+**The `api_key` is a credential for Dialpad's public API**, scoped to that user
+and this app. It is server-side only: `IdTokenClaims` holds it as a `SecretStr`,
+`PageData` has no field for it, and tests check it appears in no page, response,
+header or log.
+
+**Why a real app persists the api key (this demo does not).** The idtoken arrives
+only while a user has the panel open, but your server needs to call Dialpad at
+other times: from a background job, when a webhook arrives, or after the panel
+is closed. The api key does not expire, so the first time you see it for a
+Dialpad user, store it in long-term storage keyed by company and user id
+(protected like your CRM tokens: encrypted at rest, never logged), and replace
+it whenever a newer idtoken carries a different one. This demo stores nothing: it
+uses the key once, on the page request, for the demo call described in
+[The demo call to Dialpad's API](#the-demo-call-to-dialpads-api), and drops it.
+
+The idtoken has no expiry that this app checks, and it travels in a URL, so
+treat that URL as a secret: the page is served with `Referrer-Policy:
+no-referrer` and `Cache-Control: no-store`, the access log is off, and the
+idtoken is never stored (see [Secrets and logs](#6-secrets-and-logs)).
+
+### 2. Authenticating requests to your server
+
+There are two kinds, and they use different credentials.
+
+- **The page request** is authenticated by the idtoken (above). There is no
+  session yet; decoding the token with your client secret is the authentication.
+- **The panel's API calls** (`ext-connection` and `ext-disconnect`) come from
+  the iframe, which has no idtoken. The page response therefore starts a
+  session: it embeds a random **access token** in the page data and sets a signed
+  **session cookie** holding the same token. Each call must send
+  `Authorization: Bearer <access token>` (the SDK's `authHeaders()`, which
+  `client/src/api.ts` adds to every request) and, as the browser adds it, the
+  cookie:
+
+  ```http
+  GET /dialpad/ext-connection
+  Authorization: Bearer <the access token from the page data>
+  Cookie: __Host-acme_session=<signed session>
+  ```
+
+  The server answers only when the two tokens match (compared in constant
+  time) and the cookie's signature and age are valid. Otherwise it answers
+  `401`, and the panel asks the user to reload.
+
+**Why both the header and the cookie.** The cookie has to be `SameSite=None`,
+because the panel runs in a third-party iframe, so browsers also attach it to
+requests made by other sites. The header can only be added by code that holds
+the page data, that is, the panel's own scripts, so a request from another site
+cannot forge it. Requiring the two to match is the "double submit" defence
+against cross-site request forgery.
+
+The contract only needs _some_ token the panel can send; a signed JWT or a
+server-side session table work as well as this cookie.
+
+### 3. Authenticating requests to Dialpad
+
+Calls from your server to Dialpad's public API carry the api key as a bearer
+token, against the Dialpad origin you are configured for (`DIALPAD_ORIGIN`, the
+beta or production host):
+
+```http
+GET https://dialpadbeta.com/api/v2/users/me
+Authorization: Bearer <api_key>
+```
+
+`server/acme_crm/dialpad_api.py` does this with Dialpad's own Python client,
+`AsyncDialpadClient(token=api_key, base_url=origin)`, which adds that header to
+every request. Use a short timeout and no retries for anything on the page
+request path, and treat a `401` as "the key was refused". The key goes only in
+that header, from your server. **The browser never has it and never calls
+Dialpad's API directly**; what the panel needs from Dialpad (the user, the open
+contact, the call) arrives through the SDK's host protocol, which needs no key
+because Dialpad itself framed the page.
+
+**Incoming event subscriptions** (call, SMS, contact, agent-status events and
+change logs) go the other way: Dialpad sends a request to a webhook URL on your
+server, so you have to authenticate Dialpad. When you create the webhook you
+provide a **signing secret**, and Dialpad then sends every event as a JWT signed
+(`HS256`) with it. If you provide no secret, events arrive as unsigned JSON that
+anyone could forge, so always provide one. Verify the JWT's signature with that
+secret and only then trust the payload.
+
+That secret is a string _you_ choose and hand to Dialpad when creating the
+webhook: Dialpad does not issue it, it is not the api key, and Dialpad's docs do
+not say it has to be your OAuth app's client secret. Dialpad recommends a unique
+one per subscription, so a leak has a small blast radius (you could, for
+example, derive each from a secret of your own). See Dialpad's
+[Event Subscriptions](https://developers.dialpad.com/docs/event-subscriptions)
+guide (its security paragraph) and the
+[Webhook Create](https://developers.dialpad.com/reference/webhookscreate)
+reference, which describe the signed events and the secret. This demo has no
+webhook receiver, so none of this is exercised here.
+
+### 4. Framing, CSP and nonces
+
+Every page the server renders carries a `Content-Security-Policy`, plus
+`Referrer-Policy: no-referrer`, `Cache-Control: no-store` and
+`X-Content-Type-Options: nosniff`.
+
+| Page                              | `Content-Security-Policy`                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| The panel, `GET /`                | `frame-ancestors <DIALPAD_ORIGIN>; script-src 'self' 'nonce-…' <asset origins>; object-src 'none'; base-uri 'none'` |
+| Close-popup page (OAuth callback) | `default-src 'none'; script-src 'nonce-…'; style-src 'nonce-…'; frame-ancestors 'none'; base-uri 'none'`            |
+| Error page (`401`)                | `default-src 'none'; style-src 'nonce-…'; frame-ancestors <DIALPAD_ORIGIN>; base-uri 'none'`                        |
+| Fake authorize page (demo OAuth)  | `default-src 'none'; style-src 'nonce-…'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`              |
+
+- **`frame-ancestors`** lets only Dialpad embed the panel, which prevents other
+  sites from framing it (clickjacking). The popup pages cannot be framed at all.
+- **`script-src 'self' 'nonce-…'`, with no `'unsafe-inline'` or
+  `'unsafe-eval'`**, means only the app's own script files run. An inline script
+  injected into the page, which an XSS bug would produce, does not.
+- **The nonce** is a fresh random value for each response
+  (`secrets.token_urlsafe`), written both into the CSP header and onto the
+  inline elements that are allowed. The close-popup page's one inline script and
+  style run only because they carry it; reusing a nonce across responses would
+  defeat the policy. The panel page has no inline script of its own (the page
+  data sits in a non-executing JSON element that carries the nonce, so a script
+  you add later can share it).
+- **`object-src 'none'` and `base-uri 'none'`** block plugins and an injected
+  `<base>` tag that would redirect relative URLs.
+- **Local mode** changes three things and nothing else: `frame-ancestors` becomes
+  the dev host's origin, `script-src` adds the Vite dev server's origin, and
+  `connect-src` adds its websocket (a test checks this).
+- **Only partly locked down:** the panel page sets no `default-src`, `style-src`
+  or `connect-src`, so other resource types are not restricted there. Tighten it
+  for your own app if your assets allow.
+
+Other protections around the page:
+
+- **Escaping.** Every value put into HTML goes through `html.escape` (title,
+  asset URLs, the error page's code and message). The page data JSON in its
+  `<script>` element is encoded so `<`, `>`, `&` and `'` become `<`-style
+  escapes, so a value containing `</script>` cannot close the element. Tests use
+  hostile values for both.
+- **The Dialpad origin is checked twice before it reaches a header or a
+  script:** `DIALPAD_ORIGIN` must be a bare origin at startup, and the renderers
+  refuse anything that isn't one, because a `;` or a space in a CSP value would
+  add directives.
+- **The popup talks only to Dialpad.** The close-popup page calls
+  `window.opener.postMessage('close_popup', <Dialpad origin>)`, never `'*'`, and
+  only when it has an opener.
+- **The SDK checks it is framed and who it talks to.** Opened directly (not in an
+  iframe), the panel shows "Open this panel from Dialpad" (`not_framed`, covered
+  by a browser test), and the SDK talks only to the `dialpad_origin` in the page
+  data.
+- **The page data holds no secrets:** no api key, no user profile, only the
+  access token the panel needs, the connection status and the demo result.
+
+### 5. Cookies, OAuth state and signed values
+
+- **The session cookie** is `__Host-` prefixed (so `Secure`, `Path=/`, host only),
+  `Secure`, `HttpOnly`, `SameSite=None` (required in a third-party iframe),
+  `Partitioned` (kept separately per embedding site) and lasts 30 days. Its
+  value is signed with HMAC-SHA256 using `APP_SECRET`: readable, but nobody
+  without the secret can forge or change it.
+- **Each signed value carries a `kind`**, so a value signed for one purpose, such
+  as an OAuth `state`, is never accepted as another, such as a session cookie.
+  Signatures and tokens are compared in constant time.
+- **The OAuth `state`** is signed, tied to the Dialpad user, unique, and valid
+  for 10 minutes. The callback verifies it and records a result only for the user
+  it names, so a callback cannot be used to connect someone else.
+
+### 6. Secrets and logs
+
+- `DIALPAD_CLIENT_SECRET` (at least 48 characters, checked at startup) and
+  `APP_SECRET` are kept out of the settings' `repr`, so they cannot appear in a
+  log line or a traceback.
+- **The access log is off**, because it would print every page URL and with it
+  the idtoken. A quiet error handler logs only the method, path and exception
+  type, never the query string. A test checks that neither the idtoken, the
+  access token nor the cookie is logged.
+- **Local mode is configuration only.** No request can switch it on, and its
+  `/dev/frame-url` route, which mints a mock idtoken, exists only when it is on
+  and allows cross-origin access only from the Vite origin.
+- One thing the app cannot fix: Cloud Run's own request log records the full URL,
+  idtoken included. See [deployment/README.md](deployment/README.md).
+
+### 7. What the demo does not do
+
+- **It does not persist the api key** or call Dialpad outside the page request
+  (section 1).
+- **The OAuth is fake**, and nothing is stored for a real CRM: no CRM tokens, no
+  refresh.
+- **Sessions are a cookie, not a server-side session**: it lasts 30 days, is per
+  browser, can't be revoked early except by changing `APP_SECRET`, and a browser
+  that refuses the cookie can't use the panel. A real partner would use stored
+  sessions or expiring tokens.
+- **No event-subscription receiver** (section 3), and no replay protection for
+  the idtoken beyond keeping it out of logs, caches and referrers.
+- **The panel page's CSP is script-focused** (section 4).
+- **Secrets are plain environment variables**, which is fine for a demo; use a
+  secret manager for anything real.
+
+| Measure                                                   | Code                                      | Tests                                                                                                                                          |
+| --------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Idtoken algorithms, secret length, vectors from Dialpad   | `idtoken.py`                              | `test_idtoken.py`                                                                                                                              |
+| Api key and `csr` never in page, responses, headers, logs | `contract.py`, `app.py`, `dialpad_api.py` | `test_the_page_embeds_page_data_and_never_the_api_key_or_csr`, `test_the_api_key_never_reaches_the_page_or_the_logs`                           |
+| Bearer token must match the session cookie                | `database.py`, `app.py`                   | `test_a_call_needs_the_bearer_token_and_the_cookie_to_match`                                                                                   |
+| CSP, nonce, security headers                              | `pages.py`                                | `test_page_headers_match_the_contract`, `test_every_script_on_the_page_carries_the_nonce`, `test_close_popup_*`                                |
+| Escaping and origin validation                            | `pages.py`, `settings.py`                 | `test_hostile_page_data_stays_inside_its_element_and_round_trips`, `test_error_page_escapes_*`, `test_renderers_refuse_anything_but_an_origin` |
+| Signed `state` and session cookie                         | `signing.py`                              | `test_signing.py`, `test_the_page_sets_the_session_cookie_that_holds_the_access_token`                                                         |
+| Nothing secret is logged                                  | `app.py`                                  | `test_neither_the_idtoken_nor_the_access_token_is_logged`                                                                                      |
+| Local mode only loosens the CSP in three places           | `app.py`, `settings.py`                   | `test_local_mode_changes_the_csp_in_three_places_only`, `test_the_dev_route_exists_only_in_local_mode`                                         |
+| The SDK refuses to run outside Dialpad's iframe           | the SDK, `client/src/bootstrap.ts`        | `client/e2e/sdk/sdk.spec.ts` (opened outside Dialpad)                                                                                          |
+
+(Server files are in `server/acme_crm/` and tests in `server/tests/`.)
+
+## What to replace
+
+| Here                                                             | With                                                                                                                                                                                                  |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/oauth/fake-authorize`, `/oauth/callback`                       | Your CRM's real authorize URL and callback; delete `server/acme_crm/fake_oauth.py`. Keep the close-popup page                                                                                         |
+| `server/acme_crm/stores.py` (in-memory)                          | Nothing: store the CRM tokens in the callback and answer from them (see above)                                                                                                                        |
+| The session cookie (`server/acme_crm/database.py`, `signing.py`) | Your stored CRM tokens, and a real session (a durable store or expiring tokens). The signed cookie is this demo's persistent storage of the access token and the connection, not part of the contract |
+| `client/src/acme.ts`, `AcmeContact.vue`                          | Your CRM's data, matched to the Dialpad contact                                                                                                                                                       |
+| `client/src/components/ConnectGate.vue`                          | Copy it and change the copy; it renders the SDK's `connection` state                                                                                                                                  |
+| `ACCOUNT_NAME` in `server/acme_crm/app.py`                       | Your CRM's account name                                                                                                                                                                               |
+| `server/acme_crm/dialpad_api.py`, `DialpadApiCard.vue`           | Delete both, and the call in the `page` handler. Store the api key and call Dialpad when you need to                                                                                                  |
+
+Keep `server/acme_crm/idtoken.py` (the decoder), `server/acme_crm/pages.py` (the
+page, close-popup and error rendering with their security headers) and
+`server/acme_crm/contract.py` (the models the SDK reads): they are the
+contract's server half, and the OAuth callback's close-popup page stays as it is. Replace
+`TEST_CLIENT_SECRET` and `encode_mock_idtoken` only if you drop local mode.
 
 ## Checks
 
