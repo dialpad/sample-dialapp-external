@@ -259,7 +259,7 @@ The demo's approach has no storage to run, but it cannot revoke a session, its
 values live in the browser (30 days, per browser), and rotating `APP_SECRET`
 signs everyone out.
 
-### How the demo authenticates requests (cookie)
+### How the demo authenticates requests (a cookie as the persistence workaround for a database)
 
 The demo has no session table, so the session lives in a signed cookie, and every
 request must send the bearer token **and** the cookie, which must hold the same
