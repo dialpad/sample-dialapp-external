@@ -154,13 +154,8 @@ flowchart TD
 - **Server side.** One authentication step (a middleware or dependency) turns the
   bearer token into the session's user. A route learns who is asking from it,
   never from the idtoken or from anything in the request body.
-- **Why a header and no cookie.** A browser attaches cookies to requests another
-  site makes (the panel is in a third-party iframe, so a cookie would need
-  `SameSite=None` and `Partitioned`, and some browsers refuse such cookies). It
-  never attaches an `Authorization` header on its own, so a request from another
-  site cannot carry it, and there is no cross-site request forgery to defend
-  against. Keep the token in memory (a variable), not in `localStorage`, and
-  protect the page from script injection with the CSP in
+- **Token handling.** Keep the token in memory (a variable), not in
+  `localStorage`, and protect the page from script injection with the CSP in
   [flow 8](#8-other-behaviour-of-the-iframe-panel). Don't enable cross-origin
   access (CORS) on these routes: the panel is served by the same server.
 - **Revoking.** Delete the session row and the next request gets `401`. Expiry
