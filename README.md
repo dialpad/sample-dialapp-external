@@ -215,7 +215,7 @@ are in `app/`. Each folder's `__init__.py` lists them.
 ## How the demo differs from a real app
 
 The demo uses a signed cookie as its persistent storage, to avoid needing a real
-database. It holds the user's access token and whether they are connected, which
+database. It holds the user's access token and whether they are connected (to an external CRM), which
 a real app would keep in database rows (a session, and the CRM tokens its OAuth
 callback stored).
 
