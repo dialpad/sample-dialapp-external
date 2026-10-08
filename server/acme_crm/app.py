@@ -2,7 +2,8 @@
 
 Routes, in the order a user meets them:
 
-* ``GET /``: the panel page. Dialpad loads it in an iframe with the idtoken in the query string.
+* ``GET /``: the iframe panel page. Dialpad loads it in an iframe with the idtoken in the query
+  string.
 * ``GET /dialpad/ext-connection`` and ``POST /dialpad/ext-disconnect``: the contract endpoints the
   SDK calls with the app's own access token to check, and to end, the connection.
 * ``GET /oauth/fake-authorize`` and ``GET /oauth/callback``: a stand-in for the partner CRM's OAuth
@@ -77,7 +78,7 @@ logger = logging.getLogger('acme_crm')
 
 App = Sanic[Config, SimpleNamespace]
 
-# The name the panel shows and the page title.
+# The name the iframe panel shows and the page title.
 ACCOUNT_NAME = 'Acme CRM (demo)'
 # The OAuth client's name and scopes, as the contract's `ExternalConnection` carries them.
 CLIENT_NAME = 'acme-crm'
@@ -169,15 +170,15 @@ class AppContext:
     )
 
   def state_for(self, request: Request) -> CookieBackedDatabaseStorage | None:
-    """Authenticate a request from the panel: its bearer token must be the cookie's token.
+    """Authenticate a request from the iframe panel: its bearer token must be the cookie's token.
 
-    Every route the panel calls uses this, the SDK's two contract endpoints and any the
+    Every route the iframe panel calls uses this, the SDK's two contract endpoints and any the
     application adds.
 
     Returns the state in the cookie when the header's token matches the state's access token,
     else ``None``: no header, no cookie, a forged or expired cookie, or a token that isn't the
-    cookie's, for example a panel left open after the browser's cookie changed to another user's
-    or after ``APP_SECRET`` changed. Requiring both is what stops a cross-site request, which
+    cookie's, for example an iframe panel left open after the browser's cookie changed to another
+    user's or after ``APP_SECRET`` changed. Requiring both is what stops a cross-site request, which
     carries the ``SameSite=None`` cookie but can't know the token.
     """
     header = request.headers.get('Authorization', '')
@@ -201,7 +202,7 @@ def _unauthorized() -> HTTPResponse:
   """Answer ``401`` for a missing, unmatched or expired session.
 
   This is the app's own access token being rejected (no cookie, or a token that isn't the
-  cookie's); the panel reacts by asking the user to reload.
+  cookie's); the iframe panel reacts by asking the user to reload.
   """
   error = ErrorResponse(code='invalid_access_token', message='Reload the panel.')
   return json(error.model_dump(mode='json'), status=401)
@@ -212,8 +213,8 @@ def _set_session_cookie(reply: HTTPResponse, value: str) -> None:
 
   The cookie is where this demo persists the user's access token and connection (see
   ``acme_crm.signing``). Its attributes are ``Secure``, ``HttpOnly``, ``SameSite=None`` and
-  ``Partitioned``, because the panel runs in a third-party iframe, and the ``__Host-`` prefix, which
-  pins it to this host and path ``/``.
+  ``Partitioned``, because the iframe panel runs in a third-party iframe, and the ``__Host-``
+  prefix, which pins it to this host and path ``/``.
   """
   reply.add_cookie(
       COOKIE_NAME,
@@ -229,12 +230,12 @@ def _set_session_cookie(reply: HTTPResponse, value: str) -> None:
 
 
 def _register_page(app: App, ctx: AppContext) -> None:
-  """Register ``GET /``, the panel page."""
+  """Register ``GET /``, the iframe panel page."""
   settings = ctx.settings
 
   @app.get('/')
   async def page(request: Request) -> HTTPResponse:
-    """Render the panel page for the user in the ``idtoken`` query parameter.
+    """Render the iframe panel page for the user in the ``idtoken`` query parameter.
 
     Invoked when Dialpad (or the dev host) loads the iframe. A token that doesn't decode gets a
     ``401`` HTML page. Otherwise the page starts or continues this browser's session: a valid
@@ -251,13 +252,14 @@ def _register_page(app: App, ctx: AppContext) -> None:
       return _rendered(render_error_page(error, status=401,
                                          dialpad_origin=settings.dialpad_origin),)
     key = UserKey(company_id=claims.company_id, user_id=claims.user_id)
-    # DEMO ONLY, and UNNECESSARY for this app: the panel works without this request. It shows how
-    # the idtoken's `api_key` is used, by calling Dialpad's public API with it right here, on the
-    # page request, while the idtoken is in hand. The key is used for this one call and dropped.
+    # DEMO ONLY, and UNNECESSARY for this app: the iframe panel works without this request. It shows
+    # how the idtoken's `api_key` is used, by calling Dialpad's public API with it right here, on
+    # the page request, while the idtoken is in hand. The key is used for this one call and dropped.
     # A real application must NOT work like this: it persists the api key in long-term storage
     # (the key never expires) and uses it to call Dialpad as and when necessary, for example from
-    # a background job or a webhook handler, not only when the panel loads. Local mode has no real
-    # key (the mock idtoken's is `mock-api-key`, which Dialpad would refuse), so it makes no call.
+    # a background job or a webhook handler, not only when the iframe panel loads. Local mode has no
+    # real key (the mock idtoken's is `mock-api-key`, which Dialpad would refuse), so it makes no
+    # call.
     demo = skipped() if settings.local_mode else await fetch_dialpad_user(
         claims.api_key,
         origin=settings.dialpad_origin,
@@ -290,7 +292,7 @@ def _register_contract(app: App, ctx: AppContext) -> None:
   """Register the two contract endpoints the SDK calls with the access token.
 
   These are the only two requests the SDK makes itself. An application adds many more routes for
-  the panel, and each authenticates the same way, with ``ctx.state_for(request)``.
+  the iframe panel, and each authenticates the same way, with ``ctx.state_for(request)``.
   """
   @app.get(f'{DEFAULT_API_PREFIX}/ext-connection')
   async def ext_connection(request: Request) -> HTTPResponse:
@@ -322,11 +324,11 @@ def _register_contract(app: App, ctx: AppContext) -> None:
   async def ext_disconnect(request: Request) -> HTTPResponse:
     """End the connection: turn ``connected`` off in the session cookie and answer ``204``.
 
-    Invoked from the panel's Disconnect button or the host's panel menu, with the same
+    Invoked from the iframe panel's Disconnect button or the host's iframe panel menu, with the same
     authentication as ``ext-connection``. After it the user is not connected; the SDK marks the
-    panel disconnected and calls ``ext-connection`` once more for a fresh authorize URL, which is
-    why the cookie keeps its access token instead of being cleared: that next call must still
-    authenticate. A real partner would also delete the user's CRM tokens here.
+    iframe panel disconnected and calls ``ext-connection`` once more for a fresh authorize URL,
+    which is why the cookie keeps its access token instead of being cleared: that next call must
+    still authenticate. A real partner would also delete the user's CRM tokens here.
     """
     state = ctx.state_for(request)
     if state is None:
@@ -347,8 +349,8 @@ def _register_fake_oauth(app: App, ctx: AppContext) -> None:
     Invoked when the user clicks Connect and Dialpad opens the authorize URL in a popup (the web)
     or its own login window (the desktop app). A real CRM would ask the user to sign in and
     approve access here. This page just asks for one click, so the popup stays open while the
-    panel shows "connecting". Nothing is recorded and no cookie is set; pressing Authorize sends
-    the ``state`` and a fixed ``code`` to ``/oauth/callback``.
+    iframe panel shows "connecting". Nothing is recorded and no cookie is set; pressing Authorize
+    sends the ``state`` and a fixed ``code`` to ``/oauth/callback``.
     """
     state = request.args.get('state')
     if not state:
@@ -369,11 +371,11 @@ def _register_fake_oauth(app: App, ctx: AppContext) -> None:
     Invoked inside the popup after the (fake) authorization. A real partner would exchange the
     ``code`` for CRM tokens and store them durably here, and ``ext-connection`` would then answer
     from them. This demo has no CRM tokens, so it only verifies the signed ``state`` and leaves a
-    short-lived in-memory note that this user connected, which the panel's next ``ext-connection``
-    check consumes (see ``acme_crm.stores.OAuthResults`` for the whole flow and why). An expired,
-    forged or mismatched ``state`` renders an error page and records nothing. The reply is the
-    close-popup page, which tells Dialpad and closes the window. No cookie is set: the popup is a
-    separate window from the panel's iframe.
+    short-lived in-memory note that this user connected, which the iframe panel's next
+    ``ext-connection`` check consumes (see ``acme_crm.stores.OAuthResults`` for the whole flow and
+    why). An expired, forged or mismatched ``state`` renders an error page and records nothing. The
+    reply is the close-popup page, which tells Dialpad and closes the window. No cookie is set: the
+    popup is a separate window from the iframe panel.
     """
     state = str(request.args.get('state', ''))
     claims = signing.verify_state(state, settings.app_secret, ctx.clock())

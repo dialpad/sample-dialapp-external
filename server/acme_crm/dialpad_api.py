@@ -1,16 +1,16 @@
 """A demo-only call to Dialpad's public API with the idtoken's ``api_key``.
 
 **This whole module is unnecessary for the app to work, and exists for demo purposes only.** The
-panel gets everything it needs from the SDK (the user from Dialpad's ``get/user``, the contact and
-call from the host), so nothing here is required. It only shows how the ``api_key`` in the idtoken
-is used: as a bearer token for Dialpad's public API, through Dialpad's own Python client
+iframe panel gets everything it needs from the SDK (the user from Dialpad's ``get/user``, the
+contact and call from the host), so nothing here is required. It only shows how the ``api_key`` in
+the idtoken is used: as a bearer token for Dialpad's public API, through Dialpad's own Python client
 (``python-dialpad``), here to ask "who am I" with ``GET /api/v2/users/me``.
 
 A real application would not do this once, at page load, and forget the key. The key never expires,
 so a real application **persists it in long-term storage** the first time it sees it (keyed by the
 Dialpad user, and kept as secret as its CRM tokens) and **uses it to call Dialpad as and when
-needed**: from a background job, a webhook handler, or any later request, not only while the panel
-is loading. This reference app stores nothing, so it can only show the first use, on the page
+needed**: from a background job, a webhook handler, or any later request, not only while the iframe
+panel is loading. This reference app stores nothing, so it can only show the first use, on the page
 request, while the idtoken is in hand. The key is never put in the page, logged or returned.
 """
 
@@ -29,8 +29,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger('acme_crm')
 
-# How long the page request waits for Dialpad's API before showing the panel without the answer.
-# Short on purpose: the call is a demo, and the panel must not wait on it.
+# How long the page request waits for Dialpad's API before showing the iframe panel without the
+# answer. Short on purpose: the call is a demo, and the iframe panel must not wait on it.
 DEFAULT_TIMEOUT_SECONDS: Final = 3.0
 # The key of the demo's result in the page data's partner-defined ``app`` field.
 APP_KEY: Final = 'dialpadApi'
@@ -40,7 +40,7 @@ Status = Literal['ok', 'unavailable', 'skipped']
 
 @dataclass(frozen=True)
 class DialpadApiResult:
-  """What the demo call came to, in the shape the panel shows.
+  """What the demo call came to, in the shape the iframe panel shows.
 
   ``status`` is ``ok`` (``user`` holds the fields shown), ``unavailable`` (Dialpad's API refused,
   failed or took too long; the page renders anyway) or ``skipped`` (never called, as in local
@@ -51,7 +51,7 @@ class DialpadApiResult:
   user: dict[str, object] | None = None
 
   def as_app_data(self) -> dict[str, object]:
-    """Return this result as the page data's ``app`` field, which the SDK hands to the panel."""
+    """Return this result as the page data's ``app`` field, for the SDK to give the iframe panel."""
     return {APP_KEY: {'status': self.status, 'user': self.user}}
 
 

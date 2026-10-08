@@ -2,7 +2,7 @@
 //
 // The server calls `GET /api/v2/users/me` with the idtoken's api key while it renders the page, and
 // puts the outcome in `app.dialpadApi`. That call is unnecessary for the app and exists for demo
-// purposes only; the panel just shows what came back. The api key itself is never sent to the page.
+// purposes only; the iframe panel just shows what came back. The api key itself is never sent to the page.
 
 /** The few non-sensitive fields of Dialpad's user that the server passes on. */
 export interface DialpadApiUser {
@@ -32,7 +32,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * Read the demo result from the page data's `app` field, or null when it holds none.
  *
  * `app` is partner-defined JSON the SDK passes through unchecked, so each part is validated here
- * instead of trusted: an unknown status or a malformed value gives null (the panel shows no card)
+ * instead of trusted: an unknown status or a malformed value gives null (the iframe panel shows no card)
  * rather than an error.
  */
 export function readDialpadApi(

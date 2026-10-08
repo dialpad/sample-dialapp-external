@@ -2,8 +2,8 @@
 
 A real CRM would ask the user to sign in and approve the app's access. This one is a single page
 with an Authorize button, clearly labelled as fake, so the popup stays open long enough to see the
-"connecting" state in the panel. Pressing the button sends the user to the OAuth callback with the
-``state`` and a fixed ``code``, exactly where a real CRM's redirect would end up.
+"connecting" state in the iframe panel. Pressing the button sends the user to the OAuth callback
+with the ``state`` and a fixed ``code``, exactly where a real CRM's redirect would end up.
 """
 
 from html import escape

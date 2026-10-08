@@ -1,4 +1,4 @@
-// Every state of the panel, against the SDK's mock host and its clock: Dialpad is `createMockHost()`,
+// Every state of the iframe panel, against the SDK's mock host and its clock: Dialpad is `createMockHost()`,
 // the server is a fetch function, and time moves with `host.advance()`.
 import {
   type FetchLike,
@@ -110,7 +110,7 @@ beforeEach(() => {
 });
 
 /**
- * Start the panel against a mock Dialpad and a fake Acme server, like a user opening it.
+ * Start the iframe panel against a mock Dialpad and a fake Acme server, like a user opening it.
  *
  * `connected` is what the page data says at load (a connected user's cookie, or not); `mode` is how
  * the fake server answers connection checks from then on; `user` is what Dialpad's `get/user`
@@ -380,7 +380,7 @@ describe('Connected view', () => {
     expect(card).toContain('demo only');
   });
 
-  it("says so when the server could not reach Dialpad's API, and the panel still works", async () => {
+  it("says so when the server could not reach Dialpad's API, and the iframe panel still works", async () => {
     const { wrapper } = await setup({
       connected: true,
       app: { dialpadApi: { status: 'unavailable', user: null } },
@@ -450,7 +450,7 @@ describe('Connected view', () => {
     expect(wrapper.get('[data-testid="call-card"]').text()).toContain('Ended');
   });
 
-  it("shows one contact section when the call's contact is the panel's contact", async () => {
+  it("shows one contact section when the call's contact is the iframe panel's contact", async () => {
     const { wrapper, host } = await setup({ connected: true });
     const pat = makeContact({ id: '1', displayName: 'Pat Customer' });
 
@@ -598,7 +598,7 @@ describe('Bootstrap errors', () => {
     return root;
   }
 
-  it('tells the user to open the panel from Dialpad on bad_page_data', async () => {
+  it('tells the user to open the iframe panel from Dialpad on bad_page_data', async () => {
     const host = createMockHost();
 
     const root = await bootstrapWith(host, { not: 'page data' });
@@ -606,7 +606,7 @@ describe('Bootstrap errors', () => {
     expect(root.textContent).toContain('Open this panel from Dialpad');
   });
 
-  it('tells the user to open the panel from Dialpad on init_timeout', async () => {
+  it('tells the user to open the iframe panel from Dialpad on init_timeout', async () => {
     const host = createMockHost({ init: 'never' });
     const root = document.createElement('div');
     document.body.append(root);
@@ -634,7 +634,7 @@ describe('Bootstrap errors', () => {
     expect(setMode).toHaveBeenLastCalledWith('light');
   });
 
-  it('mounts the panel when the SDK starts', async () => {
+  it('mounts the iframe panel when the SDK starts', async () => {
     const host = createMockHost();
 
     const root = await bootstrapWith(host, makePageData());

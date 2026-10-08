@@ -1,11 +1,11 @@
-// The dev host: a stand-in for Dialpad, for running the panel locally without Dialpad.
+// The dev host: a stand-in for Dialpad, for running the iframe panel locally without Dialpad.
 //
 // It is a thin wrapper around the SDK's `mountMockHostPage()`. On load it asks the server (in local
-// mode) for the panel's page URL with a mock idtoken made by `server/acme_crm/idtoken.py`, and frames it in
+// mode) for the iframe panel's page URL with a mock idtoken made by `server/acme_crm/idtoken.py`, and frames it in
 // an iframe, answering the SDK's `init` and `get/user` like Dialpad does. Connect opens the fake
 // authorize URL in a popup (a page marked as fake, with an Authorize button) and, like the desktop
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.
-// The first of three contacts is open when the panel starts, as when Dialpad opens the panel for a
+// The first of three contacts is open when the iframe panel starts, as when Dialpad opens the iframe panel for a
 // contact. The buttons in `dev-host/index.html` cycle to the next contact, step a call through its
 // states, and switch light and dark.
 // Playwright tests drive the same host through `window.mockHost`.
@@ -31,7 +31,7 @@ const { url } = (await response.json()) as { url: string };
 
 /**
  * The Dialpad contacts the "Change contact" button cycles through. The first is open from the
- * start, so the panel shows a contact as soon as the user connects, like a real Dialpad.
+ * start, so the iframe panel shows a contact as soon as the user connects, like a real Dialpad.
  */
 const CONTACTS = [
   makeContact({
@@ -96,7 +96,7 @@ let callStateIndex = -1;
 /**
  * The contact of the current call. A new call takes the contact open when it starts, as Dialpad
  * opens the caller's contact in the right bar. Pressing "Change contact" during the call then makes
- * the panel's contact differ from the call's, so the panel shows both.
+ * the iframe panel's contact differ from the call's, so the iframe panel shows both.
  */
 let callContact = CONTACTS[0];
 

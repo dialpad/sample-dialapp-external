@@ -1,8 +1,8 @@
 # Builds the Acme CRM reference app for a container host such as Cloud Run (see deployment.md).
-# Two stages: Node builds the Vue panel (client/) into dist/, then a slim Python image runs the
+# Two stages: Node builds the Vue iframe panel (client/) into dist/, then a slim Python image runs the
 # Sanic server (server/), which serves dist/ under /assets.
 
-# --- Stage 1: build the panel -------------------------------------------------------------------
+# --- Stage 1: build the iframe panel -------------------------------------------------------------------
 FROM node:24-slim AS panel
 WORKDIR /app
 
@@ -36,7 +36,7 @@ COPY server/acme_crm ./acme_crm
 COPY --from=panel /app/dist ./dist
 
 # Listen on every interface, as a container host requires. Cloud Run overrides PORT; elsewhere 8080
-# is the default. The built panel is at /app/dist here, not at the ../client/dist the server looks
+# is the default. The built iframe panel is at /app/dist here, not at the ../client/dist the server looks
 # for when run from server/. Secrets and URLs (DIALPAD_CLIENT_SECRET, APP_SECRET, DIALPAD_ORIGIN,
 # BASE_URL) are not baked in: pass them as environment variables when you run the container.
 ENV HOST=0.0.0.0 \

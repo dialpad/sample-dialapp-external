@@ -1,9 +1,9 @@
-"""Decoding the idtoken Dialpad appends to the panel's page URL, and minting mock ones.
+"""Decoding the idtoken Dialpad appends to the iframe panel's page URL, and minting mock ones.
 
 The idtoken is a compact JWE (``dir``, ``A192CBC-HS384``) keyed with the first 48 characters of the
 app's client secret, wrapping an HS256 JWT signed with the full secret. Only those algorithms are
 allowed. ``decode_idtoken`` is called once per page load, before anything is rendered: the claims
-say which Dialpad user, company and office opened the panel, and carry that user's API key.
+say which Dialpad user, company and office opened the iframe panel, and carry that user's API key.
 """
 
 import json

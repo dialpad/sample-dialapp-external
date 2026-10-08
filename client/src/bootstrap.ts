@@ -17,7 +17,7 @@ import BootstrapError from './BootstrapError.vue';
 export type CreateRightbar = (options: RightbarOptions) => Promise<Rightbar>;
 
 /**
- * Start the panel inside `root`.
+ * Start the iframe panel inside `root`.
  *
  * Called once, as soon as the page's script runs, when `root` is still empty. It asks the SDK to
  * start (the SDK reads the page data, checks the page is framed by Dialpad and does the `init`

@@ -3,7 +3,7 @@
 // The page data carries no user, so nothing from the idtoken reaches the page.
 //
 // `user` is null if Dialpad answered with none, which shows a short note instead. Status flags
-// are as of the panel's start: Dialpad sends no event when they change.
+// are as of the iframe panel's start: Dialpad sends no event when they change.
 import type { User } from '@dialpad/dialapp-external-sdk';
 import { DtAvatar } from '@dialpad/dialtone/vue/lib/avatar';
 import { computed } from 'vue';

@@ -6,8 +6,8 @@ Both are ``<base64url JSON>.<base64url HMAC-SHA256>``, signed with the app secre
 * The ``state`` rides through the OAuth round trip (authorize URL, then callback) and says which
   user the round trip is for, so the callback can't be tricked into connecting someone else.
 * The session cookie is this demo's persistent storage: the server keeps no database and no
-  per-user session table. The cookie holds the user's access token (the value the panel sends as
-  ``Authorization: Bearer``), the Dialpad user and company, and whether the user is connected. A
+  per-user session table. The cookie holds the user's access token (the value the iframe panel sends
+  as ``Authorization: Bearer``), the Dialpad user and company, and whether the user is connected. A
   real partner would keep the CRM tokens in a database instead and look the user up there. The
   route handlers don't touch these functions directly:
   ``acme_crm.database.CookieBackedDatabaseStorage`` wraps them and is the one place the cookie's
@@ -16,8 +16,8 @@ Both are ``<base64url JSON>.<base64url HMAC-SHA256>``, signed with the app secre
 How the session cookie is used:
 
 * The page load sets it, keeping the existing token when the browser already has a valid cookie for
-  this user, so panels open in the same browser share one token. The token is also embedded in the
-  page data for the SDK.
+  this user, so iframe panels open in the same browser share one token. The token is also embedded
+  in the page data for the SDK.
 * ``ext-connection`` and ``ext-disconnect`` accept a call only when the ``Authorization: Bearer``
   value equals the token in the cookie (compared in constant time). The cookie is ``SameSite=None``,
   so browsers attach it to cross-site requests too; requiring the header as well, which only code
@@ -27,15 +27,16 @@ How the session cookie is used:
   keeps the token and only turns ``connected`` off, so the SDK's next call still authenticates.
 
 It lasts 30 days, refreshed by each page load, and survives a server restart or scale-to-zero;
-changing ``APP_SECRET`` invalidates every cookie, so every open panel gets ``401`` and must reload.
+changing ``APP_SECRET`` invalidates every cookie, so every open iframe panel gets ``401`` and must
+reload.
 
 Neither value is encrypted: anyone who can read the cookie (it is ``HttpOnly``, so page scripts
 can't) sees the ids and the token in it, but nobody without the app secret can forge or alter one.
 
 Limits of keeping the session in a cookie, which a real partner's stored tokens don't have: it is
 per browser (connecting in one browser doesn't connect another, and Disconnect only changes the
-cookie in the browser that asked), a browser that refuses the cookie can't use the panel at all, and
-the server cannot revoke one before its 30 days are up other than by changing the secret.
+cookie in the browser that asked), a browser that refuses the cookie can't use the iframe panel at
+all, and the server cannot revoke one before its 30 days are up other than by changing the secret.
 """
 
 import base64
@@ -150,7 +151,7 @@ def verify_state(value: str, secret: str, now: float) -> StateClaims | None:
 
 
 def new_access_token() -> str:
-  """Return a fresh random access token, the value the panel sends as ``Authorization: Bearer``."""
+  """Return a fresh random access token: what the iframe panel sends as a bearer token."""
   return secrets.token_urlsafe(32)
 
 

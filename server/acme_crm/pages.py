@@ -1,11 +1,11 @@
-"""The pages this app renders itself: the panel page, the close-popup page and the error page.
+"""The pages this app renders itself: the iframe panel page, the close popup and the error page.
 
 Each render function returns a ``RenderedPage``; the route sends its HTML with its status and all of
 its headers, which carry the Content-Security-Policy that lets only the Dialpad origin frame the
-panel, and only this app's scripts run. The pages are string templates, like ``fake_oauth.py``'s,
-and every value put into one is escaped for the place it lands: ``html.escape`` for HTML text and
-attributes, and a ``<script>``-safe JSON encoding for the page data and the close-popup's origin.
-Nothing here keeps state between calls.
+iframe panel, and only this app's scripts run. The pages are string templates, like
+``fake_oauth.py``'s, and every value put into one is escaped for the place it lands: ``html.escape``
+for HTML text and attributes, and a ``<script>``-safe JSON encoding for the page data and the
+close-popup's origin. Nothing here keeps state between calls.
 """
 
 import json
@@ -182,10 +182,10 @@ def render_page(
     assets: PageAssets,
     options: PageOptions | None = None,
 ) -> RenderedPage:
-  """Render the whole panel page: the page data element, the app's assets, and the headers.
+  """Render the whole iframe panel page: the page data element, the app's assets, and the headers.
 
-  Called by the page route on every panel open, after ``decode_idtoken`` succeeds. The page is one
-  mount element plus the page data (with the format ``version`` the SDK checks, never the API
+  Called by the page route on every iframe panel open, after ``decode_idtoken`` succeeds. The page
+  is one mount element plus the page data (with the format ``version`` the SDK checks, never the API
   key); once the browser loads it, the SDK's ``createRightbar()`` reads the data and starts. The
   Content-Security-Policy lets only the Dialpad origin frame the page, and only same-origin
   scripts, the assets' origins and the nonce run scripts. Raises ``ValueError`` if
@@ -222,8 +222,9 @@ def render_close_popup(dialpad_origin: str, *, nonce: str) -> RenderedPage:
   Called by the OAuth callback route at the end of Connect. It posts ``close_popup`` to its opener,
   to the Dialpad origin only, when it has one (the web), then closes itself (the desktop app's login
   window has no opener). If the browser refuses to close the window, it shows a short "you can close
-  this window" message. The panel's SDK then sees the new connection on its next status check and
-  shows the user as connected. Raises ``ValueError`` if ``dialpad_origin`` isn't an http(s) origin.
+  this window" message. The iframe panel's SDK then sees the new connection on its next status check
+  and shows the user as connected. Raises ``ValueError`` if ``dialpad_origin`` isn't an http(s)
+  origin.
   """
   html = _CLOSE_POPUP_TEMPLATE.format(
       dialpad_origin=_json_for_script(_require_origin(dialpad_origin)),
@@ -248,9 +249,9 @@ def render_error_page(
   """Render the minimal HTML page for ``401`` (bad or missing idtoken) or ``403`` (refused user).
 
   Called by the page route instead of ``render_page`` when ``decode_idtoken`` raises or the app
-  refuses the user. The page shows the error's message in the panel, carries no page data and runs
-  no scripts, so the SDK never starts. Raises ``ValueError`` if ``dialpad_origin`` isn't an http(s)
-  origin.
+  refuses the user. The page shows the error's message in the iframe panel, carries no page data and
+  runs no scripts, so the SDK never starts. Raises ``ValueError`` if ``dialpad_origin`` isn't an
+  http(s) origin.
   """
   nonce = generate_nonce()
   html = _ERROR_TEMPLATE.format(

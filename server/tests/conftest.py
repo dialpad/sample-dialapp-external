@@ -138,7 +138,7 @@ class FakeDialpad:
 
 @dataclass
 class Panel:
-  """A panel as its browser holds it: the page data and the session cookie the page set.
+  """An iframe panel as its browser holds it: the page data and the session cookie the page set.
 
   The test client's cookie jar won't resend a ``Secure`` cookie over plain HTTP, so tests keep the
   ``Cookie`` header value here and send it themselves. Replace ``cookie`` with a response's new one
@@ -155,7 +155,7 @@ class Panel:
 
   @property
   def headers(self) -> dict[str, str]:
-    """The headers of an API call from this panel: the bearer token and the session cookie."""
+    """The headers of an API call from this iframe panel: the bearer token and the cookie."""
     return bearer(self.token) | {'Cookie': self.cookie}
 
 
@@ -194,7 +194,7 @@ class Env:
     return await self.get('/', params={'idtoken': token}, headers=headers)
 
   async def open_panel(self, idtoken: str | None = None, cookie: str | None = None) -> Panel:
-    """Open the panel as a browser does: load the page and keep the session cookie it sets.
+    """Open the iframe panel as a browser does: load the page and keep the session cookie it sets.
 
     ``cookie`` is what the browser already held (for example from an earlier visit); the page may
     keep its session or replace it.

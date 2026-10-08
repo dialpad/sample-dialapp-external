@@ -1,4 +1,4 @@
-"""The pages the app renders itself (acme_crm/pages.py): panel page, close popup and error page."""
+"""The app's own pages (acme_crm/pages.py): the iframe panel page, close popup and error page."""
 
 import json
 import re
@@ -79,7 +79,7 @@ def make_page_data(**overrides: Any) -> PageData: # noqa: ANN401
   return PageData.model_validate(values)
 
 
-# The panel page: nothing sensitive in it, and page data can't break out of its element
+# The iframe panel page: nothing sensitive in it, and page data can't break out of its element
 
 
 def test_page_after_decoding_a_token_carries_no_claim() -> None:
@@ -142,7 +142,7 @@ def test_page_data_is_a_versioned_element_in_the_head() -> None:
   assert _page_data_json(page.html)['version'] == 1
 
 
-# The panel page: nonces and headers
+# The iframe panel page: nonces and headers
 
 
 def test_every_script_on_the_page_carries_the_nonce() -> None:

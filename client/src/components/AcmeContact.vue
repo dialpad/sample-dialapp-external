@@ -1,11 +1,11 @@
 <script setup lang="ts">
 // The contact Dialpad sent, with every field "Acme'd": the reference app has no CRM, so this
-// proves data flows from the host to the panel. Fields are labelled by the SDK's field names.
+// proves data flows from the host to the iframe panel. Fields are labelled by the SDK's field names.
 //
 // `contact` is null until Dialpad sends one (the SDK's `state.contact`), and a different contact
-// arrives in a new iframe, so the panel simply re-renders. Empty fields are left out.
+// arrives in a new iframe, so the iframe panel simply re-renders. Empty fields are left out.
 //
-// It is used twice when a call is active: for the panel's contact and, if that is a different
+// It is used twice when a call is active: for the iframe panel's contact and, if that is a different
 // person, for the call's own contact. `title` and `testId` tell the two apart.
 import type { Contact } from '@dialpad/dialapp-external-sdk';
 import { computed, useId } from 'vue';

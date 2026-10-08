@@ -33,11 +33,11 @@ class OAuthResults:
 
   **The whole Connect flow, and where this fits**
 
-  1. The panel loads in Dialpad's iframe. The page data says "not connected" and carries an
+  1. The iframe panel loads in Dialpad's iframe. The page data says "not connected" and carries an
      authorize URL whose signed ``state`` is bound to this Dialpad user.
   2. The user clicks Connect. The SDK asks Dialpad to open that URL in a popup (on the web) or in
      its own login window (the desktop app), and starts polling ``ext-connection`` with the
-     panel's access token: first after 7 seconds, then every 5, giving up after 2 minutes.
+     iframe panel's access token: first after 7 seconds, then every 5, giving up after 2 minutes.
   3. The user signs in and approves access at the CRM. Here that is a page labelled fake with an
      Authorize button. The CRM then sends the popup to this app's ``/oauth/callback`` with the
      ``state`` and a ``code``.
@@ -45,7 +45,7 @@ class OAuthResults:
      the popup. **This is where a real partner exchanges the ``code`` for the CRM's tokens and
      stores them durably, keyed by the Dialpad user. This demo has no CRM and so no tokens; the
      only fact it has is "this user pressed Authorize", and it records that here.**
-  5. The panel's next ``ext-connection`` check collects the record (``consume``), answers
+  5. The iframe panel's next ``ext-connection`` check collects the record (``consume``), answers
      "connected", and rewrites the session cookie with the connection on. The cookie, not this
      store, is the demo's persistent record of the connection (see ``acme_crm.signing``): it is
      signed, lasts 30 days, and later page loads see it and start connected, even after a server
@@ -53,13 +53,13 @@ class OAuthResults:
 
   **Why the result is kept in memory**
 
-  The callback and the panel are in different places. The callback runs in the popup, a separate
-  window with its own cookies, while the session cookie is ``Partitioned`` and belongs to the
-  panel's iframe, so a cookie set by the callback would never reach the iframe. The two only share
-  one thing, the Dialpad user, which the callback learns from the ``state`` and the panel's check
-  learns from its access token. So the callback leaves a note for that user, and the panel's check
-  picks it up. Without somewhere to leave the note, the panel could not tell that the popup
-  finished.
+  The callback and the iframe panel are in different places. The callback runs in the popup, a
+  separate window with its own cookies, while the session cookie is ``Partitioned`` and belongs to
+  the iframe panel, so a cookie set by the callback would never reach the iframe. The two only share
+  one thing, the Dialpad user, which the callback learns from the ``state`` and the iframe panel's
+  check learns from its access token. So the callback leaves a note for that user, and the iframe
+  panel's check picks it up. Without somewhere to leave the note, the iframe panel could not tell
+  that the popup finished.
 
   **Why that is only for the demo**
 

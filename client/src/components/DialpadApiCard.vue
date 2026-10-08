@@ -3,9 +3,9 @@
 // rendered this page, the server asked Dialpad's public API who the key belongs to (`users/me`)
 // and passed a few fields on in the page data's `app` field. The call is unnecessary for the app
 // and for demo purposes only; a real partner stores the api key and calls Dialpad when it needs to,
-// not just when the panel loads. The key itself never reaches the page.
+// not just when the iframe panel loads. The key itself never reaches the page.
 //
-// `unavailable` means Dialpad's API refused, failed or was too slow, and the panel works anyway.
+// `unavailable` means Dialpad's API refused, failed or was too slow, and the iframe panel works anyway.
 // `skipped` is local mode, whose mock idtoken has no real key. The card is hidden when the page
 // data holds no result.
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';

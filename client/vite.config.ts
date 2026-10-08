@@ -12,7 +12,7 @@ export default defineConfig({
   server: { port: 5173, strictPort: true },
   build: {
     manifest: true,
-    // The panel is a single entry module; there is no index.html in this build.
+    // The iframe panel is a single entry module; there is no index.html in this build.
     rollupOptions: { input: 'src/main.ts' },
   },
   // Vitest: components run in jsdom, with the SDK's setup file (a ResizeObserver stub for jsdom

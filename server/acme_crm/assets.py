@@ -83,7 +83,7 @@ class PageAssets:
 
 
 def build_assets(settings: Settings) -> PageAssets:
-  """Return the script and style tags for the panel's entry module.
+  """Return the script and style tags for the iframe panel's entry module.
 
   Called once at startup. In local mode the scripts are served by the Vite dev server (with hot
   reload) from its own origin. Otherwise they come from the build in ``client/dist/``: the hashed

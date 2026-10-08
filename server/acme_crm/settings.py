@@ -23,8 +23,8 @@ DEFAULT_PORT = 8000
 DEFAULT_LOCAL_BASE_URL = 'http://localhost:8000'
 DEFAULT_LOCAL_DEV_PAGE_ORIGIN = 'http://localhost:5173'
 DEFAULT_LOCAL_APP_SECRET = 'local-mode-app-secret-not-for-production' # noqa: S105
-# Where the built panel is, relative to the server/ folder the server runs from; a container sets
-# DIST_DIR to wherever its image keeps it.
+# Where the built iframe panel is, relative to the server/ folder the server runs from; a container
+# sets DIST_DIR to wherever its image keeps it.
 DEFAULT_DIST_DIR = '../client/dist'
 
 
@@ -61,8 +61,8 @@ class Settings:
   base_url: str
   local_mode: bool = False
   vite_origin: str = DEFAULT_LOCAL_DEV_PAGE_ORIGIN
-  # Where the built panel (client/'s `pnpm build`) lives, for non-local mode; a Vite manifest is
-  # read from here.
+  # Where the built iframe panel (client/'s `pnpm build`) lives, for non-local mode; a Vite manifest
+  # is read from here.
   dist_dir: str = DEFAULT_DIST_DIR
   # The address the server listens on. Containers (Cloud Run, Docker) need '0.0.0.0'.
   host: str = DEFAULT_HOST

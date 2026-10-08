@@ -15,7 +15,7 @@ The [`Dockerfile`](Dockerfile) builds in two stages, from the repository root as
 its context (it needs both `client/` and `server/`; its ignore file is
 [`Dockerfile.dockerignore`](Dockerfile.dockerignore)):
 
-1. **Panel.** Node 24 with Corepack runs `pnpm install --frozen-lockfile` and
+1. **Iframe panel.** Node 24 with Corepack runs `pnpm install --frozen-lockfile` and
    `pnpm build` in `client/`, producing `dist/` (the hashed assets and Vite's
    manifest). The SDK installs from its tarball in `client/vendor/`.
 2. **Server.** A slim Python 3.14 image installs `server/requirements.txt`
@@ -24,7 +24,7 @@ its context (it needs both `client/` and `server/`; its ignore file is
    serves the page and the API, and the built assets under `/assets`.
 
 The image sets `HOST=0.0.0.0`, `PORT=8080` and `DIST_DIR=dist` (where it keeps
-the built panel). It does not contain any secret or URL: the environment
+the built iframe panel). It does not contain any secret or URL: the environment
 variables below are passed when the container runs.
 
 ## Environment variables
@@ -64,7 +64,7 @@ curl http://localhost:8080/healthz   # ok
 
 `BASE_URL` is only used to build the authorize and callback URLs, so locally it
 can be the address you reach the container at. `http://localhost:8080/` with a
-real Dialpad `idtoken` renders the panel page; a browser opening it directly
+real Dialpad `idtoken` renders the iframe panel page; a browser opening it directly
 shows "Open this panel from Dialpad", because the SDK needs Dialpad to frame it.
 
 Cloud Run runs on x86-64. On an Apple-silicon Mac, `docker build` makes an arm64
@@ -106,7 +106,7 @@ gcloud builds submit --config deployment/cloudbuild.yaml \
 ```
 
 `client/vendor/` is tracked in git, so it is uploaded with the source; the
-image's panel stage needs the SDK tarball in it.
+image's iframe panel stage needs the SDK tarball in it.
 
 ### 3. Choose the secret values
 
@@ -166,7 +166,7 @@ and then succeeded.
 Set the beta OAuth app's conversation sidebar URI to the service URL with a
 trailing slash, for example `https://acme-crm-demo-xxxxxxxx-uc.a.run.app/`,
 following Dialpad's runbook. Dialpad appends `?idtoken=...` itself. Open a
-contact in dialpadbeta and the panel should appear.
+contact in dialpadbeta and the iframe panel should appear.
 
 ## Day two
 
@@ -187,7 +187,7 @@ gcloud run deploy acme-crm-demo --project PROJECT --region REGION \
   --image REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest
 ```
 
-The new revision takes all traffic once it is ready. Open panels keep working
+The new revision takes all traffic once it is ready. Open iframe panels keep working
 across the rollout: their access token and connection are in the browser's
 session cookie, signed with `APP_SECRET`, which the new revision accepts. Only a
 Connect that was in flight loses its in-memory OAuth result and has to be
@@ -207,7 +207,7 @@ The service has two equivalent URLs: the one `gcloud run services describe`
 prints in `status.url` (`https://acme-crm-demo-<hash>-uc.a.run.app`) and a
 second form built from the project number
 (`https://acme-crm-demo-<project-number>.<region>.run.app`). Use the same one
-for `BASE_URL` and the sidebar URI so the OAuth popup and the panel share an
+for `BASE_URL` and the sidebar URI so the OAuth popup and the iframe panel share an
 origin.
 
 ### Roll back, or remove it (not run here)
@@ -232,9 +232,9 @@ Connect in flight has to be retried; connected users stay connected).
 ## What to know before relying on it
 
 - **OAuth results are in memory.** Finished OAuth results (the demo-only handoff
-  from the popup to the panel) live in one instance's memory. If Cloud Run ran
+  from the popup to the iframe panel) live in one instance's memory. If Cloud Run ran
   several instances, the OAuth callback could record a result on one while the
-  panel's polling asked another, and Connect would never finish. A restart or a
+  iframe panel's polling asked another, and Connect would never finish. A restart or a
   scale-to-zero forgets results that were in flight, so that Connect has to be
   retried. Pinning to one instance, as above, avoids this for a demo. A real
   partner has no such store: the callback saves the CRM tokens in a shared
@@ -261,19 +261,19 @@ Connect in flight has to be retried; connected users stay connected).
   see the README's [demo call](../README.md#the-demo-call-to-dialpads-api)),
   loading the page makes an outbound HTTPS request to `DIALPAD_ORIGIN` with the
   idtoken's api key, which Cloud Run allows by default. It waits at most 3
-  seconds, so a slow or unreachable Dialpad API delays the panel's first paint
+  seconds, so a slow or unreachable Dialpad API delays the iframe panel's first paint
   by that much and then shows "Dialpad API unavailable". The key is not logged
   or stored.
 - **The OAuth is fake.** `/oauth/fake-authorize` and `/oauth/callback` stand in
   for a CRM; a real partner replaces them (see the README's "What to replace").
 - **Cookies.** The session cookie is the app's persistent storage of the user's
   access token and whether they are connected. It is signed with `APP_SECRET`
-  (changing the secret signs everyone out: every open panel gets `401` and
+  (changing the secret signs everyone out: every open iframe panel gets `401` and
   shows "Reload the panel"), valid for 30 days, and kept in the browser, so it
   survives a restart or scale-to-zero and works on any instance. The API calls
   need the bearer token and the cookie to match, so a browser that refuses the
   cookie (older Safari, or one blocking third-party cookies) can't use the
-  panel. It is `Secure`, `HttpOnly`, `SameSite=None` and `Partitioned`, so it
+  iframe panel. It is `Secure`, `HttpOnly`, `SameSite=None` and `Partitioned`, so it
   works in a third-party iframe over HTTPS. Cloud Run terminates TLS and the app
   sets the cookie regardless of the scheme it sees internally.
 
@@ -321,5 +321,5 @@ layout and build command from before the move):
   environment variables and instance limits, and the new bundle was being
   served.
 
-Not checked: the panel framed by dialpadbeta itself, which needs the OAuth app's
+Not checked: the iframe panel framed by dialpadbeta itself, which needs the OAuth app's
 conversation sidebar URI to point at the service.

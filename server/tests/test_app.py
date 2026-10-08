@@ -74,11 +74,11 @@ async def finish_oauth(env: Env, authorize_url: str) -> None:
 
 
 async def connect(env: Env, panel: Panel) -> Response:
-  """Connect a panel's user end to end and return the ``ext-connection`` response that confirms it.
+  """Connect an iframe panel's user end to end and return the confirming ``ext-connection`` reply.
 
   Runs the OAuth popup (``finish_oauth``), then makes the SDK's follow-up connection check with the
-  panel's access token and cookie. That response is "connected" and rewrites the session cookie;
-  like a browser, this stores the new cookie in ``panel``.
+  iframe panel's access token and cookie. That response is "connected" and rewrites the session
+  cookie; like a browser, this stores the new cookie in ``panel``.
   """
   await finish_oauth(env, authorize_url_of(panel.data))
   response = await env.get('/dialpad/ext-connection', headers=panel.headers)
@@ -270,7 +270,7 @@ async def test_a_cookie_for_another_user_is_replaced_not_reused(env: Env) -> Non
 
   assert pat.token != jane.token
   assert pat.data['external_connection']['connected'] is False
-  # Pat's page replaced the browser's cookie, so Jane's open panel no longer authenticates.
+  # Pat's page replaced the browser's cookie, so Jane's open iframe panel no longer authenticates.
   stale = await env.get('/dialpad/ext-connection',
                         headers=bearer(jane.token) | {'Cookie': pat.cookie})
   assert stale.status_code == 401
@@ -371,7 +371,7 @@ async def test_the_connection_survives_a_server_restart(env: Env) -> None:
   assert page.data['external_connection']['connected'] is True
 
 
-async def test_changing_the_app_secret_signs_every_panel_out(env: Env) -> None:
+async def test_changing_the_app_secret_signs_every_iframe_panel_out(env: Env) -> None:
   panel = await env.open_panel()
   await connect(env, panel)
   rotated = env.restarted(replace(env.settings, app_secret='a-different-app-secret'))

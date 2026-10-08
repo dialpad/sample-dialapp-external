@@ -28,10 +28,10 @@ function acmeScalar(value: unknown): string {
 }
 
 /**
- * Turn the Dialpad contact into rows for the panel, with every text value "Acme'd".
+ * Turn the Dialpad contact into rows for the iframe panel, with every text value "Acme'd".
  *
  * The reference app has no CRM, so this stands in for "look the contact up in the partner's
- * system": it proves the contact reached the panel from Dialpad, one labelled row per field.
+ * system": it proves the contact reached the iframe panel from Dialpad, one labelled row per field.
  * Strings get an `Acme ` prefix, lists are Acme'd element by element, anything else (numbers,
  * booleans) is shown unchanged, and empty fields are left out. Zero and `false` are not empty.
  */

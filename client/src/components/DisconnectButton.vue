@@ -1,11 +1,11 @@
 <script setup lang="ts">
 // Disconnect with an inline confirmation: the button becomes a short confirmation row, never a
-// modal, because the panel's iframe is about 300px wide and overlays can't leave it.
+// modal, because the iframe panel is about 300px wide and overlays can't leave it.
 //
 // Clicking Disconnect only asks "Disconnect Acme?"; Cancel goes back. Confirming calls the SDK's
-// `disconnect()`, which calls `/dialpad/ext-disconnect` and tells Dialpad the panel is no longer
+// `disconnect()`, which calls `/dialpad/ext-disconnect` and tells Dialpad the iframe panel is no longer
 // connected, after which `App.vue` swaps this whole view for the Connect gate. If the call fails
-// the user stays connected and sees an error here. Disconnecting from Dialpad's own panel menu
+// the user stays connected and sees an error here. Disconnecting from Dialpad's own iframe panel menu
 // takes the same path inside the SDK, without this confirmation.
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 import { DtButton } from '@dialpad/dialtone/vue/lib/button';

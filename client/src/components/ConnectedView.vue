@@ -3,7 +3,7 @@
 // Acme'd, the server's demo call to Dialpad's API, plus the OAuth scopes the connection has. All of it comes from the SDK's snapshot, which
 // keeps the call and contact up to date; connecting doesn't reset them.
 //
-// During a call there can be two contacts: the panel's (`state.contact`) and the call's own
+// During a call there can be two contacts: the iframe panel's (`state.contact`) and the call's own
 // (`state.call.contact`). Usually they are the same person, because Dialpad opens the caller's
 // contact in the right bar, and then one section is enough. When they differ, both are shown.
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
@@ -18,7 +18,7 @@ import UserCard from './UserCard.vue';
 
 const { state } = useRightbar();
 
-/** The call's contact when there is one and it is not the panel's contact; otherwise null. */
+/** The call's contact when there is one and it is not the iframe panel's contact; otherwise null. */
 const otherCallContact = computed(() => {
   const callContact = state.value.call?.contact ?? null;
   return isSameContact(callContact, state.value.contact) ? null : callContact;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The panel's root: a title, a "reload" notice if the access token was rejected, and then either
+// The iframe panel's root: a title, a "reload" notice if the access token was rejected, and then either
 // the connected view or the Connect gate, switched by the SDK's `connection.connected`. Mounted by
 // `bootstrap` once the SDK has started, so `useRightbar()` always has a snapshot to read.
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';

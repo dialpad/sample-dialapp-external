@@ -1,4 +1,4 @@
-/* The panel is about 300px wide and its height follows its content. Everything here uses
+/* The iframe panel is about 300px wide and its height follows its content. Everything here uses
    Dialtone tokens so it follows the host's light and dark mode. */
 body {
   margin: 0;

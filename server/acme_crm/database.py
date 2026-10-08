@@ -61,7 +61,7 @@ class CookieBackedDatabaseStorage:
     return self.user_key() == key
 
   def get_access_token(self) -> str:
-    """Return the user's access token: what the panel sends as ``Authorization: Bearer``."""
+    """Return the user's access token: what the iframe panel sends as ``Authorization: Bearer``."""
     return self._session.token
 
   def has_access_token(self, candidate: str) -> bool:
@@ -75,7 +75,7 @@ class CookieBackedDatabaseStorage:
   def with_external_connected(self, *, connected: bool) -> Self:
     """Return a copy of this state with the connection turned on or off, keeping the token.
 
-    The access token is kept because the panel keeps sending it: after a disconnect its next
+    The access token is kept because the iframe panel keeps sending it: after a disconnect its next
     ``ext-connection`` call must still authenticate.
     """
     return type(self)(signing.SessionClaims(

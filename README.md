@@ -2,9 +2,9 @@
 
 A small, runnable example of a Dialpad rightbar app. Dialpad loads the page, the
 page knows who the user is, the user connects a partner system through an OAuth
-popup, and the panel shows data Dialpad passes in.
+popup, and the iframe panel shows data Dialpad passes in.
 
-The partner system here is a fictional "Acme CRM" with no data. The panel proves
+The partner system here is a fictional "Acme CRM" with no data. The iframe panel proves
 data flow by showing the Dialpad user, the active call, the OAuth scopes and the
 open Dialpad contact (plus the call's own contact when it is a different person)
 with every field "Acme'd" (text gets an `Acme ` prefix).
@@ -13,11 +13,11 @@ It uses one Dialpad library, plus public packages:
 
 - `@dialpad/dialapp-external-sdk` (TypeScript), from
   [`dialapp-external`](https://github.com/dialpad/dialapp-external): the
-  headless SDK that speaks Dialpad's host protocol and keeps the panel's state.
+  headless SDK that speaks Dialpad's host protocol and keeps the iframe panel's state.
 
 The server carries its own small pieces of the contract, which you keep and
 adapt: `server/acme_crm/idtoken.py` decodes the idtoken (and mints mock ones for
-local mode), `server/acme_crm/pages.py` renders the panel, close-popup and error
+local mode), `server/acme_crm/pages.py` renders the iframe panel, close-popup and error
 pages with their security headers, and `server/acme_crm/contract.py` has the
 models the SDK reads. They are built on `pydantic` and `joserfc`.
 
@@ -25,7 +25,7 @@ The repository has two parts, each with its own tools and checks:
 
 | Folder        | What it is                                                                                          |
 | ------------- | --------------------------------------------------------------------------------------------------- |
-| `client/`     | The panel, which runs in Dialpad's iframe: Vite, Vue 3, TypeScript and Dialtone 10. `pnpm` project  |
+| `client/`     | The iframe panel that Dialpad frames: Vite, Vue 3, TypeScript and Dialtone 10. `pnpm` project       |
 | `server/`     | The Python server (`acme_crm/`): bare Sanic on Python 3.14, with its tests. `tox` and `pip` project |
 | `deployment/` | The Dockerfile and how to run the app as a container on Cloud Run                                   |
 
@@ -98,10 +98,10 @@ and a new call ringing), and switch light and dark.
 
 Click **Connect**. The fake authorize URL opens in a popup showing a page that
 says it is a fake OAuth page, with an **Authorize** button. The popup stays
-open, and the panel shows "Waiting for you to finish connecting", until you
+open, and the iframe panel shows "Waiting for you to finish connecting", until you
 press Authorize; the popup then goes to the callback and closes itself. Like the
 desktop app, the dev host never replies to Connect, so the SDK's polling
-completes it (first check after 7 seconds, then every 5). The panel then shows
+completes it (first check after 7 seconds, then every 5). The iframe panel then shows
 you, and the contact, Acme'd. **Disconnect** asks for inline confirmation.
 
 `LOCAL_MODE=1` is configuration only; a request cannot switch it on. It changes
@@ -114,7 +114,7 @@ server's origin, and `connect-src` adds its websocket origin.
 This is documented, not exercised in this repository: it needs a beta OAuth app
 that Dialpad sets up for you.
 
-1. Build the panel (`pnpm build` in `client/`) and run the server from `server/`
+1. Build the iframe panel (`pnpm build` in `client/`) and run the server from `server/`
    without `LOCAL_MODE`, with the four required variables from
    [Configuration](#configuration):
 
@@ -126,18 +126,18 @@ that Dialpad sets up for you.
 2. Expose the server at that public HTTPS URL (how is up to you).
 3. Point the beta OAuth app's conversation sidebar URI at it, following
    Dialpad's runbook.
-4. Open any contact in dialpadbeta: the panel appears, and connect, reconnect,
+4. Open any contact in dialpadbeta: the iframe panel appears, and connect, reconnect,
    and disconnect work against the real host.
 
 Current Chrome, Edge, Firefox and Safari 26.2 or later are supported. The
-session cookie is `Partitioned` and holds the panel's access token, so a browser
+session cookie is `Partitioned` and holds the iframe panel's access token, so a browser
 that rejects it (older Safari rejects partitioned cookies, and some browsers block
-third-party cookies) can't use the panel at all: every API call gets `401` and
-the panel asks the user to reload.
+third-party cookies) can't use the iframe panel at all: every API call gets `401` and
+the iframe panel asks the user to reload.
 
 ## Configuration
 
-The server reads these environment variables; the panel reads none. Nothing
+The server reads these environment variables; the iframe panel reads none. Nothing
 loads a `.env` file, so export them in your shell or your host's settings.
 
 | Variable                | Required                | Purpose                                                                                                                                                                                                                                            |
@@ -149,7 +149,7 @@ loads a `.env` file, so export them in your shell or your host's settings.
 | `HOST`                  | no                      | The address to listen on. Default `127.0.0.1` (this machine only); a container sets `0.0.0.0`. See [deployment/](deployment/README.md)                                                                                                             |
 | `LOCAL_MODE`            | no                      | `1` turns on local mode: the defaults above, the dev host's route, and the Vite dev server's origins in the CSP                                                                                                                                    |
 | `VITE_ORIGIN`           | no, local mode only     | The Vite dev server's origin. Default `http://localhost:5173`                                                                                                                                                                                      |
-| `DIST_DIR`              | no                      | Where `pnpm build` in `client/` wrote the panel. Default `../client/dist` (relative to `server/`); the container sets `dist`                                                                                                                       |
+| `DIST_DIR`              | no                      | Where `pnpm build` in `client/` wrote the iframe panel. Default `../client/dist` (relative to `server/`); the container sets `dist`                                                                                                                |
 | `PORT`                  | no                      | The port to listen on. If unset, the port in `BASE_URL`, else `8000`. A container host sets it                                                                                                                                                     |
 
 Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control.
@@ -171,8 +171,8 @@ To run it as a container, for example on Cloud Run, see
    `api_key` never does either. The one extra thing it embeds is the result of a
    demo call to Dialpad's API (see [below](#the-demo-call-to-dialpads-api)).
 2. **User.** The SDK asks Dialpad for the user (`get/user`) once it starts, and
-   the panel shows it from `state.user`.
-3. **API.** Every request the panel makes to the server afterwards carries
+   the iframe panel shows it from `state.user`.
+3. **API.** Every request the iframe panel makes to the server afterwards carries
    `Authorization: Bearer <access token>` and, as the browser adds it, the
    session cookie. That covers the two requests the SDK makes itself
    (`ext-connection` and `ext-disconnect`) and every route your application adds,
@@ -217,7 +217,7 @@ page, the server uses the idtoken's `api_key` to call Dialpad's public API, to
 show how the key is used: `GET {DIALPAD_ORIGIN}/api/v2/users/me` with
 `Authorization: Bearer <api_key>`, made by Dialpad's own Python client
 ([`python-dialpad`](https://pypi.org/project/python-dialpad/)), in
-`server/acme_crm/dialpad_api.py`. The panel shows the user's name, email, id and state
+`server/acme_crm/dialpad_api.py`. The iframe panel shows the user's name, email, id and state
 in a "From Dialpad's API" card.
 
 - The call has a 3 second timeout and no retry. If Dialpad's API refuses the
@@ -237,19 +237,19 @@ a background job or a webhook handler as much as from a page load.
 
 ### Why connection results are kept in memory (demo only)
 
-The Connect flow in short: the panel's page says "not connected" with an
-authorize URL; Connect makes Dialpad open it in a popup while the panel polls
+The Connect flow in short: the iframe panel's page says "not connected" with an
+authorize URL; Connect makes Dialpad open it in a popup while the iframe panel polls
 `/dialpad/ext-connection`; the user approves at the CRM, which sends the popup
 to `/oauth/callback`; the callback verifies the signed `state` and closes the
-popup; the panel's next poll learns it is connected and gets its session cookie
+popup; the iframe panel's next poll learns it is connected and gets its session cookie
 rewritten with the connection on.
 
-The catch is that the callback and the panel are different windows. The
-callback runs in the popup, and the session cookie belongs to the panel's iframe
+The catch is that the callback and the iframe panel are different windows. The
+callback runs in the popup, and the session cookie belongs to the iframe panel
 (it is `Partitioned`), so the callback cannot set it. The only thing both sides know
 is which Dialpad user this is, so the callback leaves a short-lived note in
 server memory ("this user finished connecting", kept for 5 minutes and
-collected once), and the panel's next check picks it up. That note is
+collected once), and the iframe panel's next check picks it up. That note is
 `OAuthResults` in `server/acme_crm/stores.py`, whose docstring tells the whole
 flow.
 
@@ -263,16 +263,16 @@ Without a database, this demo keeps what has to last, the user's access token
 and "this user is connected to external CRM", in the browser: the signed, 30-day session cookie
 is its persistent storage. It survives a server restart or scale-to-zero, and it
 is signed so it can't be forged. Changing `APP_SECRET` signs everyone out: every
-open panel gets `401` and shows "Reload the panel". The cookie is not encrypted
+open iframe panel gets `401` and shows "Reload the panel". The cookie is not encrypted
 (it is `HttpOnly`, so page scripts can't read it), it is per browser (Disconnect
 changes it only in the browser that asked), a browser that refuses it can't use
-the panel, and the server can't revoke one early. A real partner's stored tokens,
+the iframe panel, and the server can't revoke one early. A real partner's stored tokens,
 looked up by Dialpad user, have none of those limits, and a real partner would
 keep a durable session or issue expiring tokens instead of this cookie.
 
 ## Security: what the demo shows
 
-A rightbar panel is a web page that Dialpad frames, opened with a long-lived
+A rightbar iframe panel is a web page that Dialpad frames, opened with a long-lived
 credential in its URL, that then talks to your server. This section lists what
 the app does about each risk, where it lives, and which tests cover it. The last
 subsection says what it deliberately does not do.
@@ -285,7 +285,7 @@ interchangeable:
 | **OAuth app client secret** (`DIALPAD_CLIENT_SECRET`) | Dialpad, when it sets up your OAuth app     | Decrypting and verifying the **idtoken** on the page request. Nothing else in this app uses it. |
 | **`api_key`** (inside the idtoken)                    | Dialpad, per user and app                   | `Authorization: Bearer` on your server's calls to Dialpad's public API                          |
 | **App secret** (`APP_SECRET`)                         | You (a random string)                       | Signing this app's own values: the OAuth `state` and the session cookie. See below.             |
-| **Access token** (in the page data and cookie)        | Your server, per browser session            | `Authorization: Bearer` on every request the panel makes to your server                         |
+| **Access token** (in the page data and cookie)        | Your server, per browser session            | `Authorization: Bearer` on every request the iframe panel makes to your server                  |
 | **Webhook signing secret**                            | You, when you create a webhook with Dialpad | Verifying the JWT on events Dialpad sends to you (not implemented in this demo)                 |
 
 **Why `APP_SECRET` exists, and how it is usually done.** `APP_SECRET` is this
@@ -299,7 +299,7 @@ Applications usually keep that state on the server instead:
 
 - **Sessions.** On the first page load, create a session row in your database
   or cache for that Dialpad user, with a random token; embed the token in the page
-  data and have the panel send it as the bearer. The server looks the token up on
+  data and have the iframe panel send it as the bearer. The server looks the token up on
   each request. No signed cookie is needed, because the browser holds only an
   opaque id, and you can revoke a session by deleting the row.
 - **OAuth `state`.** Generate a random `state` for each Connect, store its context
@@ -317,7 +317,7 @@ signs everyone out.
 
 ### 1. The idtoken and its api key
 
-When Dialpad loads the panel it appends `?idtoken=<token>` to your conversation
+When Dialpad loads the iframe panel it appends `?idtoken=<token>` to your conversation
 sidebar URI. The token is encrypted (a JWE using `dir` and `A192CBC-HS384`,
 keyed with the first 48 characters of your **OAuth app's client secret**, the
 `DIALPAD_CLIENT_SECRET`) and wraps a
@@ -330,7 +330,7 @@ JWT signed with `HS256` and the full client secret. Its claims are the Dialpad
 algorithms, treats a client secret shorter than 48 characters as a configuration
 error, and raises one error type whose message never contains the token or the
 secret. A page that fails to decode gets a `401` page and no page data. The
-claims tell you who opened the panel; they are never rendered into the page, and
+claims tell you who opened the iframe panel; they are never rendered into the page, and
 `csr` is dropped while decoding.
 
 **The `api_key` is a credential for Dialpad's public API**, scoped to that user
@@ -339,8 +339,8 @@ and this app. It is server-side only: `IdTokenClaims` holds it as a `SecretStr`,
 header or log.
 
 **Why a real app persists the api key (this demo does not).** The idtoken arrives
-only while a user has the panel open, but your server needs to call Dialpad at
-other times: from a background job, when a webhook arrives, or after the panel
+only while a user has the iframe panel open, but your server needs to call Dialpad at
+other times: from a background job, when a webhook arrives, or after the iframe panel
 is closed. The api key does not expire, so the first time you see it for a
 Dialpad user, store it in long-term storage keyed by company and user id
 (protected like your CRM tokens: encrypted at rest, never logged), and replace
@@ -359,7 +359,7 @@ There are two kinds, and they use different credentials.
 
 - **The page request** is authenticated by the idtoken (above). There is no
   session yet; decoding the token with your client secret is the authentication.
-- **Every request the panel makes to your server** comes from the iframe, which
+- **Every request the iframe panel makes to your server** comes from the iframe, which
   has no idtoken. That includes the two requests the SDK makes itself
   (`ext-connection` and `ext-disconnect`, the only two the SDK invokes) and every
   route your application adds; this demo has no others, but a real app will have
@@ -376,9 +376,9 @@ There are two kinds, and they use different credentials.
 
   The server answers only when the two tokens match (compared in constant
   time) and the cookie's signature and age are valid. Otherwise it answers
-  `401`, and the panel asks the user to reload.
+  `401`, and the iframe panel asks the user to reload.
 
-**Adding your own routes.** On the panel side, send them through the `api()`
+**Adding your own routes.** On the iframe panel side, send them through the `api()`
 wrapper in `client/src/api.ts`, which adds the bearer header (the SDK's
 `authHeaders()`) to every request and turns a `401` into the "Reload the panel"
 notice. On the server side, authenticate each one the way the two SDK routes do,
@@ -397,13 +397,13 @@ async def contacts(request: Request) -> HTTPResponse:
 ```
 
 **Why both the header and the cookie.** The cookie has to be `SameSite=None`,
-because the panel runs in a third-party iframe, so browsers also attach it to
+because the iframe panel runs in a third-party iframe, so browsers also attach it to
 requests made by other sites. The header can only be added by code that holds
-the page data, that is, the panel's own scripts, so a request from another site
+the page data, that is, the iframe panel's own scripts, so a request from another site
 cannot forge it. Requiring the two to match is the "double submit" defence
 against cross-site request forgery.
 
-The contract only needs _some_ token the panel can send; a signed JWT or a
+The contract only needs _some_ token the iframe panel can send; a signed JWT or a
 server-side session table work as well as this cookie.
 
 ### 3. Authenticating requests to Dialpad
@@ -422,7 +422,7 @@ Authorization: Bearer <api_key>
 every request. Use a short timeout and no retries for anything on the page
 request path, and treat a `401` as "the key was refused". The key goes only in
 that header, from your server. **The browser never has it and never calls
-Dialpad's API directly**; what the panel needs from Dialpad (the user, the open
+Dialpad's API directly**; what the iframe panel needs from Dialpad (the user, the open
 contact, the call) arrives through the SDK's host protocol, which needs no key
 because Dialpad itself framed the page.
 
@@ -453,12 +453,12 @@ Every page the server renders carries a `Content-Security-Policy`, plus
 
 | Page                              | `Content-Security-Policy`                                                                                           |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| The panel, `GET /`                | `frame-ancestors <DIALPAD_ORIGIN>; script-src 'self' 'nonce-…' <asset origins>; object-src 'none'; base-uri 'none'` |
+| The iframe panel, `GET /`         | `frame-ancestors <DIALPAD_ORIGIN>; script-src 'self' 'nonce-…' <asset origins>; object-src 'none'; base-uri 'none'` |
 | Close-popup page (OAuth callback) | `default-src 'none'; script-src 'nonce-…'; style-src 'nonce-…'; frame-ancestors 'none'; base-uri 'none'`            |
 | Error page (`401`)                | `default-src 'none'; style-src 'nonce-…'; frame-ancestors <DIALPAD_ORIGIN>; base-uri 'none'`                        |
 | Fake authorize page (demo OAuth)  | `default-src 'none'; style-src 'nonce-…'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'`              |
 
-- **`frame-ancestors`** lets only Dialpad embed the panel, which prevents other
+- **`frame-ancestors`** lets only Dialpad embed the iframe panel, which prevents other
   sites from framing it (clickjacking). The popup pages cannot be framed at all.
 - **`script-src 'self' 'nonce-…'`, with no `'unsafe-inline'` or
   `'unsafe-eval'`**, means only the app's own script files run. An inline script
@@ -467,7 +467,7 @@ Every page the server renders carries a `Content-Security-Policy`, plus
   (`secrets.token_urlsafe`), written both into the CSP header and onto the
   inline elements that are allowed. The close-popup page's one inline script and
   style run only because they carry it; reusing a nonce across responses would
-  defeat the policy. The panel page has no inline script of its own (the page
+  defeat the policy. The iframe panel page has no inline script of its own (the page
   data sits in a non-executing JSON element that carries the nonce, so a script
   you add later can share it).
 - **`object-src 'none'` and `base-uri 'none'`** block plugins and an injected
@@ -475,7 +475,7 @@ Every page the server renders carries a `Content-Security-Policy`, plus
 - **Local mode** changes three things and nothing else: `frame-ancestors` becomes
   the dev host's origin, `script-src` adds the Vite dev server's origin, and
   `connect-src` adds its websocket (a test checks this).
-- **Only partly locked down:** the panel page sets no `default-src`, `style-src`
+- **Only partly locked down:** the iframe panel page sets no `default-src`, `style-src`
   or `connect-src`, so other resource types are not restricted there. Tighten it
   for your own app if your assets allow.
 
@@ -494,11 +494,11 @@ Other protections around the page:
   `window.opener.postMessage('close_popup', <Dialpad origin>)`, never `'*'`, and
   only when it has an opener.
 - **The SDK checks it is framed and who it talks to.** Opened directly (not in an
-  iframe), the panel shows "Open this panel from Dialpad" (`not_framed`, covered
+  iframe), the iframe panel shows "Open this panel from Dialpad" (`not_framed`, covered
   by a browser test), and the SDK talks only to the `dialpad_origin` in the page
   data.
 - **The page data holds no secrets:** no api key, no user profile, only the
-  access token the panel needs, the connection status and the demo result.
+  access token the iframe panel needs, the connection status and the demo result.
 
 ### 5. Cookies, OAuth state and signed values
 
@@ -537,11 +537,11 @@ Other protections around the page:
   refresh.
 - **Sessions are a cookie, not a server-side session**: it lasts 30 days, is per
   browser, can't be revoked early except by changing `APP_SECRET`, and a browser
-  that refuses the cookie can't use the panel. A real partner would use stored
+  that refuses the cookie can't use the iframe panel. A real partner would use stored
   sessions or expiring tokens.
 - **No event-subscription receiver** (section 3), and no replay protection for
   the idtoken beyond keeping it out of logs, caches and referrers.
-- **The panel page's CSP is script-focused** (section 4).
+- **The iframe panel page's CSP is script-focused** (section 4).
 - **Secrets are plain environment variables**, which is fine for a demo; use a
   secret manager for anything real.
 
@@ -582,7 +582,7 @@ contract's server half, and the OAuth callback's close-popup page stays as it is
 Each folder has its own checks; there is nothing to run at the repository root.
 
 ```sh
-# client/ (the panel)
+# client/ (the iframe panel)
 pnpm lint:ci && pnpm format:ci && pnpm types:check && pnpm test:run
 pnpm test:e2e                                   # browser tests
 

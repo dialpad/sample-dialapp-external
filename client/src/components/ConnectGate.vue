@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The Connect gate: what the panel shows while the user is not connected. It is the UI the SDK
+// The Connect gate: what the iframe panel shows while the user is not connected. It is the UI the SDK
 // deliberately doesn't ship, so partners copy this file and change the copy.
 //
 // It renders from the SDK's `connection` state and has four looks:

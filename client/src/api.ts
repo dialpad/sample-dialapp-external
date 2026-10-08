@@ -9,7 +9,7 @@ import { ref } from 'vue';
  *
  * The server accepts the token only while it matches the one in the browser's session cookie, so a
  * 401 means the cookie is gone or expired, or now belongs to another session (another Dialpad user
- * opened a panel in this browser, or the server's secret changed). Nothing can fix that from here;
+ * opened an iframe panel in this browser, or the server's secret changed). Nothing can fix that from here;
  * `App.vue` shows "reload the panel" while this is set, and a reload gets a new page with a new
  * token and cookie.
  */
@@ -33,7 +33,7 @@ export function useAuthHeaders(source: () => Record<string, string>): void {
  * `fetch`, plus the access token and the app's 401 policy.
  *
  * Adds the bearer header unless the caller already set one, sends the request, and, if the server
- * answers `401`, sets `sessionExpired` so the panel asks the user to reload. The response is
+ * answers `401`, sets `sessionExpired` so the iframe panel asks the user to reload. The response is
  * returned untouched either way, so the SDK still sees the status and can report `request_failed`.
  */
 export async function api(

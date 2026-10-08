@@ -1,4 +1,4 @@
-// Real-browser tests of the panel and the SDK against the dev host, in Chromium. See README.md in
+// Real-browser tests of the iframe panel and the SDK against the dev host, in Chromium. See README.md in
 // this folder: they are not part of the template.
 //
 // The Playwright config starts the server in local mode and Vite. Every test opens the dev host
@@ -10,10 +10,10 @@ import { expect, test, type FrameLocator, type Page } from '@playwright/test';
 const SERVER = 'http://localhost:8000';
 
 /**
- * Open the dev host with Playwright's clock installed and wait for the panel's Connect gate.
+ * Open the dev host with Playwright's clock installed and wait for the iframe panel's Connect gate.
  *
  * Starts from a fresh browser context, so the user is not connected (no cookie). Returns the
- * panel's iframe for queries; the clock is paused until a test moves it.
+ * iframe panel for queries; the clock is paused until a test moves it.
  */
 async function openDevPage(page: Page): Promise<FrameLocator> {
   await page.clock.install();
@@ -26,7 +26,7 @@ async function openDevPage(page: Page): Promise<FrameLocator> {
 /**
  * Click Connect and return the popup Dialpad opens for the authorize URL.
  *
- * The popup shows the fake OAuth page and stays open until Authorize is pressed. The panel shows
+ * The popup shows the fake OAuth page and stays open until Authorize is pressed. The iframe panel shows
  * "Waiting for you to finish connecting" meanwhile.
  */
 async function startConnect(page: Page, panel: FrameLocator): Promise<Page> {
@@ -39,7 +39,7 @@ async function startConnect(page: Page, panel: FrameLocator): Promise<Page> {
  * Finish Connect the way the desktop app does, by polling: press Authorize, wait for the popup to
  * close itself, then move the clock to the SDK's first poll (7 seconds after Connect).
  *
- * When it returns, the server has handed the finished OAuth to that poll and the panel shows the
+ * When it returns, the server has handed the finished OAuth to that poll and the iframe panel shows the
  * connected view.
  */
 async function authorizeAndPoll(
@@ -55,10 +55,10 @@ async function authorizeAndPoll(
 }
 
 /**
- * What the mock host believes: whether the panel last told Dialpad it is connected.
+ * What the mock host believes: whether the iframe panel last told Dialpad it is connected.
  *
- * The SDK reports this automatically so Dialpad's panel menu (which has Disconnect only while
- * connected) always matches the panel.
+ * The SDK reports this automatically so Dialpad's iframe panel menu (which has Disconnect only while
+ * connected) always matches the iframe panel.
  */
 async function hostThinksConnected(page: Page): Promise<boolean | undefined> {
   return page.evaluate(() => window.mockHost?.received.connected);
@@ -82,7 +82,7 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
     'Skipped in local mode',
   );
 
-  // Data flows from the host to the panel: the contact open in the dev host, shown Acme'd, is
+  // Data flows from the host to the iframe panel: the contact open in the dev host, shown Acme'd, is
   // there as soon as the user is connected. Changing contact cycles through three and wraps.
   const contact = panel.getByTestId('acme-contact');
   await expect(contact).toContainText('Acme Pat Customer');
@@ -104,7 +104,7 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await expect(panel.getByTestId('connect-gate')).toBeVisible();
 });
 
-test("calls reach the panel, with the call's contact when it differs", async ({
+test("calls reach the iframe panel, with the call's contact when it differs", async ({
   page,
 }) => {
   const panel = await openDevPage(page);
@@ -118,7 +118,7 @@ test("calls reach the panel, with the call's contact when it differs", async ({
   await expect(call).toContainText('Ringing');
 
   // The call's contact is the one open when it started, so while they are the same person there is
-  // one contact section. Changing the panel's contact mid-call shows both; changing it back hides
+  // one contact section. Changing the iframe panel's contact mid-call shows both; changing it back hides
   // the call's again.
   const contact = panel.getByTestId('acme-contact');
   const callContact = panel.getByTestId('call-contact');
@@ -139,7 +139,7 @@ test("calls reach the panel, with the call's contact when it differs", async ({
   await expect(call).toContainText('Ringing');
 });
 
-test('opened outside Dialpad, the panel asks to be opened from Dialpad', async ({
+test('opened outside Dialpad, the iframe panel asks to be opened from Dialpad', async ({
   page,
   request,
 }) => {
@@ -175,7 +175,7 @@ test('Connect that is never completed times out and the host stays not connected
   expect(await hostThinksConnected(page)).toBe(false);
 });
 
-test("Disconnect from Dialpad's panel menu shows the Connect gate", async ({
+test("Disconnect from Dialpad's iframe panel menu shows the Connect gate", async ({
   page,
 }) => {
   const panel = await openDevPage(page);
