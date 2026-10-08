@@ -174,7 +174,9 @@ loads a `.env` file, so export them in your shell or your host's settings.
 | `DIST_DIR`              | no                      | Where `pnpm build` in `client/` wrote the iframe panel. Default `../client/dist` (relative to `server/`); the container sets `dist`                                                                                                                |
 | `PORT`                  | no                      | The port to listen on. If unset, the port in `BASE_URL`, else `8000`. A container host sets it                                                                                                                                                     |
 
-Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control.
+Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control. The app reads
+them from the environment; on Cloud Run they are kept in Secret Manager and
+passed in as environment variables (see [deployment/](deployment/README.md)).
 
 To run it as a container, for example on Cloud Run, see
 [deployment/](deployment/README.md).
@@ -605,8 +607,6 @@ Other protections around the page:
 - **No event-subscription receiver** (section 3), and no replay protection for
   the idtoken beyond keeping it out of logs, caches and referrers.
 - **The iframe panel page's CSP is script-focused** (section 4).
-- **Secrets are plain environment variables**, which is fine for a demo; use a
-  secret manager for anything real.
 
 | Measure                                                   | Code                                                                         | Tests                                                                                                                                          |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
