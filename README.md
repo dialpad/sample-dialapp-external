@@ -443,12 +443,6 @@ There are two kinds, and they use different credentials.
   `401`, and the iframe panel asks the user to reload. Deleting the session row
   revokes it.
 
-**Why a header and not a cookie.** A browser attaches cookies to requests that
-other sites make, and the iframe panel runs in a third-party iframe, so a cookie
-would have to be `SameSite=None` and `Partitioned`, which some browsers refuse. It
-never adds an `Authorization` header by itself: only code that holds the page
-data, the iframe panel's own scripts, can send one. So a request from another site
-cannot carry it, and there is no cross-site request forgery to defend against.
 Keep the token in memory, not in `localStorage`, and let the CSP in
 [section 4](#4-framing-csp-and-nonces) keep injected scripts out.
 
