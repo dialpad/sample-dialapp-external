@@ -194,10 +194,8 @@ and the iframe panel should appear.
 
 Build again and roll out a new revision. Rebuilding the same `:latest` tag is
 enough: Cloud Run resolves the tag to the new image when you deploy, and the
-service keeps its environment variables, scaling settings and URL. (The deploy
-command was run to redeploy this app. The build command was run in its earlier
-form, `--tag` with the Dockerfile at the repository root; the `--config` form
-below, for the Dockerfile's new place in `deployment/`, has not been run.)
+service keeps its environment variables, scaling settings and URL. (Both commands
+below were run to redeploy this app.)
 
 ```sh
 gcloud builds submit --config deployment/cloudbuild.yaml --project PROJECT \
@@ -327,7 +325,7 @@ again: the page set the cookie (`Secure`, `HttpOnly`, `SameSite=None`,
 `Partitioned`, 30 days), `ext-connection` answered `200` with the matching bearer
 token and cookie and `401` with only one of them or a wrong token, it still
 answered `200` after `docker restart`, and neither token appeared in the logs.
-The Cloud Run service itself was not redeployed with this change.
+That change was later deployed, with the others since (see below).
 
 On Cloud Run, from a deployment to a project that had nothing enabled (with the
 layout and build command from before the move):
@@ -352,6 +350,16 @@ took all traffic, and answered `401` for a page request without an idtoken, as
 the app does. The values were copied from the old environment variables, so the
 client secret is still the placeholder the demo was deployed with, not the OAuth
 app's own.
+
+The current app was then built with `deployment/cloudbuild.yaml` and deployed
+with the `gcloud run deploy` command above, which kept the service's settings
+and its two Secret Manager references. Against the service's public URL, with a
+mock idtoken signed with the configured client secret: the page rendered (`200`)
+with the `frame-ancestors` policy, `no-store` and the session cookie with all its
+attributes; its bundle was the new one; `ext-connection` answered `401` without
+the bearer token; a full Connect (the fake authorize page, then the callback)
+made it answer connected; `POST /api/contact` returned the prefixed fields;
+Disconnect answered `204` and the connection ended; and a bad idtoken got `401`.
 
 Not checked: the iframe panel framed by dialpadbeta itself, which needs the OAuth app's
 conversation sidebar URI to point at the service.
