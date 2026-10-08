@@ -1,0 +1,15 @@
+# Builds and pushes the image with Cloud Build, which needs this file because
+# `gcloud builds submit --tag` only accepts a Dockerfile at the root of the source. Run from the
+# repository root (see README.md here):
+#
+#   gcloud builds submit --config deployment/cloudbuild.yaml \
+#     --substitutions _IMAGE=REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest .
+steps:
+  - name: gcr.io/cloud-builders/docker
+    # BuildKit is what reads deployment/Dockerfile.dockerignore.
+    env: ['DOCKER_BUILDKIT=1']
+    args: ['build', '-f', 'deployment/Dockerfile', '-t', '${_IMAGE}', '.']
+images:
+  - '${_IMAGE}'
+substitutions:
+  _IMAGE: ''

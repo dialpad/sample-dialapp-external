@@ -5,6 +5,7 @@ node_modules/
 dist/
 __pycache__/
 .ruff_cache/
+.tox/
 .pytest_cache/
 playwright-report/
 test-results/

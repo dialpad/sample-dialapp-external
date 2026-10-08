@@ -1,0 +1,24 @@
+# Read by BuildKit for `docker build -f deployment/Dockerfile .` (it looks for <Dockerfile>.dockerignore
+# next to the Dockerfile). The build context is the repository root; this keeps it to what the image
+# needs: client/ (without its tools' folders, but with client/vendor/, which the SDK installs from)
+# and server/acme_crm plus server/requirements.txt.
+.git
+.gitignore
+.codegraph
+.idea
+.vscode
+.claude
+docs
+**/node_modules
+**/.pnpm-store
+**/.venv
+**/dist
+**/test-results
+**/playwright-report
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.tox
+client/e2e
+server/tests
+deployment

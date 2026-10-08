@@ -1,0 +1,509 @@
+"""The Sanic app (acme_crm/app.py): page, tokens, connection, fake OAuth, disconnect, logs."""
+
+import logging
+import re
+from html import unescape
+from typing import TYPE_CHECKING
+from typing import Any
+from urllib.parse import parse_qs
+from urllib.parse import urlsplit
+
+import pytest
+
+from acme_crm import signing
+from acme_crm.app import CLIENT_NAME
+from acme_crm.app import CONNECTED_SCOPES
+from acme_crm.app import FAKE_CODE
+from acme_crm.idtoken import TEST_CLIENT_SECRET
+from acme_crm.idtoken import encode_mock_idtoken
+from tests.conftest import APP_SECRET
+from tests.conftest import Env
+from tests.conftest import bearer
+from tests.conftest import cookie_header
+from tests.conftest import idtoken_for
+from tests.conftest import json_of
+from tests.conftest import page_data_of
+
+if TYPE_CHECKING:
+  from httpx import Response
+
+# The test client logs every URL it requests; those are not the app's logs.
+HTTP_CLIENT_LOGGERS = ('httpx', 'httpcore')
+JANE = {'user_id': 5432, 'company_id': 12345}
+PAT = {'user_id': 777, 'company_id': 12345}
+
+
+def authorize_url_of(page_data: dict[str, Any]) -> str:
+  """Return the ``acme-crm`` authorize URL from page data, as the Connect button would use it."""
+  return str(page_data['external_connection']['authorization_urls'][CLIENT_NAME])
+
+
+def state_from(authorize_url: str) -> str:
+  """Return the signed ``state`` query parameter of an authorize URL."""
+  return parse_qs(urlsplit(authorize_url).query)['state'][0]
+
+
+async def press_authorize(env: Env, authorize_page: Response) -> Response:
+  """Click the Authorize button on the fake authorize page and return the callback's response.
+
+  A browser submits the page's GET form: the callback URL from ``action`` with the hidden ``state``
+  and ``code`` as query parameters. This reads them from the HTML the same way.
+  """
+  form = re.search(r'<form method="get" action="([^"]*)">', authorize_page.text)
+  assert form
+  action = unescape(form[1])
+  fields = {
+      name: unescape(value) for name, value in re.findall(
+          r'<input type="hidden" name="(\w+)" value="([^"]*)">', authorize_page.text)
+  }
+  return await env.get(action, params=fields)
+
+
+async def finish_oauth(env: Env, authorize_url: str) -> None:
+  """Play the OAuth popup: open the authorize URL, click Authorize, land on the callback.
+
+  Afterwards the callback has recorded "this user connected" in the app's memory, but nothing is
+  connected yet: the next ``ext-connection`` call has to collect it.
+  """
+  authorize = await env.get(authorize_url)
+  assert authorize.status_code == 200
+  callback = await press_authorize(env, authorize)
+  assert callback.status_code == 200
+
+
+async def connect(env: Env, token: str, authorize_url: str) -> Response:
+  """Connect a user end to end and return the ``ext-connection`` response that sets the cookie.
+
+  Runs the OAuth popup (``finish_oauth``), then makes the SDK's follow-up connection check with the
+  user's access token. That response is "connected" with the ``Set-Cookie`` header.
+  """
+  await finish_oauth(env, authorize_url)
+  return await env.get('/dialpad/ext-connection', headers=bearer(token))
+
+
+# --- token decoding with mock tokens ---------------------------------------------------------
+
+
+async def test_a_valid_idtoken_renders_the_page_but_the_page_carries_no_user(env: Env) -> None:
+  token = encode_mock_idtoken(TEST_CLIENT_SECRET, user_id=42, company_id=7, name='Ada Lovelace')
+
+  response = await env.load_page(token)
+  data = page_data_of(response)
+
+  assert response.status_code == 200
+  assert data['access_token']
+  # The SDK asks Dialpad for the user (get/user); nothing from the idtoken's profile is rendered.
+  assert 'user' not in data
+  assert 'Ada Lovelace' not in response.text
+
+
+@pytest.mark.parametrize('bad', ['', 'not-a-token', 'a.b.c.d.e'])
+async def test_a_bad_idtoken_gets_a_401_html_page(env: Env, bad: str) -> None:
+  response = await env.get('/', params={'idtoken': bad})
+
+  assert response.status_code == 401
+  assert response.headers['content-type'].startswith('text/html')
+
+
+async def test_a_missing_idtoken_gets_a_401_html_page(env: Env) -> None:
+  response = await env.get('/')
+
+  assert response.status_code == 401
+  assert response.headers['content-type'].startswith('text/html')
+
+
+async def test_an_idtoken_signed_with_another_secret_gets_a_401(env: Env) -> None:
+  token = encode_mock_idtoken('another-secret-that-is-at-least-forty-eight-chars-long')
+
+  assert (await env.load_page(token)).status_code == 401
+
+
+# --- the page's data and headers ---------------------------------------------------------------
+
+
+async def test_the_page_embeds_page_data_and_never_the_api_key_or_csr(env: Env) -> None:
+  token = encode_mock_idtoken(
+      TEST_CLIENT_SECRET,
+      api_key='real-looking-api-key',
+      csr={'internal': 'only-for-dialpad-support'},
+  )
+
+  response = await env.load_page(token)
+  data = page_data_of(response)
+
+  assert data['version'] == 1
+  assert data['dialpad_origin'] == env.settings.dialpad_origin
+  assert data['api_prefix'] == '/dialpad'
+  connection = data['external_connection']
+  assert connection['connected'] is False
+  assert connection['name'] == CLIENT_NAME
+  assert connection['scopes'] == []
+  assert list(connection['authorization_urls']) == [CLIENT_NAME]
+  assert authorize_url_of(data).startswith(f'{env.settings.base_url}/oauth/')
+  assert 'real-looking-api-key' not in response.text
+  assert 'only-for-dialpad-support' not in response.text
+  assert 'api_key' not in response.text
+  assert 'csr' not in response.text
+
+
+async def test_the_api_responses_never_contain_the_api_key_or_csr(env: Env) -> None:
+  token = encode_mock_idtoken(
+      TEST_CLIENT_SECRET,
+      api_key='real-looking-api-key',
+      csr={'internal': 'only-for-dialpad-support'},
+  )
+  data = await env.page_data(token)
+  access_token = data['access_token']
+  connected = await connect(env, access_token, authorize_url_of(data))
+  not_connected = await env.get('/dialpad/ext-connection', headers=bearer(access_token))
+  disconnected = await env.post('/dialpad/ext-disconnect', headers=bearer(access_token))
+
+  for response in (connected, not_connected, disconnected):
+    assert 'real-looking-api-key' not in response.text
+    assert 'only-for-dialpad-support' not in response.text
+    assert 'api_key' not in response.text
+    assert 'csr' not in response.text
+
+
+async def test_the_page_carries_the_security_headers_and_a_matching_nonce(env: Env) -> None:
+  response = await env.load_page()
+
+  csp = response.headers['content-security-policy']
+  nonce = csp.split("'nonce-")[1].split("'")[0]
+  assert f'frame-ancestors {env.settings.dialpad_origin}' in csp
+  assert "script-src 'self'" in csp
+  assert 'unsafe-eval' not in csp
+  assert f'nonce="{nonce}"' in response.text
+  assert response.headers['referrer-policy'] == 'no-referrer'
+  assert response.headers['cache-control'] == 'no-store'
+  assert '/assets/main-abc.js' in response.text
+
+
+async def test_local_mode_changes_the_csp_in_three_places_only(env: Env, local_env: Env) -> None:
+  production = (await env.load_page()).headers['content-security-policy']
+  local = (await local_env.load_page()).headers['content-security-policy']
+
+  def directives(csp: str) -> dict[str, list[str]]:
+    parts = [part.strip().split() for part in csp.split(';')]
+    return {part[0]: part[1:] for part in parts}
+
+  prod, dev = directives(production), directives(local)
+  assert dev['frame-ancestors'] == ['http://localhost:5173']
+  assert 'http://localhost:5173' in dev['script-src']
+  assert dev['connect-src'] == ["'self'", 'ws://localhost:5173']
+  assert 'connect-src' not in prod
+  assert dev['script-src'][:2] == [*prod['script-src'][:1], dev['script-src'][1]]
+  assert {
+      k: v for k, v in dev.items() if k not in {'frame-ancestors', 'script-src', 'connect-src'}
+  } == {
+      k: v for k, v in prod.items() if k not in {'frame-ancestors', 'script-src', 'connect-src'}
+  }
+
+
+async def test_the_dev_route_exists_only_in_local_mode(env: Env, local_env: Env) -> None:
+  assert (await env.get('/dev/frame-url')).status_code == 404
+
+  response = await local_env.get('/dev/frame-url')
+
+  assert response.status_code == 200
+  assert response.headers['access-control-allow-origin'] == 'http://localhost:5173'
+  framed = await local_env.get(json_of(response)['url'].removeprefix('http://localhost:8000'))
+  assert framed.status_code == 200
+
+
+# --- the per-user access token -------------------------------------------------------------------
+
+
+async def test_a_user_gets_the_same_access_token_on_every_page_load(env: Env) -> None:
+  first = (await env.page_data())['access_token']
+  second = (await env.page_data())['access_token']
+
+  assert first == second
+
+
+async def test_different_users_get_different_access_tokens(env: Env) -> None:
+  jane = await env.page_data(idtoken_for(**JANE))
+  pat = await env.page_data(idtoken_for(**PAT))
+
+  assert jane['access_token'] != pat['access_token']
+
+
+# --- the connection endpoint: every branch -----------------------------------------------------
+
+
+async def test_no_cookie_means_not_connected_with_a_fresh_authorize_url(env: Env) -> None:
+  token = (await env.page_data())['access_token']
+
+  response = await env.get('/dialpad/ext-connection', headers=bearer(token))
+
+  assert response.status_code == 200
+  body = json_of(response)
+  assert body['connected'] is False
+  assert body['name'] == CLIENT_NAME
+  assert body['scopes'] == []
+  assert list(body['authorization_urls']) == [CLIENT_NAME]
+  assert 'set-cookie' not in response.headers
+
+
+async def test_an_unknown_or_missing_access_token_gets_a_401(env: Env) -> None:
+  unknown = bearer('never-issued')
+
+  assert (await env.get('/dialpad/ext-connection', headers=unknown)).status_code == 401
+  assert (await env.get('/dialpad/ext-connection')).status_code == 401
+  assert (await env.post('/dialpad/ext-disconnect', headers=unknown)).status_code == 401
+
+
+async def test_a_stored_result_is_consumed_and_sets_the_connection_cookie(env: Env) -> None:
+  data = await env.page_data()
+  token = data['access_token']
+
+  response = await connect(env, token, authorize_url_of(data))
+
+  body = json_of(response)
+  assert body['connected'] is True
+  assert body['name'] == CLIENT_NAME
+  assert body['scopes'] == CONNECTED_SCOPES
+  # Even when connected there is a fresh authorize URL, which the contract's shape allows.
+  assert list(body['authorization_urls']) == [CLIENT_NAME]
+  cookie = response.headers['set-cookie']
+  assert cookie.startswith('__Host-acme_session=')
+  for attribute in ('Path=/', 'Secure', 'HttpOnly', 'SameSite=None', 'Partitioned',
+                    'Max-Age=2592000'):
+    assert attribute in cookie
+  # Consumed once: the next check without the cookie is not connected.
+  again = await env.get('/dialpad/ext-connection', headers=bearer(token))
+  assert json_of(again)['connected'] is False
+
+
+async def test_a_valid_cookie_means_connected_on_the_connection_endpoint_and_on_the_page(
+    env: Env,) -> None:
+  data = await env.page_data()
+  token = data['access_token']
+  cookie = cookie_header(await connect(env, token, authorize_url_of(data)))
+
+  response = await env.get('/dialpad/ext-connection', headers=bearer(token) | {'Cookie': cookie})
+  page = await env.page_data(cookie=cookie)
+
+  assert json_of(response)['connected'] is True
+  assert 'set-cookie' not in response.headers
+  assert page['external_connection']['connected'] is True
+  assert page['external_connection']['scopes'] == CONNECTED_SCOPES
+
+
+async def test_a_result_recorded_for_another_user_is_not_consumed(env: Env) -> None:
+  jane = await env.page_data(idtoken_for(**JANE))
+  pat = await env.page_data(idtoken_for(**PAT))
+  await finish_oauth(env, authorize_url_of(jane))
+
+  pat_check = await env.get('/dialpad/ext-connection', headers=bearer(pat['access_token']))
+  jane_check = await env.get('/dialpad/ext-connection', headers=bearer(jane['access_token']))
+
+  assert json_of(pat_check)['connected'] is False
+  assert 'set-cookie' not in pat_check.headers
+  assert json_of(jane_check)['connected'] is True
+
+
+async def test_a_cookie_for_another_user_counts_as_not_connected(env: Env) -> None:
+  jane = await env.page_data(idtoken_for(**JANE))
+  pat = await env.page_data(idtoken_for(**PAT))
+  jane_cookie = cookie_header(await connect(env, jane['access_token'], authorize_url_of(jane)),)
+
+  api = await env.get(
+      '/dialpad/ext-connection',
+      headers=bearer(pat['access_token']) | {'Cookie': jane_cookie},
+  )
+  page = await env.page_data(idtoken_for(**PAT), cookie=jane_cookie)
+
+  assert json_of(api)['connected'] is False
+  assert page['external_connection']['connected'] is False
+
+
+async def test_a_forged_cookie_counts_as_not_connected(env: Env) -> None:
+  data = await env.page_data()
+  forged = signing.issue_cookie(5432, 12345, 'not-the-app-secret', env.clock())
+
+  page = await env.page_data(cookie=f'__Host-acme_session={forged}')
+
+  assert page['external_connection']['connected'] is False
+  assert data['external_connection']['connected'] is False
+
+
+# --- the fake OAuth round trip -----------------------------------------------------------------
+
+
+async def test_fake_authorize_shows_a_page_labelled_fake_with_an_authorize_button(
+    env: Env,) -> None:
+  data = await env.page_data()
+  authorize_url = authorize_url_of(data)
+
+  response = await env.get(authorize_url)
+
+  assert response.status_code == 200
+  assert response.headers['content-type'].startswith('text/html')
+  assert 'fake OAuth page' in response.text
+  assert '<button type="submit">Authorize</button>' in response.text
+  # The button sends the same state, and the fixed code, to the callback.
+  action = re.search(r'<form method="get" action="([^"]*)">', response.text)
+  assert action
+  assert action[1] == f'{env.settings.base_url}/oauth/callback'
+  assert f'name="state" value="{state_from(authorize_url)}"' in response.text
+  assert f'name="code" value="{FAKE_CODE}"' in response.text
+  assert 'set-cookie' not in response.headers
+
+
+async def test_the_authorize_page_is_locked_down_and_connects_nothing_until_authorized(
+    env: Env,) -> None:
+  data = await env.page_data()
+  token = data['access_token']
+
+  response = await env.get(authorize_url_of(data))
+  check = await env.get('/dialpad/ext-connection', headers=bearer(token))
+
+  csp = response.headers['content-security-policy']
+  nonce = csp.split("style-src 'nonce-")[1].split("'")[0]
+  assert "default-src 'none'" in csp
+  assert "form-action 'self'" in csp
+  assert "frame-ancestors 'none'" in csp
+  assert f'<style nonce="{nonce}">' in response.text
+  assert response.headers['cache-control'] == 'no-store'
+  assert json_of(check)['connected'] is False
+
+
+async def test_the_authorize_page_escapes_the_state_it_echoes(env: Env) -> None:
+  hostile = '"><script>alert(1)</script>'
+
+  response = await env.get('/oauth/fake-authorize', params={'state': hostile})
+
+  assert response.status_code == 200
+  assert '<script>alert(1)</script>' not in response.text
+  assert '&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;' in response.text
+
+
+async def test_the_callback_returns_the_close_popup_page_for_the_dialpad_origin(env: Env) -> None:
+  data = await env.page_data()
+  authorize = await env.get(authorize_url_of(data))
+
+  response = await press_authorize(env, authorize)
+
+  assert response.status_code == 200
+  assert env.settings.dialpad_origin in response.text
+  assert 'close_popup' in response.text
+  assert 'set-cookie' not in response.headers
+
+
+async def test_an_expired_state_at_the_callback_records_nothing(env: Env) -> None:
+  data = await env.page_data()
+  token = data['access_token']
+  authorize = await env.get(authorize_url_of(data))
+  env.clock.advance(signing.STATE_TTL_SECONDS + 1)
+
+  callback = await press_authorize(env, authorize)
+  check = await env.get('/dialpad/ext-connection', headers=bearer(token))
+
+  assert callback.status_code == 400
+  assert json_of(check)['connected'] is False
+
+
+async def test_a_forged_state_at_the_callback_records_nothing(env: Env) -> None:
+  token = (await env.page_data())['access_token']
+  forged = signing.issue_state(5432, 12345, 'not-the-app-secret', env.clock())
+
+  callback = await env.get('/oauth/callback', params={'state': forged, 'code': FAKE_CODE})
+  check = await env.get('/dialpad/ext-connection', headers=bearer(token))
+
+  assert callback.status_code == 400
+  assert json_of(check)['connected'] is False
+
+
+async def test_the_callback_rejects_a_wrong_code_and_authorize_requires_a_state(env: Env) -> None:
+  state = signing.issue_state(5432, 12345, APP_SECRET, env.clock())
+
+  wrong_code = await env.get('/oauth/callback', params={'state': state, 'code': 'other'})
+  no_state = await env.get('/oauth/fake-authorize')
+
+  assert wrong_code.status_code == 400
+  assert no_state.status_code == 400
+
+
+async def test_a_result_expires_after_five_minutes(env: Env) -> None:
+  data = await env.page_data()
+  token = data['access_token']
+  await finish_oauth(env, authorize_url_of(data))
+  env.clock.advance(5 * 60)
+
+  check = await env.get('/dialpad/ext-connection', headers=bearer(token))
+
+  assert json_of(check)['connected'] is False
+
+
+# --- disconnect --------------------------------------------------------------------------------
+
+
+async def test_disconnect_clears_the_cookie_and_answers_204_with_no_body(env: Env) -> None:
+  data = await env.page_data()
+  token = data['access_token']
+  cookie = cookie_header(await connect(env, token, authorize_url_of(data)))
+
+  response = await env.post('/dialpad/ext-disconnect', headers=bearer(token) | {'Cookie': cookie})
+
+  assert response.status_code == 204
+  assert response.text == ''
+  cleared = response.headers['set-cookie']
+  assert cleared.startswith('__Host-acme_session=')
+  for attribute in ('Max-Age=0', 'Secure', 'HttpOnly', 'SameSite=None', 'Partitioned', 'Path=/'):
+    assert attribute in cleared
+
+
+async def test_after_disconnect_the_next_check_is_not_connected_with_a_fresh_url(env: Env) -> None:
+  data = await env.page_data()
+  token = data['access_token']
+  cookie = cookie_header(await connect(env, token, authorize_url_of(data)))
+  await env.post('/dialpad/ext-disconnect', headers=bearer(token) | {'Cookie': cookie})
+
+  # The browser dropped the cleared cookie, so the SDK's follow-up check carries none.
+  response = await env.get('/dialpad/ext-connection', headers=bearer(token))
+
+  body = json_of(response)
+  assert body['connected'] is False
+  assert body['scopes'] == []
+  assert body['authorization_urls'][CLIENT_NAME] != authorize_url_of(data)
+
+
+# --- secrets and logs --------------------------------------------------------------------------
+
+
+async def test_neither_the_idtoken_nor_the_access_token_is_logged(
+    env: Env,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+  caplog.set_level(logging.DEBUG)
+  idtoken = encode_mock_idtoken(TEST_CLIENT_SECRET)
+
+  data = await env.page_data(idtoken)
+  token = data['access_token']
+  await connect(env, token, authorize_url_of(data))
+  await env.post('/dialpad/ext-disconnect', headers=bearer(token))
+  await env.get('/', params={'idtoken': 'bad' + idtoken})
+  await env.get('/dialpad/ext-connection', headers=bearer('wrong-' + token))
+
+  logged = '\n'.join(
+      record.getMessage() for record in caplog.records if record.name not in HTTP_CLIENT_LOGGERS)
+  assert idtoken not in logged
+  assert token not in logged
+  assert env.app.config.ACCESS_LOG is False
+
+
+async def test_an_unexpected_error_is_logged_without_the_query_string(
+    env: Env,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+  @env.app.get('/boom')
+  async def boom(_request: object) -> None:
+    message = 'boom'
+    raise RuntimeError(message)
+
+  response = await env.get('/boom', params={'idtoken': 'secret-token-value'})
+
+  assert response.status_code == 500
+  assert 'secret-token-value' not in '\n'.join(r.getMessage() for r in caplog.records)
+  assert any('/boom' in r.getMessage() for r in caplog.records)
