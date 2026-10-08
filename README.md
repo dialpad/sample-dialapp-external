@@ -231,10 +231,35 @@ page, close-popup and error rendering with their security headers) and
 contract's server half, and the OAuth callback's close-popup page stays as it is. Replace
 `TEST_CLIENT_SECRET` and `encode_mock_idtoken` only if you drop local mode.
 
-Access tokens and OAuth results live in one process's memory. That is a
-reference-app shortcut, not something to copy: a real partner stores tokens
-durably so a restart or a second instance doesn't log users out. Here, open
-panels get `401` after a restart and show "Reload the panel".
+### Why connection results are kept in memory (demo only)
+
+The Connect flow in short: the panel's page says "not connected" with an
+authorize URL; Connect makes Dialpad open it in a popup while the panel polls
+`/dialpad/ext-connection`; the user approves at the CRM, which sends the popup
+to `/oauth/callback`; the callback verifies the signed `state` and closes the
+popup; the panel's next poll learns it is connected and receives the connection
+cookie.
+
+The catch is that the callback and the panel are different windows. The
+callback runs in the popup, and the cookie belongs to the panel's iframe (it is
+`Partitioned`), so the callback cannot set it. The only thing both sides know
+is which Dialpad user this is, so the callback leaves a short-lived note in
+server memory ("this user finished connecting", kept for 5 minutes and
+collected once), and the panel's next check picks it up. That note is
+`OAuthResults` in `server/acme_crm/stores.py`, whose docstring tells the whole
+flow.
+
+**This exists only because the demo has no real CRM.** A real partner's
+callback exchanges the `code` for CRM tokens and stores them durably, keyed by
+the Dialpad user, and `ext-connection` answers "connected" when those tokens
+exist, from the database, on any instance and after any restart. Then there is
+no handoff, no expiry and no need for the cookie, and `OAuthResults` and the
+cookie can both go.
+
+Access tokens live in one process's memory too. That is a reference-app
+shortcut, not something to copy: a real partner stores tokens durably so a
+restart or a second instance doesn't log users out. Here, open panels get `401`
+after a restart and show "Reload the panel".
 
 ## Checks
 

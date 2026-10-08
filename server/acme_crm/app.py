@@ -269,7 +269,9 @@ def _register_contract(app: App, ctx: AppContext) -> None:
     Connect, on every poll while the OAuth popup is open, and after a disconnect for a fresh
     authorize URL. If the OAuth callback has recorded a result for this user, it is consumed here:
     the answer is "connected" and the connection cookie is set (the only place it is set), so the
-    next page load starts connected. Otherwise the cookie alone decides.
+    next page load starts connected. Otherwise the cookie alone decides. The consumed result is a
+    demo-only handoff from the popup to this iframe; a real partner answers from the CRM tokens its
+    callback stored (see ``acme_crm.stores.OAuthResults``).
     """
     key = ctx.user_for(request)
     if key is None:
@@ -334,11 +336,13 @@ def _register_fake_oauth(app: App, ctx: AppContext) -> None:
     """Finish the OAuth round trip: record that this user connected and close the popup.
 
     Invoked inside the popup after the (fake) authorization. A real partner would exchange the
-    ``code`` for CRM tokens and store them here. This version only verifies the signed ``state``
-    and remembers "connected" for that user for 5 minutes; the SDK's next ``ext-connection`` check
-    consumes it. An expired, forged or mismatched ``state`` renders an error page and records
-    nothing. The reply is the close-popup page, which tells Dialpad and closes the
-    window. No cookie is set: the popup is a separate window from the panel's iframe.
+    ``code`` for CRM tokens and store them durably here, and ``ext-connection`` would then answer
+    from them. This demo has no CRM tokens, so it only verifies the signed ``state`` and leaves a
+    short-lived in-memory note that this user connected, which the panel's next ``ext-connection``
+    check consumes (see ``acme_crm.stores.OAuthResults`` for the whole flow and why). An expired,
+    forged or mismatched ``state`` renders an error page and records nothing. The reply is the
+    close-popup page, which tells Dialpad and closes the window. No cookie is set: the popup is a
+    separate window from the panel's iframe.
     """
     state = str(request.args.get('state', ''))
     claims = signing.verify_state(state, settings.app_secret, ctx.clock())
