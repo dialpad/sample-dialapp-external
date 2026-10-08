@@ -675,3 +675,496 @@ Vite, then drives the dev host in Chromium with Playwright's clock. These tests
 check this repository and the libraries in a real browser; they are not part of
 the template, so delete `client/e2e/sdk/` (see its README) when you copy the
 app. Install the browser once with `pnpm exec playwright install chromium`.
+
+## The same iframe panel in plain JavaScript
+
+This app's iframe panel is written in Vue 3, but nothing about the contract needs
+a framework. The SDK's main entry (`@dialpad/dialapp-external-sdk`) is plain
+TypeScript with no framework in it; the `/vue` entry the app also uses is a thin
+binding of three things (turn the SDK's snapshot into a reactive value, provide
+the SDK instance to every component, and let a component read both). This section
+describes how the iframe panel would look without Vue. It is a sketch that
+this repository does not build or run.
+
+### What does not change
+
+- **The whole server.** The page, the contract endpoints, `POST /api/contact`, the
+  OAuth screens, the session cookie, the CSP and everything in
+  [Security](#security-what-the-demo-shows) stay exactly as they are. The iframe
+  panel only needs a `<div id="app">` and a script, which `pages.py` already
+  renders.
+- **The SDK calls.** `createRightbar`, `rightbar.state`, `rightbar.subscribe`,
+  `rightbar.watch`, `authorize`, `disconnect`, `authHeaders`, `linkRecord` and the
+  rest.
+- **The framework-free modules**: `contactApi.ts` (the request to
+  `POST /api/contact`), `customPageAppData.ts` (validates the page data's `app`
+  field) and `contacts.ts` (compares two contacts) import nothing from Vue.
+  `client/src/api.ts` (adds the bearer header and turns a `401` into the "reload"
+  notice) needs one small change: its `sessionExpired` flag is a Vue `ref`, so it
+  becomes a plain variable plus a callback that re-renders (shown below).
+- **The CSS.** `style.css` and the BEM classes (`acme-contact__label`, ...) carry
+  over; each component's `<style>` block becomes a plain `.css` file.
+- **The bundler.** Vite still builds one entry, and the server still links it from
+  Vite's manifest (`ENTRY` in `server/acme_crm/assets.py` changes from
+  `src/main.ts` to `src/main.js` if you rename it).
+
+### What is replaced
+
+| In the Vue app                                                                                    | In plain JavaScript                                                                   |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `main.ts`, `bootstrap.ts`                                                                         | One `main.js`: create the SDK instance, then render and subscribe                     |
+| `App.vue`                                                                                         | `renderApp(state)`: the title, the reload notice, then the gate or the connected view |
+| `ConnectGate.vue`                                                                                 | `renderConnectGate(connection)`                                                       |
+| `ConnectedView.vue`, `UserCard.vue`, `CallCard.vue`, `DialpadApiCard.vue`, `DisconnectButton.vue` | One `render...` function each, returning DOM nodes                                    |
+| `AcmeContact.vue`                                                                                 | A small object that owns its own lookup state (see below)                             |
+| `useRightbar()` and `rightbarPlugin`                                                              | `rightbar.state` and `rightbar.subscribe(...)` directly                               |
+| Dialtone's Vue components (`DtButton`, `DtNotice`, `DtAvatar`)                                    | Dialtone's CSS (`@dialpad/dialtone/css`) and tokens on your own markup                |
+| Vue's reactivity                                                                                  | You decide when to re-render: on every snapshot, or only for the part that changed    |
+
+### The shape of it
+
+The SDK gives you an immutable snapshot (`rightbar.state`) and calls you back with
+the next one, so the simplest vanilla panel renders everything from the snapshot
+each time:
+
+```js
+// main.js
+import { createRightbar, RightbarError } from "@dialpad/dialapp-external-sdk";
+import { initDialtoneTheme, setMode } from "@dialpad/dialtone/themes/config";
+import dp from "@dialpad/dialtone/themes/dp";
+import "@dialpad/dialtone/css";
+import "./style.css";
+
+// api.ts, with `sessionExpired` as a plain flag and a hook the 401 handler calls:
+//   export let sessionExpired = false;
+//   export function onSessionExpired(callback) { ... call it when a 401 sets the flag ... }
+import { api, onSessionExpired, sessionExpired, useAuthHeaders } from "./api";
+
+const root = document.getElementById("app");
+
+async function start() {
+  let rightbar;
+  try {
+    // Reads the page data, checks the page is framed by Dialpad, does the `init` handshake.
+    rightbar = await createRightbar({ heightRoot: root, fetch: api });
+  } catch (error) {
+    if (!(error instanceof RightbarError)) throw error;
+    root.textContent = "Open this panel from Dialpad."; // not_framed, bad_page_data, init_timeout...
+    return;
+  }
+  useAuthHeaders(() => rightbar.authHeaders());
+
+  // Follow Dialpad's light and dark mode.
+  initDialtoneTheme(dp, rightbar.state.theme.mode);
+  rightbar.watch(
+    (state) => state.theme.mode,
+    (mode) => setMode(mode),
+  );
+
+  const contact = createContactSection(rightbar); // owns its own lookups, see below
+  const render = (state) =>
+    root.replaceChildren(...renderApp(state, rightbar, contact));
+  render(rightbar.state);
+  rightbar.subscribe((next) => render(next)); // every new snapshot from the SDK
+  contact.subscribe(() => render(rightbar.state)); // a contact lookup finished
+  onSessionExpired(() => render(rightbar.state)); // a request got a 401
+}
+
+await start();
+```
+
+Rendering is ordinary DOM code. Build elements and set `textContent`; never put
+CRM or Dialpad data into `innerHTML` (a contact name can contain markup), which is
+the same reason the Vue templates only ever interpolate text:
+
+```js
+// A tiny element helper: h('p', { class: 'acme-muted' }, 'No active call.')
+function h(tag, props = {}, ...children) {
+  const element = document.createElement(tag);
+  for (const [name, value] of Object.entries(props)) {
+    if (name.startsWith("on"))
+      element.addEventListener(name.slice(2).toLowerCase(), value);
+    else if (value !== false && value != null)
+      element.setAttribute(name, value === true ? "" : value);
+  }
+  element.append(
+    ...children.flat().filter((child) => child != null && child !== false),
+  );
+  return element;
+}
+
+function renderApp(state, rightbar, contact) {
+  return [
+    h("h1", { class: "acme-title" }, "Acme CRM (demo)"),
+    sessionExpired &&
+      h(
+        "div",
+        { role: "alert", class: "acme-notice" },
+        "Reload the panel to keep going.",
+      ),
+    state.connection.connected
+      ? renderConnectedView(state, rightbar, contact)
+      : renderConnectGate(state.connection, rightbar),
+  ];
+}
+
+const ERROR_COPY = {
+  timeout: "Acme didn't respond in time.",
+  network: "We couldn't reach Acme. Check your connection.",
+  request_failed: "Something went wrong while checking your Acme connection.",
+};
+
+function renderConnectGate(connection, rightbar) {
+  const code = connection.error?.code;
+  return h(
+    "section",
+    { class: "acme-gate", "data-testid": "connect-gate" },
+    h("p", {}, "Connect your Acme account to see your records here."),
+    code && h("div", { role: "alert" }, ERROR_COPY[code]),
+    connection.pending &&
+      h(
+        "p",
+        { role: "status" },
+        "Waiting for you to finish connecting in the Acme window...",
+      ),
+    h(
+      "button",
+      {
+        type: "button",
+        class: "d-btn d-btn--primary", // Dialtone's CSS on your own markup
+        disabled: connection.pending,
+        onClick: () => rightbar.authorize(), // opens the authorize URL, then the SDK polls
+      },
+      code ? "Try again" : "Connect",
+    ),
+  );
+}
+```
+
+Replacing all the children on every snapshot is fine for a panel this small, but it
+drops focus, scroll position and text typed into an input. If that matters, either
+render only the part whose state changed (`rightbar.watch((s) => s.call, ...)`
+re-runs only when the call changes, because unchanged parts of the snapshot keep
+their references) or use a tiny DOM-diffing library such as `lit-html` or
+`morphdom` for the render step.
+
+### The contact section
+
+`AcmeContact.vue` is the one component with state of its own: it asks the server for
+the CRM's view of whichever contact is open, shows loading and failure, and must
+ignore a late answer for an earlier contact. Vanilla, that is a watcher and a
+counter, the same as the `watch` and `lookup` counter in the Vue file:
+
+```js
+import { fetchAcmeFields } from "./contactApi";
+
+function createContactSection(rightbar) {
+  const view = { status: "idle", fields: [] };
+  let lookup = 0;
+  let onChange = () => {};
+
+  // Runs now and whenever `state.contact` changes (a new contact object), not on other changes.
+  rightbar.watch(
+    (state) => state.contact,
+    async (contact) => {
+      lookup += 1;
+      const mine = lookup;
+      view.fields = [];
+      view.status = contact ? "loading" : "idle";
+      onChange();
+      if (!contact) return;
+      try {
+        const fields = await fetchAcmeFields(contact);
+        if (mine === lookup) Object.assign(view, { status: "ready", fields });
+      } catch {
+        if (mine === lookup) view.status = "failed";
+      }
+      onChange();
+    },
+  );
+
+  return {
+    view,
+    // main.js passes its `render` here, so a finished lookup re-renders the panel.
+    subscribe: (callback) => {
+      onChange = callback;
+    },
+  };
+}
+```
+
+A real app would also call `rightbar.linkRecord(...)` here once the server has
+returned a mapped CRM record (see
+[The contact lookup](#the-contact-lookup-demo-vs-a-real-app)).
+
+### Tests and build
+
+The SDK's testing entry (`@dialpad/dialapp-external-sdk/testing`) is not Vue
+specific: `createMockHost()`, `makePageData()` and `host.sendContact(...)` give a
+fake Dialpad, and `host.createRightbar(...)` returns a real `Rightbar` to render
+from. Only the Vue helper `mountWithRightbar` (from `/vue/testing`) goes away: mount
+by calling your `render` into a jsdom element. The browser tests (Playwright
+against the dev host) do not change at all, since they only look at the DOM through
+`data-testid` and roles.
+
+What you give up is the framework: no components with scoped state, no templates to
+check, no reactivity, so keeping the DOM in step with the snapshot is your code. What
+you gain is a much smaller bundle: today's is about 116 kB gzipped (Vue, Dialtone's
+Vue components and the SDK).
+
+## Adapting the iframe panel to React or Next.js
+
+There are two different questions, and they have different answers.
+
+1. **Replace only the Vue code with React**, keeping this app's Python server (or
+   any server you already have). The server does not change.
+2. **Replace the server too, with Next.js.** Next.js renders the page, so the
+   server's page, endpoints, CSP and cookie handling all have to be rebuilt in
+   Node. This is a much bigger change, and most of this section is about it.
+
+Neither is built or run in this repository; the snippets are sketches.
+
+### React with the same server
+
+Everything under "What does not change" in the plain JavaScript section applies:
+the server, the SDK calls, the framework-free modules (with `sessionExpired` as a
+plain flag, as there) and the BEM CSS.
+Dialtone's Vue components do not apply, so use Dialtone's CSS and design tokens on
+your own React components.
+
+**Start the SDK outside React**, before the first render, as the Vue app does in
+`bootstrap.ts`. If you start it inside a `useEffect`, React's Strict Mode (on by
+default in development) mounts, unmounts and remounts the component, which would
+create two SDK instances and run the `init` handshake twice.
+
+```tsx
+// main.tsx
+import { createRightbar, RightbarError } from "@dialpad/dialapp-external-sdk";
+import { createRoot } from "react-dom/client";
+import { App } from "./App";
+import { RightbarProvider } from "./rightbar";
+import { api, useAuthHeaders } from "./api";
+
+const root = document.getElementById("app")!;
+try {
+  const rightbar = await createRightbar({ heightRoot: root, fetch: api });
+  useAuthHeaders(() => rightbar.authHeaders());
+  createRoot(root).render(
+    <RightbarProvider rightbar={rightbar}>
+      <App />
+    </RightbarProvider>,
+  );
+} catch (error) {
+  if (!(error instanceof RightbarError)) throw error;
+  root.textContent = "Open this panel from Dialpad.";
+}
+```
+
+**The binding is about fifteen lines.** The SDK's snapshot is immutable, replaced
+on every change, and unchanged parts keep their references. That is exactly what
+`useSyncExternalStore` expects, so a hook over `subscribe` and `state` replaces
+`useRightbar()` and `rightbarPlugin`:
+
+```tsx
+// rightbar.tsx
+import type { Rightbar, RightbarState } from "@dialpad/dialapp-external-sdk";
+import {
+  createContext,
+  useContext,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
+
+const RightbarContext = createContext<Rightbar | null>(null);
+
+export function RightbarProvider({
+  rightbar,
+  children,
+}: {
+  rightbar: Rightbar;
+  children: ReactNode;
+}) {
+  return (
+    <RightbarContext.Provider value={rightbar}>
+      {children}
+    </RightbarContext.Provider>
+  );
+}
+
+/** The SDK instance, for actions: `authorize()`, `disconnect()`, `linkRecord(...)`. */
+export function useRightbar(): Rightbar {
+  const rightbar = useContext(RightbarContext);
+  if (!rightbar) throw new Error("Wrap the app in <RightbarProvider>");
+  return rightbar;
+}
+
+/** A selected part of the snapshot; the component re-renders only when that part changes. */
+export function useRightbarState<T>(select: (state: RightbarState) => T): T {
+  const rightbar = useRightbar();
+  return useSyncExternalStore(
+    (onChange) => rightbar.subscribe(() => onChange()),
+    () => select(rightbar.state),
+  );
+}
+```
+
+`useRightbarState((s) => s.connection)` is the React form of
+`computed(() => state.value.connection)`. Pick selectors that return a part of the
+snapshot as it is (`s.call`, `s.connection`), not a freshly built object, or the
+component re-renders on every change.
+
+**The one component with state of its own** is the contact section. With hooks
+it is an effect with an "ignore" flag, which is the React form of the `lookup`
+counter in `AcmeContact.vue`:
+
+```tsx
+function AcmeContact({ contact }: { contact: Contact | null }) {
+  const [view, setView] = useState<{
+    status: "idle" | "loading" | "ready" | "failed";
+    fields: AcmeField[];
+  }>({ status: "idle", fields: [] });
+  useEffect(() => {
+    if (!contact) return setView({ status: "idle", fields: [] });
+    let stale = false; // set by the cleanup when the contact changes or the component unmounts
+    setView({ status: "loading", fields: [] });
+    fetchAcmeFields(contact).then(
+      (fields) => !stale && setView({ status: "ready", fields }),
+      () => !stale && setView({ status: "failed", fields: [] }),
+    );
+    return () => {
+      stale = true;
+    };
+  }, [contact]);
+  // ...render view.status and view.fields as AcmeContact.vue does
+}
+```
+
+Everything else maps one to one: `App.vue` to `App`, `ConnectGate.vue` to
+`ConnectGate` (reading `useRightbarState((s) => s.connection)` and calling
+`useRightbar().authorize()`), the cards to components, `sessionExpired` (a Vue
+`ref`) to a small store or context read through `useSyncExternalStore`. Tests use
+React Testing Library with the SDK's mock host, and the Playwright tests do not
+change. Build with `@vitejs/plugin-react`, and point the server's `ENTRY` at
+`src/main.tsx`.
+
+### Next.js as the server
+
+Next.js owns the page, so the work is moving the Python server's jobs into Next.
+The panel itself is the React code above, as a client component.
+
+| Python server piece                      | In Next.js (App Router)                                                       |
+| ---------------------------------------- | ----------------------------------------------------------------------------- |
+| `endpoints/dialpad/page.py` (`GET /`)    | `middleware.ts` plus `app/page.tsx`: authenticate, set the cookie, render     |
+| `idtoken.py` (decode the idtoken)        | `jose`: `compactDecrypt` (`dir`, `A192CBC-HS384`) then `jwtVerify` (`HS256`)  |
+| `pages.py` (CSP, nonce, escaping)        | `middleware.ts` (CSP and nonce), the page's JSON element (escaping)           |
+| `context.py`, `database.py` (cookie)     | A small `session.ts`, or a session library, called from middleware and routes |
+| `ext_connection.py`, `ext_disconnect.py` | `app/dialpad/ext-connection/route.ts`, `app/dialpad/ext-disconnect/route.ts`  |
+| `app/contact.py`                         | `app/api/contact/route.ts`                                                    |
+| `oauth_*.py`                             | `app/oauth/callback/route.ts` (and your CRM's real authorize URL)             |
+| `dialpad_api.py` (the api key call)      | A server function using `fetch` with `Authorization: Bearer <api_key>`        |
+| `stores.py` (`OAuthResults`)             | A shared store (Redis or a database), see below                               |
+| `settings.py`                            | Environment variables read on the server only                                 |
+
+**Authenticating the page request.** The idtoken arrives as `?idtoken=...` on the
+page URL. The page is a server component (`await searchParams` in Next 15), but
+two things must happen where a server component cannot do them: **setting a
+cookie** and **answering `401`**. In Next.js, cookies can be set only in
+middleware, route handlers and server actions, not while a server component
+renders, and a page cannot choose its status. So `middleware.ts` does the
+authentication: it decodes and verifies the idtoken, answers a bad one with a
+`401` response, sets the session cookie, and passes what the page needs (the
+Dialpad user and the access token) to it in request headers it adds with
+`NextResponse.next({ request: { headers } })`. The page reads those headers; it
+never sees the idtoken's `api_key` unless it needs it for the demo call.
+
+**CSP and the nonce.** Also in middleware, as in Next.js's own CSP guide:
+generate a fresh random nonce per request, set `Content-Security-Policy` on the
+request (so Next.js adds the nonce to the inline scripts it emits for hydration)
+and on the response, and pass the nonce to the page in a header. The policy is the
+one in [Framing, CSP and nonces](#4-framing-csp-and-nonces): `frame-ancestors`
+set to the Dialpad origin, `script-src 'self' 'nonce-...'`, `object-src 'none'`,
+`base-uri 'none'`, plus `Referrer-Policy: no-referrer` and `Cache-Control:
+no-store`. Three Next.js consequences:
+
+- **The page must be rendered per request.** A nonce changes every response, so
+  the page cannot be statically generated or cached: mark it dynamic
+  (`export const dynamic = 'force-dynamic'`) and send `no-store`.
+- **Next's own scripts are `'self'`** (`/_next/static/...`), so `'self'` plus the
+  nonce covers them. Development mode needs extra allowances (for example
+  `'unsafe-eval'`); Next.js's CSP guide lists them. Keep them out of production.
+- **The page data element is rendered by you.** The SDK reads
+  `<script type="application/json" id="dialpad-page-data">`. React escapes text
+  but would turn the JSON's quotes into entities, so write it with
+  `dangerouslySetInnerHTML` and the same escaping `pages.py` uses (`<`, `>`, `&`
+  and `'` as `<`-style escapes), with the nonce on the element.
+
+**The session cookie.** Same design as here: a signed cookie holding the access
+token and the connection state, with the same attributes (`__Host-` prefix,
+`Secure`, `HttpOnly`, `SameSite=None`, `Partitioned`, 30 days), signed with
+`APP_SECRET` through `jose` or `crypto.createHmac`. If your Next.js version's
+cookies API does not accept `partitioned`, append that attribute to the
+`Set-Cookie` header yourself. The contract endpoints are route handlers that
+require the `Authorization: Bearer` token to equal the cookie's token, exactly as
+`ctx.state_for` does. Or, as in most Next.js apps, keep the session in a store
+(`iron-session`, Redis, a database) and put only an opaque id in the cookie; see
+"Why `APP_SECRET` exists, and how it is usually done" in
+[Security](#security-what-the-demo-shows).
+
+**The panel is a client component.** The SDK uses `window` and `postMessage`, so it
+must run only in the browser. Render the page shell on the server, and start the
+SDK in a client component. Start it once, outside the React lifecycle, because
+Strict Mode runs effects twice in development:
+
+```tsx
+// app/panel.tsx
+"use client";
+import { createRightbar, type Rightbar } from "@dialpad/dialapp-external-sdk";
+import { useEffect, useState } from "react";
+
+let started: Promise<Rightbar> | undefined; // one SDK instance per page load
+
+export function Panel() {
+  const [rightbar, setRightbar] = useState<Rightbar | null>(null);
+  useEffect(() => {
+    started ??= createRightbar({
+      heightRoot: document.getElementById("panel-root")!,
+      fetch: api,
+    });
+    started.then(setRightbar, () => {
+      /* not framed by Dialpad: show "Open this panel from Dialpad" */
+    });
+  }, []);
+  return (
+    <div id="panel-root">
+      {rightbar && (
+        <RightbarProvider rightbar={rightbar}>
+          <App />
+        </RightbarProvider>
+      )}
+    </div>
+  );
+}
+```
+
+**What does not carry over unchanged:**
+
+- **`OAuthResults` cannot stay in memory on serverless hosts.** On Vercel or any
+  platform that runs requests on many short-lived instances, the OAuth callback
+  and the panel's next `ext-connection` call can land on different instances. Use
+  Redis or a database for that handoff, or, better, store the CRM tokens in the
+  callback as a real app does and drop the handoff (see
+  [Why connection results are kept in memory](#why-connection-results-are-kept-in-memory-demo-only)).
+  A single long-running Node server (for example in a container) can keep the
+  in-memory map, with the same single-instance caveat as the Python server.
+- **Environment variables.** `DIALPAD_CLIENT_SECRET` and `APP_SECRET` must be
+  server-only. Never give them a `NEXT_PUBLIC_` prefix: Next.js inlines those into
+  the browser bundle.
+- **Logs.** The idtoken is in the page URL. Do not log `request.url`, and expect
+  your host's request log to record it (the same caveat as Cloud Run in
+  [deployment/README.md](deployment/README.md)).
+- **Deployment.** Next's `output: 'standalone'` gives one Node image instead of the
+  two-stage Node plus Python build, and runs on Cloud Run the same way.
+- **Tests.** Route handlers are functions of a `Request`, so test them the way
+  `server/tests/` tests the Sanic app: call the handler with a request carrying the
+  bearer header and cookie, and assert on the `Response`. The SDK's mock host and
+  the Playwright tests are unchanged.
