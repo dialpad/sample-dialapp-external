@@ -35,7 +35,7 @@ them. A container needs these four, none of which is baked into the image:
 | Variable                | Value                                                                    |
 | ----------------------- | ------------------------------------------------------------------------ |
 | `DIALPAD_CLIENT_SECRET` | The OAuth app's client secret                                            |
-| `APP_SECRET`            | A random secret that signs `state` and the cookie                        |
+| `APP_SECRET`            | Demo only. A random secret that signs `state` and the cookie             |
 | `DIALPAD_ORIGIN`        | `https://dialpadbeta.com` for beta, `https://dialpad.com` for production |
 | `BASE_URL`              | The public HTTPS URL of the service, without a trailing slash            |
 

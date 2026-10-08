@@ -166,7 +166,7 @@ loads a `.env` file, so export them in your shell or your host's settings.
 | ----------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DIALPAD_CLIENT_SECRET` | yes, outside local mode | The OAuth app's client secret; decodes the idtoken. At least 48 characters (Dialpad's are 50). Local mode defaults to this app's own test secret (`TEST_CLIENT_SECRET` in `server/acme_dialpad_rightbar/idtoken.py`)                               |
 | `DIALPAD_ORIGIN`        | yes, outside local mode | `https://dialpadbeta.com` for beta or `https://dialpad.com` for production; the page's `frame-ancestors`. Must be a bare origin (scheme, host, optional port; no trailing slash or path), checked at startup. Local mode defaults to `VITE_ORIGIN` |
-| `APP_SECRET`            | yes, outside local mode | A random secret that signs the OAuth `state` and the connection cookie. Local mode defaults to a fixed development value                                                                                                                           |
+| `APP_SECRET`            | yes, outside local mode | Demo only. A random secret the demo uses to sign the OAuth `state` and its session cookie (a real app keeps these in a database). Local mode defaults to a fixed development value                                                                 |
 | `BASE_URL`              | yes, outside local mode | The public HTTPS URL of the server, without a trailing slash; used to build the authorize and callback URLs. Local mode defaults to `http://localhost:8000`                                                                                        |
 | `HOST`                  | no                      | The address to listen on. Default `127.0.0.1` (this machine only); a container sets `0.0.0.0`. See [deployment/](deployment/README.md)                                                                                                             |
 | `LOCAL_MODE`            | no                      | `1` turns on local mode: the defaults above, the dev host's route, and the Vite dev server's origins in the CSP                                                                                                                                    |
@@ -228,6 +228,34 @@ callback stored).
 | [5. Contact pulling](FLOWS.md#5-external-contact-pulling)                                   | Prefixes every text field with `Acme `                                                                                                       | Maps the contact to a CRM record, fetches it with the CRM token, calls `linkRecord`        |
 | [6. Server to server](FLOWS.md#6-server-to-server-calling-dialpads-api)                     | One call on the page request                                                                                                                 | Stores the key and calls Dialpad's API whenever needed                                     |
 | [7. Webhooks](FLOWS.md#7-event-subscriptions-and-webhooks)                                  | Not implemented                                                                                                                              | A receiver that verifies each event's signed JWT                                           |
+
+### Why the demo has an `APP_SECRET`
+
+`APP_SECRET` is this demo's own device, not something Dialpad or the SDK asks for. The demo has no
+database and no cache, so it keeps what it must remember in values it signs and
+hands to the browser: the OAuth `state` carries the user and an expiry, and the
+session cookie carries the access token and the connection. Signing is what lets
+the server trust them when they come back.
+
+Applications usually keep that state on the server instead:
+
+- **Sessions.** On the first page load, create a session row in your database
+  or cache for that Dialpad user, with a random token; embed the token in the page
+  data and have the iframe panel send it as the bearer. The server looks the token up on
+  each request. No signed cookie is needed, because the browser holds only an
+  opaque id, and you can revoke a session by deleting the row.
+- **OAuth `state`.** Generate a random `state` for each Connect, store its context
+  (the Dialpad user, where to return to) in Redis or the database with a short
+  expiry, and look it up in the callback.
+- **The connection.** The callback stores the CRM tokens durably, keyed by the
+  Dialpad user, and "connected" means those tokens exist.
+- **A secret of your own is still useful**, but for other jobs: deriving the
+  signing secret of each event subscription's webhook, and encrypting at rest what
+  you store (CRM tokens, the Dialpad `api_key`).
+
+The demo's approach has no storage to run, but it cannot revoke a session, its
+values live in the browser (30 days, per browser), and rotating `APP_SECRET`
+signs everyone out.
 
 ### The contact lookup (demo vs. a real app)
 
@@ -323,43 +351,15 @@ credential in its URL, that then talks to your server. This section lists what
 the app does about each risk, where it lives, and which tests cover it. The last
 subsection says what it deliberately does not do.
 
-**Which secret is which.** Five different secrets appear below, and they are not
+**Which secret is which.** Four different secrets appear below, and they are not
 interchangeable:
 
 | Secret                                                | Who issues it                               | What it is used for                                                                             |
 | ----------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | **OAuth app client secret** (`DIALPAD_CLIENT_SECRET`) | Dialpad, when it sets up your OAuth app     | Decrypting and verifying the **idtoken** on the page request. Nothing else in this app uses it. |
 | **`api_key`** (inside the idtoken)                    | Dialpad, per user and app                   | `Authorization: Bearer` on your server's calls to Dialpad's public API                          |
-| **App secret** (`APP_SECRET`)                         | You (a random string)                       | Signing this app's own values: the OAuth `state` and the session cookie. See below.             |
 | **Access token** (in the page data and cookie)        | Your server, per browser session            | `Authorization: Bearer` on every request the iframe panel makes to your server                  |
 | **Webhook signing secret**                            | You, when you create a webhook with Dialpad | Verifying the JWT on events Dialpad sends to you (not implemented in this demo)                 |
-
-**Why `APP_SECRET` exists, and how it is usually done.** `APP_SECRET` is this
-demo's own device, not something Dialpad or the SDK asks for. The demo has no
-database and no cache, so it keeps what it must remember in values it signs and
-hands to the browser: the OAuth `state` carries the user and an expiry, and the
-session cookie carries the access token and the connection. Signing is what lets
-the server trust them when they come back.
-
-Applications usually keep that state on the server instead:
-
-- **Sessions.** On the first page load, create a session row in your database
-  or cache for that Dialpad user, with a random token; embed the token in the page
-  data and have the iframe panel send it as the bearer. The server looks the token up on
-  each request. No signed cookie is needed, because the browser holds only an
-  opaque id, and you can revoke a session by deleting the row.
-- **OAuth `state`.** Generate a random `state` for each Connect, store its context
-  (the Dialpad user, where to return to) in Redis or the database with a short
-  expiry, and look it up in the callback.
-- **The connection.** The callback stores the CRM tokens durably, keyed by the
-  Dialpad user, and "connected" means those tokens exist.
-- **A secret of your own is still useful**, but for other jobs: deriving the
-  signing secret of each event subscription's webhook, and encrypting at rest what
-  you store (CRM tokens, the Dialpad `api_key`).
-
-The demo's approach has no storage to run, but it cannot revoke a session, its
-values live in the browser (30 days, per browser), and rotating `APP_SECRET`
-signs everyone out.
 
 ### 1. The idtoken and its api key
 
@@ -553,7 +553,7 @@ Other protections around the page:
 - **The session cookie** is `__Host-` prefixed (so `Secure`, `Path=/`, host only),
   `Secure`, `HttpOnly`, `SameSite=None` (required in a third-party iframe),
   `Partitioned` (kept separately per embedding site) and lasts 30 days. Its
-  value is signed with HMAC-SHA256 using `APP_SECRET`: readable, but nobody
+  value is signed with HMAC-SHA256 using the demo's signing secret: readable, but nobody
   without the secret can forge or change it.
 - **Each signed value carries a `kind`**, so a value signed for one purpose, such
   as an OAuth `state`, is never accepted as another, such as a session cookie.
@@ -565,7 +565,7 @@ Other protections around the page:
 ### 6. Secrets and logs
 
 - `DIALPAD_CLIENT_SECRET` (at least 48 characters, checked at startup) and
-  `APP_SECRET` are kept out of the settings' `repr`, so they cannot appear in a
+  the demo's signing secret are kept out of the settings' `repr`, so they cannot appear in a
   log line or a traceback.
 - **The access log is off**, because it would print every page URL and with it
   the idtoken. A quiet error handler logs only the method, path and exception
@@ -584,7 +584,7 @@ Other protections around the page:
 - **The OAuth is fake**, and nothing is stored for a real CRM: no CRM tokens, no
   refresh.
 - **Sessions are a cookie, not a server-side session**: it lasts 30 days, is per
-  browser, can't be revoked early except by changing `APP_SECRET`, and a browser
+  browser, can't be revoked early except by changing the demo's signing secret, and a browser
   that refuses the cookie can't use the iframe panel. A real partner would use stored
   sessions or expiring tokens.
 - **No event-subscription receiver** (section 3), and no replay protection for
@@ -1082,14 +1082,13 @@ no-store`. Three Next.js consequences:
 **The session cookie.** Same design as here: a signed cookie holding the access
 token and the connection state, with the same attributes (`__Host-` prefix,
 `Secure`, `HttpOnly`, `SameSite=None`, `Partitioned`, 30 days), signed with
-`APP_SECRET` through `jose` or `crypto.createHmac`. If your Next.js version's
+the demo's signing secret through `jose` or `crypto.createHmac`. If your Next.js version's
 cookies API does not accept `partitioned`, append that attribute to the
 `Set-Cookie` header yourself. The contract endpoints are route handlers that
 require the `Authorization: Bearer` token to equal the cookie's token, exactly as
 `ctx.state_for` does. Or, as in most Next.js apps, keep the session in a store
 (`iron-session`, Redis, a database) and put only an opaque id in the cookie; see
-"Why `APP_SECRET` exists, and how it is usually done" in
-[Security](#security-what-the-demo-shows).
+[how this is usually done](#why-the-demo-has-an-app_secret).
 
 **The panel is a client component.** The SDK uses `window` and `postMessage`, so it
 must run only in the browser. Render the page shell on the server, and start the
@@ -1137,7 +1136,7 @@ export function Panel() {
   [Why connection results are kept in memory](#why-connection-results-are-kept-in-memory-demo-only)).
   A single long-running Node server (for example in a container) can keep the
   in-memory map, with the same single-instance caveat as the Python server.
-- **Environment variables.** `DIALPAD_CLIENT_SECRET` and `APP_SECRET` must be
+- **Environment variables.** `DIALPAD_CLIENT_SECRET` and the demo's signing secret must be
   server-only. Never give them a `NEXT_PUBLIC_` prefix: Next.js inlines those into
   the browser bundle.
 - **Logs.** The idtoken is in the page URL. Do not log `request.url`, and expect
