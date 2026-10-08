@@ -1,8 +1,8 @@
 sanic>=25.12,<26
-# The contract models (acme_crm/contract.py) and the idtoken decoder (acme_crm/idtoken.py).
+# The contract models (acme_dialpad_rightbar/contract.py) and the idtoken decoder (acme_dialpad_rightbar/idtoken.py).
 pydantic
 joserfc
-# Dialpad's public API client, used only by the demo call in acme_crm/dialpad_api.py. httpx is
+# Dialpad's public API client, used only by the demo call in acme_dialpad_rightbar/dialpad_api.py. httpx is
 # imported there for its exception types.
 python-dialpad
 httpx

@@ -14,15 +14,15 @@
 
 from typing import TYPE_CHECKING
 
-from acme_crm.endpoints.app import contact
-from acme_crm.endpoints.app import dev_frame_url
-from acme_crm.endpoints.app import healthz
-from acme_crm.endpoints.app import oauth_callback
-from acme_crm.endpoints.app import oauth_fake_authorize
+from acme_dialpad_rightbar.endpoints.app import contact
+from acme_dialpad_rightbar.endpoints.app import dev_frame_url
+from acme_dialpad_rightbar.endpoints.app import healthz
+from acme_dialpad_rightbar.endpoints.app import oauth_callback
+from acme_dialpad_rightbar.endpoints.app import oauth_fake_authorize
 
 if TYPE_CHECKING:
-  from acme_crm.context import App
-  from acme_crm.context import AppContext
+  from acme_dialpad_rightbar.context import App
+  from acme_dialpad_rightbar.context import AppContext
 
 
 def register_app_endpoints(app: App, ctx: AppContext) -> None:

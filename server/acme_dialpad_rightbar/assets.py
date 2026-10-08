@@ -16,7 +16,7 @@ if TYPE_CHECKING:
   from collections.abc import Mapping
   from collections.abc import Sequence
 
-  from acme_crm.settings import Settings
+  from acme_dialpad_rightbar.settings import Settings
 
 # The frontend's entry module, as Vite names it in its manifest and in the dev server's URLs.
 ENTRY = 'src/main.ts'

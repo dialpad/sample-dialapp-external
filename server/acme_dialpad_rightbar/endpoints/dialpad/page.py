@@ -3,7 +3,8 @@
 Dialpad opens the URL registered as the OAuth app's conversation sidebar URI and appends
 ``?idtoken=<token>``. This is the one request authenticated by the idtoken (decoded with the OAuth
 app's client secret); every later request from the iframe panel uses the access token this page
-hands out instead. See ``acme_crm.idtoken`` for the token and the README's Security section for why.
+hands out instead. See ``acme_dialpad_rightbar.idtoken`` for the token and the README's Security
+section for why.
 """
 
 from typing import TYPE_CHECKING
@@ -11,25 +12,25 @@ from typing import TYPE_CHECKING
 from sanic import HTTPResponse
 from sanic import Request
 
-from acme_crm.context import ACCOUNT_NAME
-from acme_crm.contract import DEFAULT_API_PREFIX
-from acme_crm.contract import ErrorResponse
-from acme_crm.contract import PageData
-from acme_crm.database import CookieBackedDatabaseStorage
-from acme_crm.dialpad_api import fetch_dialpad_user
-from acme_crm.dialpad_api import skipped
-from acme_crm.idtoken import IdTokenError
-from acme_crm.idtoken import decode_idtoken
-from acme_crm.pages import PageOptions
-from acme_crm.pages import generate_nonce
-from acme_crm.pages import render_error_page
-from acme_crm.pages import render_page
-from acme_crm.responses import rendered
-from acme_crm.stores import UserKey
+from acme_dialpad_rightbar.context import ACCOUNT_NAME
+from acme_dialpad_rightbar.contract import DEFAULT_API_PREFIX
+from acme_dialpad_rightbar.contract import ErrorResponse
+from acme_dialpad_rightbar.contract import PageData
+from acme_dialpad_rightbar.database import CookieBackedDatabaseStorage
+from acme_dialpad_rightbar.dialpad_api import fetch_dialpad_user
+from acme_dialpad_rightbar.dialpad_api import skipped
+from acme_dialpad_rightbar.idtoken import IdTokenError
+from acme_dialpad_rightbar.idtoken import decode_idtoken
+from acme_dialpad_rightbar.pages import PageOptions
+from acme_dialpad_rightbar.pages import generate_nonce
+from acme_dialpad_rightbar.pages import render_error_page
+from acme_dialpad_rightbar.pages import render_page
+from acme_dialpad_rightbar.responses import rendered
+from acme_dialpad_rightbar.stores import UserKey
 
 if TYPE_CHECKING:
-  from acme_crm.context import App
-  from acme_crm.context import AppContext
+  from acme_dialpad_rightbar.context import App
+  from acme_dialpad_rightbar.context import AppContext
 
 
 def register(app: App, ctx: AppContext) -> None:

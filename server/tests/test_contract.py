@@ -1,13 +1,13 @@
-"""The contract models (acme_crm/contract.py): the shapes the SDK reads and the rules on them."""
+"""The contract models (``contract.py``): the shapes the SDK reads and the rules on them."""
 
 import pytest
 from pydantic import ValidationError
 
-from acme_crm.contract import DEFAULT_API_PREFIX
-from acme_crm.contract import ErrorResponse
-from acme_crm.contract import ExternalConnection
-from acme_crm.contract import IdTokenClaims
-from acme_crm.contract import PageData
+from acme_dialpad_rightbar.contract import DEFAULT_API_PREFIX
+from acme_dialpad_rightbar.contract import ErrorResponse
+from acme_dialpad_rightbar.contract import ExternalConnection
+from acme_dialpad_rightbar.contract import IdTokenClaims
+from acme_dialpad_rightbar.contract import PageData
 
 IDENTITY = {
     'user_id': 5432,
@@ -25,8 +25,8 @@ def a_page_data() -> PageData:
       access_token='an-access-token',
       external_connection=ExternalConnection(
           connected=False,
-          authorization_urls={'acme-crm': 'https://acme.example.com/oauth'},
-          name='acme-crm',
+          authorization_urls={'acme-for-dialpad': 'https://acme.example.com/oauth'},
+          name='acme-for-dialpad',
       ),
   )
 
@@ -63,9 +63,9 @@ def test_page_data_json_never_contains_an_api_key() -> None:
 
 def test_not_connected_requires_an_authorization_url() -> None:
   with pytest.raises(ValidationError, match='authorization_urls'):
-    ExternalConnection(connected=False, name='acme-crm')
+    ExternalConnection(connected=False, name='acme-for-dialpad')
 
-  connected = ExternalConnection(connected=True, name='acme-crm')
+  connected = ExternalConnection(connected=True, name='acme-for-dialpad')
   assert connected.authorization_urls == {}
   assert connected.scopes == []
 
@@ -74,20 +74,20 @@ def test_external_connection_has_the_contracts_shape() -> None:
   connection = ExternalConnection(
       connected=True,
       authorization_urls={
-          'acme-crm': 'https://a.example/oauth',
+          'acme-for-dialpad': 'https://a.example/oauth',
           'acme-sandbox': 'https://b.example/oauth',
       },
-      name='acme-crm',
+      name='acme-for-dialpad',
       scopes=['read', 'write_contacts'],
   )
 
   assert connection.model_dump(mode='json') == {
       'connected': True,
       'authorization_urls': {
-          'acme-crm': 'https://a.example/oauth',
+          'acme-for-dialpad': 'https://a.example/oauth',
           'acme-sandbox': 'https://b.example/oauth',
       },
-      'name': 'acme-crm',
+      'name': 'acme-for-dialpad',
       'scopes': ['read', 'write_contacts'],
   }
   with pytest.raises(ValidationError):

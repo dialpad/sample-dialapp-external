@@ -19,8 +19,8 @@ its context (it needs both `client/` and `server/`; its ignore file is
    `pnpm build` in `client/`, producing `dist/` (the hashed assets and Vite's
    manifest). The SDK installs from its tarball in `client/vendor/`.
 2. **Server.** A slim Python 3.14 image installs `server/requirements.txt`
-   (public packages only), then copies in `server/acme_crm/` and the built
-   `dist/`. It runs as a non-root user and starts `python -m acme_crm`, which
+   (public packages only), then copies in `server/acme_dialpad_rightbar/` and the built
+   `dist/`. It runs as a non-root user and starts `python -m acme_dialpad_rightbar`, which
    serves the page and the API, and the built assets under `/assets`.
 
 The image sets `HOST=0.0.0.0`, `PORT=8080` and `DIST_DIR=dist` (where it keeps
@@ -259,7 +259,7 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
   retried. Limiting the service to one instance, as above, avoids the several-instance
   case for a demo. A real
   partner has no such store: the callback saves the CRM tokens in a shared
-  database, as `server/acme_crm/stores.py` says. The access tokens and the
+  database, as `server/acme_dialpad_rightbar/stores.py` says. The access tokens and the
   "connected" state are not in memory: they are in the session cookie (see
   Cookies below), so they survive restarts and work on any instance.
 - **The idtoken ends up in Cloud Run's request log.** The idtoken is in the page

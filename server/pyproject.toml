@@ -24,7 +24,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# Puts server/ on the import path, so the tests can `import acme_crm`.
+# Puts server/ on the import path, so the tests can `import acme_dialpad_rightbar`.
 pythonpath = ["."]
 asyncio_mode = "auto"
 addopts = "-ra --strict-markers"
@@ -70,7 +70,7 @@ ignore = [
 "tests/**" = ["S101", "PLR2004", "ARG001", "S105", "S106", "D102", "D103", "D107"]
 # Sanic reads a handler's annotations when the route is registered, so `Request` and `HTTPResponse`
 # must be real imports there, not `if TYPE_CHECKING:` ones.
-"acme_crm/endpoints/**" = ["TC002"]
+"acme_dialpad_rightbar/endpoints/**" = ["TC002"]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"

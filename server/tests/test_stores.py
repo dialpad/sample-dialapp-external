@@ -1,8 +1,8 @@
-"""The short-lived in-memory OAuth results (acme_crm/stores.py)."""
+"""The short-lived in-memory OAuth results (acme_dialpad_rightbar/stores.py)."""
 
-from acme_crm.stores import OAUTH_RESULT_TTL_SECONDS
-from acme_crm.stores import OAuthResults
-from acme_crm.stores import UserKey
+from acme_dialpad_rightbar.stores import OAUTH_RESULT_TTL_SECONDS
+from acme_dialpad_rightbar.stores import OAuthResults
+from acme_dialpad_rightbar.stores import UserKey
 from tests.conftest import Clock
 
 JANE = UserKey(company_id=12345, user_id=5432)

@@ -10,8 +10,8 @@ Both are ``<base64url JSON>.<base64url HMAC-SHA256>``, signed with the app secre
   as ``Authorization: Bearer``), the Dialpad user and company, and whether the user is connected. A
   real partner would keep the CRM tokens in a database instead and look the user up there. The
   route handlers don't touch these functions directly:
-  ``acme_crm.database.CookieBackedDatabaseStorage`` wraps them and is the one place the cookie's
-  contents are read and written.
+  ``acme_dialpad_rightbar.database.CookieBackedDatabaseStorage`` wraps them and is the one place the
+  cookie's contents are read and written.
 
 How the session cookie is used:
 

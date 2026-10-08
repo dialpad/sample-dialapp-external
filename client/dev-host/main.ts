@@ -1,7 +1,7 @@
 // The dev host: a stand-in for Dialpad, for running the iframe panel locally without Dialpad.
 //
 // It is a thin wrapper around the SDK's `mountMockHostPage()`. On load it asks the server (in local
-// mode) for the iframe panel's page URL with a mock idtoken made by `server/acme_crm/idtoken.py`, and frames it in
+// mode) for the iframe panel's page URL with a mock idtoken made by `server/acme_dialpad_rightbar/idtoken.py`, and frames it in
 // an iframe, answering the SDK's `init` and `get/user` like Dialpad does. Connect opens the fake
 // authorize URL in a popup (a page marked as fake, with an Authorize button) and, like the desktop
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.

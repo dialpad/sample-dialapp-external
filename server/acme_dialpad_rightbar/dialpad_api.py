@@ -27,7 +27,7 @@ from dialpad import AsyncDialpadClient
 if TYPE_CHECKING:
   from pydantic import SecretStr
 
-logger = logging.getLogger('acme_crm')
+logger = logging.getLogger('acme_dialpad_rightbar')
 
 # How long the page request waits for Dialpad's API before showing the iframe panel without the
 # answer. Short on purpose: the call is a demo, and the iframe panel must not wait on it.

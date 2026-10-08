@@ -1,8 +1,8 @@
-"""Asset tags from a Vite manifest (acme_crm/assets.py)."""
+"""Asset tags from a Vite manifest (acme_dialpad_rightbar/assets.py)."""
 
 import pytest
 
-from acme_crm.assets import PageAssets
+from acme_dialpad_rightbar.assets import PageAssets
 
 
 def test_vite_manifest_entry_collects_script_css_and_origin() -> None:

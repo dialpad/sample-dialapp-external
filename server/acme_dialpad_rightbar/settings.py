@@ -1,7 +1,8 @@
 """Configuration, read from the environment. Secrets never appear in logs or responses.
 
-``settings_from_env`` is the only entry point: ``python -m acme_crm`` calls it once at startup, and
-a bad value stops the process there with a ``ConfigurationError`` rather than failing on a request.
+``settings_from_env`` is the only entry point: ``python -m acme_dialpad_rightbar`` calls it once at
+startup, and a bad value stops the process there with a ``ConfigurationError`` rather than failing
+on a request.
 """
 
 import os
@@ -9,7 +10,7 @@ from dataclasses import dataclass
 from dataclasses import field
 from urllib.parse import urlsplit
 
-from acme_crm.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
 
 # The idtoken's JWE is keyed with the first 48 characters of the client secret; Dialpad's secrets
 # are 50 characters.
@@ -36,8 +37,8 @@ def _is_bare_origin(value: str) -> bool:
   """Whether ``value`` is exactly ``scheme://host[:port]``: no path, query, spaces or ``;``.
 
   The Dialpad origin goes into the page's Content-Security-Policy header, where a stray ``;`` or
-  space would add directives, so it is checked at startup (``acme_crm.pages`` refuses it at render
-  time too). A trailing slash, the likeliest typo, fails the exact comparison.
+  space would add directives, so it is checked at startup (``acme_dialpad_rightbar.pages`` refuses
+  it at render time too). A trailing slash, the likeliest typo, fails the exact comparison.
   """
   if ';' in value or any(char.isspace() for char in value):
     return False
@@ -134,9 +135,9 @@ def settings_from_env(env: dict[str, str] | None = None) -> Settings:
 
   Called once, at startup. ``HOST`` (default ``127.0.0.1``) is the address to listen on and
   applies in both modes. ``LOCAL_MODE=1`` fills in every value a local run needs, including the
-  test client secret from ``acme_crm.idtoken``, which is also what the dev host signs its mock
-  idtoken with. Any of those can still be overridden. Outside local mode the client secret, app
-  secret, Dialpad origin and base URL are all required, and a missing one raises
+  test client secret from ``acme_dialpad_rightbar.idtoken``, which is also what the dev host signs
+  its mock idtoken with. Any of those can still be overridden. Outside local mode the client secret,
+  app secret, Dialpad origin and base URL are all required, and a missing one raises
   ``ConfigurationError``.
   """
   env = dict(os.environ) if env is None else env

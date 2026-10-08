@@ -1,9 +1,10 @@
-"""The Acme CRM server: bare Sanic, built on its own copy of the DialApp contract.
+"""The Acme for Dialpad server: bare Sanic, built on its own copy of the DialApp contract.
 
-``create_app`` wires it together: the shared ``AppContext`` (``acme_crm.context``), the endpoints
-(``acme_crm.endpoints``: ``dialpad/`` for the DialApp contract's, ``app/`` for the application's
-own), and the built iframe panel's assets. Where each piece of state lives, and how a request from
-the iframe panel is authenticated, is explained in ``acme_crm.context``.
+``create_app`` wires it together: the shared ``AppContext`` (``acme_dialpad_rightbar.context``), the
+endpoints (``acme_dialpad_rightbar.endpoints``: ``dialpad/`` for the DialApp contract's, ``app/``
+for the application's own), and the built iframe panel's assets. Where each piece of state lives,
+and how a request from the iframe panel is authenticated, is explained in
+``acme_dialpad_rightbar.context``.
 """
 
 import logging
@@ -16,20 +17,20 @@ from sanic import Request
 from sanic import Sanic
 from sanic.handlers import ErrorHandler
 
-from acme_crm.assets import build_assets
-from acme_crm.context import App
-from acme_crm.context import AppContext
-from acme_crm.dialpad_api import DEFAULT_TIMEOUT_SECONDS
-from acme_crm.endpoints.app import register_app_endpoints
-from acme_crm.endpoints.dialpad import register_dialpad_endpoints
-from acme_crm.stores import OAuthResults
+from acme_dialpad_rightbar.assets import build_assets
+from acme_dialpad_rightbar.context import App
+from acme_dialpad_rightbar.context import AppContext
+from acme_dialpad_rightbar.dialpad_api import DEFAULT_TIMEOUT_SECONDS
+from acme_dialpad_rightbar.endpoints.app import register_app_endpoints
+from acme_dialpad_rightbar.endpoints.dialpad import register_dialpad_endpoints
+from acme_dialpad_rightbar.stores import OAuthResults
 
 if TYPE_CHECKING:
   from collections.abc import Callable
 
-  from acme_crm.settings import Settings
+  from acme_dialpad_rightbar.settings import Settings
 
-logger = logging.getLogger('acme_crm')
+logger = logging.getLogger('acme_dialpad_rightbar')
 
 
 class QuietErrorHandler(ErrorHandler):
@@ -53,17 +54,17 @@ def create_app(
     settings: Settings,
     *,
     clock: Callable[[], float] = time.time,
-    name: str = 'acme_crm',
+    name: str = 'acme_dialpad_rightbar',
     api_timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> App:
   """Build the Sanic app: its OAuth store, its routes, and the page's assets.
 
-  Called once at startup by ``python -m acme_crm`` and once per test. Finished OAuth results start
-  empty and live in this app's memory; everything else the app remembers is in the browsers'
-  session cookies. ``clock`` returns the time in seconds, so tests can move time; ``name`` must be
-  unique per app in one process; ``api_timeout`` is how long the page waits for the demo call to
-  Dialpad's API. Outside local mode this also needs the built iframe panel (``pnpm build``) and
-  serves it under ``/assets``.
+  Called once at startup by ``python -m acme_dialpad_rightbar`` and once per test. Finished OAuth
+  results start empty and live in this app's memory; everything else the app remembers is in the
+  browsers' session cookies. ``clock`` returns the time in seconds, so tests can move time; ``name``
+  must be unique per app in one process; ``api_timeout`` is how long the page waits for the demo
+  call to Dialpad's API. Outside local mode this also needs the built iframe panel (``pnpm build``)
+  and serves it under ``/assets``.
   """
   app = Sanic(name, error_handler=QuietErrorHandler(), configure_logging=False)
   # The access log would print each page URL, idtoken included.

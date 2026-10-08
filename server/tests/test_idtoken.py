@@ -1,4 +1,4 @@
-"""Decoding idtokens (acme_crm/idtoken.py), against tokens from Dialpad's own encoder (python-jose).
+"""Decoding idtokens (``idtoken.py``), against tokens from Dialpad's own encoder (python-jose).
 
 ``tests/vectors/dialpad_idtokens.json`` holds tokens built with python-jose the way Dialpad builds
 them, so decoding them proves the app reads what Dialpad really sends.
@@ -13,10 +13,10 @@ import pytest
 from jose import jwe as jose_jwe
 from jose import jwt as jose_jwt
 
-from acme_crm.idtoken import TEST_CLIENT_SECRET
-from acme_crm.idtoken import IdTokenError
-from acme_crm.idtoken import decode_idtoken
-from acme_crm.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.idtoken import IdTokenError
+from acme_dialpad_rightbar.idtoken import decode_idtoken
+from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
 
 VECTORS = json.loads((Path(__file__).parent / 'vectors' / 'dialpad_idtokens.json').read_text())
 DIALPAD_SECRET = str(VECTORS['client_secret'])

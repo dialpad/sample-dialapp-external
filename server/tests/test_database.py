@@ -1,8 +1,8 @@
-"""The per-user state kept in the session cookie (acme_crm/database.py)."""
+"""The per-user state kept in the session cookie (acme_dialpad_rightbar/database.py)."""
 
-from acme_crm.database import CookieBackedDatabaseStorage
-from acme_crm.signing import COOKIE_MAX_AGE_SECONDS
-from acme_crm.stores import UserKey
+from acme_dialpad_rightbar.database import CookieBackedDatabaseStorage
+from acme_dialpad_rightbar.signing import COOKIE_MAX_AGE_SECONDS
+from acme_dialpad_rightbar.stores import UserKey
 
 SECRET = 'app-secret'
 NOW = 1_000_000.0

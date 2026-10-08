@@ -1,10 +1,12 @@
-# Acme CRM: a partner rightbar reference app
+# Acme for Dialpad: a partner rightbar reference app
 
 A small, runnable example of a Dialpad rightbar app. Dialpad loads the page, the
-page knows who the user is, the user connects a partner system through an OAuth
+page knows who the user is, the user connects a CRM system through an OAuth
 popup, and the iframe panel shows data Dialpad passes in.
 
-The partner system here is a fictional "Acme CRM" with no data. The iframe panel proves
+There are two things here: the **rightbar app**, "Acme for Dialpad", which is this
+repository, and the **CRM** it integrates with, "Acme CRM". The CRM is fictional,
+with no data. The iframe panel proves
 data flow by showing the Dialpad user, the active call, the OAuth scopes and the
 open Dialpad contact (plus the call's own contact when it is a different person)
 with every field "Acme'd" (text gets an `Acme ` prefix).
@@ -16,18 +18,18 @@ It uses one Dialpad library, plus public packages:
   headless SDK that speaks Dialpad's host protocol and keeps the iframe panel's state.
 
 The server carries its own small pieces of the contract, which you keep and
-adapt: `server/acme_crm/idtoken.py` decodes the idtoken (and mints mock ones for
-local mode), `server/acme_crm/pages.py` renders the iframe panel, close-popup and error
-pages with their security headers, and `server/acme_crm/contract.py` has the
+adapt: `server/acme_dialpad_rightbar/idtoken.py` decodes the idtoken (and mints mock ones for
+local mode), `server/acme_dialpad_rightbar/pages.py` renders the iframe panel, close-popup and error
+pages with their security headers, and `server/acme_dialpad_rightbar/contract.py` has the
 models the SDK reads. They are built on `pydantic` and `joserfc`.
 
 The repository has two parts, each with its own tools and checks:
 
-| Folder        | What it is                                                                                                                                                                         |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client/`     | The iframe panel that Dialpad frames: Vite, Vue 3, TypeScript and Dialtone 10. `pnpm` project                                                                                      |
-| `server/`     | The Python server (`acme_crm/`): bare Sanic on Python 3.14, with its tests. Its endpoints are one file each, in `endpoints/dialpad/` and `endpoints/app/`. `tox` and `pip` project |
-| `deployment/` | The Dockerfile and how to run the app as a container on Cloud Run                                                                                                                  |
+| Folder        | What it is                                                                                                                                                                                      |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `client/`     | The iframe panel that Dialpad frames: Vite, Vue 3, TypeScript and Dialtone 10. `pnpm` project                                                                                                   |
+| `server/`     | The Python server (`acme_dialpad_rightbar/`): bare Sanic on Python 3.14, with its tests. Its endpoints are one file each, in `endpoints/dialpad/` and `endpoints/app/`. `tox` and `pip` project |
+| `deployment/` | The Dockerfile and how to run the app as a container on Cloud Run                                                                                                                               |
 
 The iframe panel's CSS does not use Vue's `scoped` styles. Classes are isolated
 by naming instead: BEM with an `acme-` namespace
@@ -105,13 +107,13 @@ cookies; for Safari use a trusted local certificate such as `mkcert`.
 In two terminals:
 
 ```sh
-cd server && LOCAL_MODE=1 .venv/bin/python -m acme_crm   # server on http://localhost:8000
+cd server && LOCAL_MODE=1 .venv/bin/python -m acme_dialpad_rightbar   # server on http://localhost:8000
 cd client && pnpm dev                                    # Vite on http://localhost:5173
 ```
 
 Open <http://localhost:5173/dev-host/>. The dev host (`client/dev-host/`) stands
 in for Dialpad: it asks the server for a page URL carrying a mock idtoken (made
-by `server/acme_crm/idtoken.py` with its test secret), frames the app, answers
+by `server/acme_dialpad_rightbar/idtoken.py` with its test secret), frames the app, answers
 `init`, opens the first of three contacts, and offers buttons to change contact
 (cycling through the three), change the call state (ringing, connected, ended,
 and a new call ringing), and switch light and dark.
@@ -140,7 +142,7 @@ that Dialpad sets up for you.
 
    ```sh
    cd server && DIALPAD_CLIENT_SECRET=... DIALPAD_ORIGIN=https://dialpadbeta.com \
-     APP_SECRET=... BASE_URL=https://your-public-url .venv/bin/python -m acme_crm
+     APP_SECRET=... BASE_URL=https://your-public-url .venv/bin/python -m acme_dialpad_rightbar
    ```
 
 2. Expose the server at that public HTTPS URL (how is up to you).
@@ -162,7 +164,7 @@ loads a `.env` file, so export them in your shell or your host's settings.
 
 | Variable                | Required                | Purpose                                                                                                                                                                                                                                            |
 | ----------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DIALPAD_CLIENT_SECRET` | yes, outside local mode | The OAuth app's client secret; decodes the idtoken. At least 48 characters (Dialpad's are 50). Local mode defaults to this app's own test secret (`TEST_CLIENT_SECRET` in `server/acme_crm/idtoken.py`)                                            |
+| `DIALPAD_CLIENT_SECRET` | yes, outside local mode | The OAuth app's client secret; decodes the idtoken. At least 48 characters (Dialpad's are 50). Local mode defaults to this app's own test secret (`TEST_CLIENT_SECRET` in `server/acme_dialpad_rightbar/idtoken.py`)                               |
 | `DIALPAD_ORIGIN`        | yes, outside local mode | `https://dialpadbeta.com` for beta or `https://dialpad.com` for production; the page's `frame-ancestors`. Must be a bare origin (scheme, host, optional port; no trailing slash or path), checked at startup. Local mode defaults to `VITE_ORIGIN` |
 | `APP_SECRET`            | yes, outside local mode | A random secret that signs the OAuth `state` and the connection cookie. Local mode defaults to a fixed development value                                                                                                                           |
 | `BASE_URL`              | yes, outside local mode | The public HTTPS URL of the server, without a trailing slash; used to build the authorize and callback URLs. Local mode defaults to `http://localhost:8000`                                                                                        |
@@ -195,7 +197,7 @@ and [event subscriptions and webhooks](FLOWS.md#7-event-subscriptions-and-webhoo
 This README says how the demo simplifies them
 ([below](#how-the-demo-differs-from-a-real-app)).
 
-Each endpoint is one file under `server/acme_crm/endpoints/`: the ones Dialpad or
+Each endpoint is one file under `server/acme_dialpad_rightbar/endpoints/`: the ones Dialpad or
 its SDK calls (the DialApp contract) are in `dialpad/`, and the application's own
 are in `app/`. Each folder's `__init__.py` lists them.
 
@@ -226,7 +228,7 @@ are in `app/`. Each folder's `__init__.py` lists them.
 
 **What the demo does.** There is no CRM, so there is no mapping. The iframe panel
 (`client/src/components/AcmeContact.vue`) sends the Dialpad contact to
-`POST /api/contact`, and the server (`server/acme_crm/endpoints/app/contact.py`,
+`POST /api/contact`, and the server (`server/acme_dialpad_rightbar/endpoints/app/contact.py`,
 whose docstring also describes the real thing) answers with every non-empty field
 prefixed `Acme `. That proves the contact reached the server and came back, and
 that the request was authenticated as the right user. The iframe panel shows a
@@ -241,7 +243,7 @@ page, the server uses the idtoken's `api_key` to call Dialpad's public API, to
 show how the key is used: `GET {DIALPAD_ORIGIN}/api/v2/users/me` with
 `Authorization: Bearer <api_key>`, made by Dialpad's own Python client
 ([`python-dialpad`](https://pypi.org/project/python-dialpad/)), in
-`server/acme_crm/dialpad_api.py`. The iframe panel shows the user's name, email, id
+`server/acme_dialpad_rightbar/dialpad_api.py`. The iframe panel shows the user's name, email, id
 and state in a "From Dialpad's API" card.
 
 - The call has a 3 second timeout and no retry. If Dialpad's API refuses the
@@ -273,7 +275,7 @@ callback runs in the popup, and the session cookie belongs to the iframe panel
 is which Dialpad user this is, so the callback leaves a short-lived note in
 server memory ("this user finished connecting", kept for 5 minutes and
 collected once), and the iframe panel's next check picks it up. That note is
-`OAuthResults` in `server/acme_crm/stores.py`, whose docstring tells the whole
+`OAuthResults` in `server/acme_dialpad_rightbar/stores.py`, whose docstring tells the whole
 flow.
 
 **This exists only because the demo has no real CRM.** A real partner's
@@ -350,7 +352,7 @@ JWT signed with `HS256` and the full client secret. Its claims are the Dialpad
 `phone_number` and `image_url`, an internal `csr` claim, and the `api_key`.
 
 **Where to use it: on your server, on that one page request, and nowhere else.**
-`decode_idtoken` (`server/acme_crm/idtoken.py`) accepts only those two
+`decode_idtoken` (`server/acme_dialpad_rightbar/idtoken.py`) accepts only those two
 algorithms, treats a client secret shorter than 48 characters as a configuration
 error, and raises one error type whose message never contains the token or the
 secret. A page that fails to decode gets a `401` page and no page data. The
@@ -405,7 +407,7 @@ There are two kinds, and they use different credentials.
 **Adding your own routes.** On the iframe panel side, send them through the `api()`
 wrapper in `client/src/api.ts`, which adds the bearer header (the SDK's
 `authHeaders()`) to every request and turns a `401` into the "Reload the panel"
-notice. On the server side, add a file under `server/acme_crm/endpoints/app/` with
+notice. On the server side, add a file under `server/acme_dialpad_rightbar/endpoints/app/` with
 a `register(app, ctx)` function (copy `contact.py`) and list it in that folder's
 `__init__.py`. Authenticate the route the way the SDK's own two routes do, with
 `ctx.state_for(request)`, which returns the user's `CookieBackedDatabaseStorage`
@@ -417,7 +419,7 @@ to know who is asking (a sketch):
 async def notes(request: Request) -> HTTPResponse:
   state = ctx.state_for(request)
   if state is None:
-    return unauthorized()  # from acme_crm.responses
+    return unauthorized()  # from acme_dialpad_rightbar.responses
   user = state.user_key()  # the Dialpad company and user making the request
   ...
 ```
@@ -443,7 +445,7 @@ GET https://dialpadbeta.com/api/v2/users/me
 Authorization: Bearer <api_key>
 ```
 
-`server/acme_crm/dialpad_api.py` does this with Dialpad's own Python client,
+`server/acme_dialpad_rightbar/dialpad_api.py` does this with Dialpad's own Python client,
 `AsyncDialpadClient(token=api_key, base_url=origin)`, which adds that header to
 every request. Use a short timeout and no retries for anything on the page
 request path, and treat a `401` as "the key was refused". The key goes only in
@@ -583,23 +585,23 @@ Other protections around the page:
 | Local mode only loosens the CSP in three places           | `endpoints/dialpad/page.py`, `endpoints/app/dev_frame_url.py`, `settings.py` | `test_local_mode_changes_the_csp_in_three_places_only`, `test_the_dev_route_exists_only_in_local_mode`                                         |
 | The SDK refuses to run outside Dialpad's iframe           | the SDK, `client/src/bootstrap.ts`                                           | `client/e2e/sdk/sdk.spec.ts` (opened outside Dialpad)                                                                                          |
 
-(Server files are in `server/acme_crm/` and tests in `server/tests/`.)
+(Server files are in `server/acme_dialpad_rightbar/` and tests in `server/tests/`.)
 
 ## What to replace
 
-| Here                                                                                | With                                                                                                                                                                                                  |
-| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/oauth/fake-authorize`, `/oauth/callback`                                          | Your CRM's real authorize URL and callback; delete `server/acme_crm/fake_oauth.py`. Keep the close-popup page                                                                                         |
-| `server/acme_crm/stores.py` (in-memory)                                             | Nothing: store the CRM tokens in the callback and answer from them (see [flow 3](FLOWS.md#3-external-oauth-connect))                                                                                  |
-| The session cookie (`server/acme_crm/database.py`, `signing.py`)                    | Your stored CRM tokens, and a real session (a durable store or expiring tokens). The signed cookie is this demo's persistent storage of the access token and the connection, not part of the contract |
-| `server/acme_crm/endpoints/app/contact.py`, `client/src/components/AcmeContact.vue` | The contact lookup: map the Dialpad contact to a CRM record with the user's CRM token, and return its fields (see [flow 5](FLOWS.md#5-external-contact-pulling))                                      |
-| `client/src/components/ConnectGate.vue`                                             | Copy it and change the copy; it renders the SDK's `connection` state                                                                                                                                  |
-| `ACCOUNT_NAME` in `server/acme_crm/context.py`                                      | Your CRM's account name                                                                                                                                                                               |
-| `server/acme_crm/dialpad_api.py`, `DialpadApiCard.vue`                              | Delete both, and the call in `endpoints/dialpad/page.py`. Store the api key and call Dialpad when you need to                                                                                         |
+| Here                                                                                             | With                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/oauth/fake-authorize`, `/oauth/callback`                                                       | Your CRM's real authorize URL and callback; delete `server/acme_dialpad_rightbar/fake_oauth.py`. Keep the close-popup page                                                                            |
+| `server/acme_dialpad_rightbar/stores.py` (in-memory)                                             | Nothing: store the CRM tokens in the callback and answer from them (see [flow 3](FLOWS.md#3-external-oauth-connect))                                                                                  |
+| The session cookie (`server/acme_dialpad_rightbar/database.py`, `signing.py`)                    | Your stored CRM tokens, and a real session (a durable store or expiring tokens). The signed cookie is this demo's persistent storage of the access token and the connection, not part of the contract |
+| `server/acme_dialpad_rightbar/endpoints/app/contact.py`, `client/src/components/AcmeContact.vue` | The contact lookup: map the Dialpad contact to a CRM record with the user's CRM token, and return its fields (see [flow 5](FLOWS.md#5-external-contact-pulling))                                      |
+| `client/src/components/ConnectGate.vue`                                                          | Copy it and change the copy; it renders the SDK's `connection` state                                                                                                                                  |
+| `ACCOUNT_NAME` in `server/acme_dialpad_rightbar/context.py`                                      | Your CRM's account name                                                                                                                                                                               |
+| `server/acme_dialpad_rightbar/dialpad_api.py`, `DialpadApiCard.vue`                              | Delete both, and the call in `endpoints/dialpad/page.py`. Store the api key and call Dialpad when you need to                                                                                         |
 
-Keep `server/acme_crm/idtoken.py` (the decoder), `server/acme_crm/pages.py` (the
+Keep `server/acme_dialpad_rightbar/idtoken.py` (the decoder), `server/acme_dialpad_rightbar/pages.py` (the
 page, close-popup and error rendering with their security headers) and
-`server/acme_crm/contract.py` (the models the SDK reads): they are the
+`server/acme_dialpad_rightbar/contract.py` (the models the SDK reads): they are the
 contract's server half, and the OAuth callback's close-popup page stays as it is. Replace
 `TEST_CLIENT_SECRET` and `encode_mock_idtoken` only if you drop local mode.
 
@@ -623,9 +625,9 @@ The server's tox environments build their own virtual environments with
 need no `.venv`. The pieces are: pytest (`filterwarnings = error`), Ruff
 (`select = ALL`, as `contract/` has it), ty (all rules as errors) and yapf
 (`server/.style.yapf`). In the `.venv` from [Install](#install), the same checks
-run directly: `.venv/bin/pytest`, `.venv/bin/ruff check acme_crm tests`,
-`.venv/bin/ty check acme_crm tests` and
-`.venv/bin/yapf --style .style.yapf --diff -r acme_crm tests`.
+run directly: `.venv/bin/pytest`, `.venv/bin/ruff check acme_dialpad_rightbar tests`,
+`.venv/bin/ty check acme_dialpad_rightbar tests` and
+`.venv/bin/yapf --style .style.yapf --diff -r acme_dialpad_rightbar tests`.
 
 `pnpm format:ci` also checks this README and `deployment/README.md`. `pnpm
 test:e2e` starts the server (from `server/`, with its `.venv`, in local mode) and
@@ -663,7 +665,7 @@ this repository does not build or run.
 - **The CSS.** `style.css` and the BEM classes (`acme-contact__label`, ...) carry
   over; each component's `<style>` block becomes a plain `.css` file.
 - **The bundler.** Vite still builds one entry, and the server still links it from
-  Vite's manifest (`ENTRY` in `server/acme_crm/assets.py` changes from
+  Vite's manifest (`ENTRY` in `server/acme_dialpad_rightbar/assets.py` changes from
   `src/main.ts` to `src/main.js` if you rename it).
 
 ### What is replaced
@@ -753,7 +755,7 @@ function h(tag, props = {}, ...children) {
 
 function renderApp(state, rightbar, contact) {
   return [
-    h("h1", { class: "acme-title" }, "Acme CRM (demo)"),
+    h("h1", { class: "acme-title" }, "Acme for Dialpad (demo)"),
     sessionExpired &&
       h(
         "div",

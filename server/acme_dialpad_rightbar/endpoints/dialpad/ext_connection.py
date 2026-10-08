@@ -11,13 +11,13 @@ from typing import TYPE_CHECKING
 from sanic import HTTPResponse
 from sanic import Request
 
-from acme_crm.contract import DEFAULT_API_PREFIX
-from acme_crm.responses import connection_response
-from acme_crm.responses import unauthorized
+from acme_dialpad_rightbar.contract import DEFAULT_API_PREFIX
+from acme_dialpad_rightbar.responses import connection_response
+from acme_dialpad_rightbar.responses import unauthorized
 
 if TYPE_CHECKING:
-  from acme_crm.context import App
-  from acme_crm.context import AppContext
+  from acme_dialpad_rightbar.context import App
+  from acme_dialpad_rightbar.context import AppContext
 
 
 def register(app: App, ctx: AppContext) -> None:
@@ -33,7 +33,7 @@ def register(app: App, ctx: AppContext) -> None:
     decides: it is this app's persistent storage of the connection, signed with ``APP_SECRET`` so it
     can't be forged. The consumed result is a demo-only handoff from the popup to this iframe; a
     real partner answers from the CRM tokens its callback stored (see
-    ``acme_crm.stores.OAuthResults``).
+    ``acme_dialpad_rightbar.stores.OAuthResults``).
     """
     state = ctx.state_for(request)
     if state is None:

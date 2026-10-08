@@ -45,12 +45,12 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-/** The server's `external_connection`, in the wire format: one OAuth client, `acme-crm`. */
+/** The server's `external_connection`, in the wire format: one OAuth client, `acme-for-dialpad`. */
 function externalConnection(connected: boolean) {
   return {
     connected,
-    authorization_urls: { 'acme-crm': AUTHORIZE_URL },
-    name: 'acme-crm',
+    authorization_urls: { 'acme-for-dialpad': AUTHORIZE_URL },
+    name: 'acme-for-dialpad',
     scopes: connected ? ['contacts.read'] : [],
   };
 }
@@ -210,9 +210,9 @@ async function setup({
       app,
       externalConnection: {
         connected,
-        name: 'acme-crm',
+        name: 'acme-for-dialpad',
         scopes: connected ? ['contacts.read'] : [],
-        authorizationUrls: { 'acme-crm': AUTHORIZE_URL },
+        authorizationUrls: { 'acme-for-dialpad': AUTHORIZE_URL },
       },
     }),
   });
@@ -800,6 +800,6 @@ describe('Bootstrap errors', () => {
 
     const root = await bootstrapWith(host, makePageData());
 
-    expect(root.textContent).toContain('Acme CRM (demo)');
+    expect(root.textContent).toContain('Acme for Dialpad (demo)');
   });
 });

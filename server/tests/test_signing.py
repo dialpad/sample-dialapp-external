@@ -1,4 +1,4 @@
-"""The signed state and session cookie (acme_crm/signing.py).
+"""The signed state and session cookie (acme_dialpad_rightbar/signing.py).
 
 Covers forged, expired, wrong-purpose and wrong-user values: what the OAuth callback and the
 connection checks rely on to trust a ``state`` or a session cookie.
@@ -6,9 +6,9 @@ connection checks rely on to trust a ``state`` or a session cookie.
 
 from dataclasses import replace
 
-from acme_crm import signing
-from acme_crm.signing import COOKIE_MAX_AGE_SECONDS
-from acme_crm.signing import STATE_TTL_SECONDS
+from acme_dialpad_rightbar import signing
+from acme_dialpad_rightbar.signing import COOKIE_MAX_AGE_SECONDS
+from acme_dialpad_rightbar.signing import STATE_TTL_SECONDS
 
 SECRET = 'app-secret'
 NOW = 1_000_000.0

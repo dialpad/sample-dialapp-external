@@ -32,7 +32,7 @@ or stored.
    ``linkRecord({...})`` so Dialpad can offer "View record" in the panel menu and use the record's
    URL for screen pops when a call comes in.
 5. **Handle the CRM being slow or down** with a short timeout and an error the iframe panel can
-   show, as ``acme_crm.dialpad_api`` does for Dialpad's own API.
+   show, as ``acme_dialpad_rightbar.dialpad_api`` does for Dialpad's own API.
 """
 
 import json
@@ -43,12 +43,12 @@ from sanic import Request
 from sanic.exceptions import BadRequest
 from sanic.response import json as json_response
 
-from acme_crm.responses import error
-from acme_crm.responses import unauthorized
+from acme_dialpad_rightbar.responses import error
+from acme_dialpad_rightbar.responses import unauthorized
 
 if TYPE_CHECKING:
-  from acme_crm.context import App
-  from acme_crm.context import AppContext
+  from acme_dialpad_rightbar.context import App
+  from acme_dialpad_rightbar.context import AppContext
 
 # The path of the route.
 CONTACT_PATH = '/api/contact'

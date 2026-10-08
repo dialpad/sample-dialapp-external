@@ -3,9 +3,9 @@
 A real partner keeps a row per Dialpad user in a database: the user's access token for this app and
 whether they are connected to the CRM (the CRM tokens the OAuth callback stored). This demo has no
 database and no CRM, so ``CookieBackedDatabaseStorage`` plays that row, and the signed session
-cookie (``acme_crm.signing``) plays the database. The route handlers read it only through the
-getters, ``get_access_token`` and ``is_external_connected``, and change it only by building a new
-state, so swapping in a real database later touches this class and not the handlers.
+cookie (``acme_dialpad_rightbar.signing``) plays the database. The route handlers read it only
+through the getters, ``get_access_token`` and ``is_external_connected``, and change it only by
+building a new state, so swapping in a real database later touches this class and not the handlers.
 
 The state is immutable. ``from_cookie`` reads one from a request, ``new`` starts one, and
 ``to_cookie`` serialises it for the response; nothing is kept on the server.
@@ -14,8 +14,8 @@ The state is immutable. ``from_cookie`` reads one from a request, ``new`` starts
 import secrets
 from typing import Self
 
-from acme_crm import signing
-from acme_crm.stores import UserKey
+from acme_dialpad_rightbar import signing
+from acme_dialpad_rightbar.stores import UserKey
 
 
 class CookieBackedDatabaseStorage:

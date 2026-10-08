@@ -1,4 +1,4 @@
-"""The app's own pages (acme_crm/pages.py): the iframe panel page, close popup and error page."""
+"""The app's own pages (``pages.py``): iframe panel page, close popup and error page."""
 
 import json
 import re
@@ -9,17 +9,17 @@ from typing import override
 
 import pytest
 
-from acme_crm.assets import PageAssets
-from acme_crm.contract import ErrorResponse
-from acme_crm.contract import ExternalConnection
-from acme_crm.contract import PageData
-from acme_crm.idtoken import TEST_CLIENT_SECRET
-from acme_crm.idtoken import decode_idtoken
-from acme_crm.idtoken import encode_mock_idtoken
-from acme_crm.pages import PageOptions
-from acme_crm.pages import render_close_popup
-from acme_crm.pages import render_error_page
-from acme_crm.pages import render_page
+from acme_dialpad_rightbar.assets import PageAssets
+from acme_dialpad_rightbar.contract import ErrorResponse
+from acme_dialpad_rightbar.contract import ExternalConnection
+from acme_dialpad_rightbar.contract import PageData
+from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.idtoken import decode_idtoken
+from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.pages import PageOptions
+from acme_dialpad_rightbar.pages import render_close_popup
+from acme_dialpad_rightbar.pages import render_error_page
+from acme_dialpad_rightbar.pages import render_page
 
 NONCE = 'test-nonce-123'
 ASSETS = PageAssets(scripts=('/static/app.js',), styles=('/static/app.css',))
@@ -71,8 +71,8 @@ def make_page_data(**overrides: Any) -> PageData: # noqa: ANN401
       'access_token': 'an-access-token',
       'external_connection': ExternalConnection(
           connected=False,
-          authorization_urls={'acme-crm': 'https://acme.example.com/oauth'},
-          name='acme-crm',
+          authorization_urls={'acme-for-dialpad': 'https://acme.example.com/oauth'},
+          name='acme-for-dialpad',
       ),
   }
   values.update(overrides)

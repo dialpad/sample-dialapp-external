@@ -1,12 +1,12 @@
-"""Settings: validation at startup and the defaults local mode fills in (acme_crm/settings.py)."""
+"""Settings (``settings.py``): validation at startup and the defaults local mode fills in."""
 
 import pytest
 
-from acme_crm.idtoken import TEST_CLIENT_SECRET
-from acme_crm.settings import ConfigurationError
-from acme_crm.settings import Settings
-from acme_crm.settings import listen_port
-from acme_crm.settings import settings_from_env
+from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.settings import ConfigurationError
+from acme_dialpad_rightbar.settings import Settings
+from acme_dialpad_rightbar.settings import listen_port
+from acme_dialpad_rightbar.settings import settings_from_env
 from tests.conftest import DIALPAD_ORIGIN
 
 

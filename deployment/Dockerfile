@@ -1,4 +1,4 @@
-# Builds the Acme CRM reference app for a container host such as Cloud Run (see deployment.md).
+# Builds the Acme for Dialpad reference app for a container host such as Cloud Run (see README.md here).
 # Two stages: Node builds the Vue iframe panel (client/) into dist/, then a slim Python image runs the
 # Sanic server (server/), which serves dist/ under /assets.
 
@@ -32,7 +32,7 @@ ENV PYTHONUNBUFFERED=1 \
 COPY server/requirements.txt ./
 RUN pip install -r requirements.txt
 
-COPY server/acme_crm ./acme_crm
+COPY server/acme_dialpad_rightbar ./acme_dialpad_rightbar
 COPY --from=panel /app/dist ./dist
 
 # Listen on every interface, as a container host requires. Cloud Run overrides PORT; elsewhere 8080
@@ -48,4 +48,4 @@ EXPOSE 8080
 RUN useradd --no-create-home --uid 10001 app
 USER app
 
-CMD ["python", "-m", "acme_crm"]
+CMD ["python", "-m", "acme_dialpad_rightbar"]

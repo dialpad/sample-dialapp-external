@@ -3,8 +3,9 @@
 SHORTCUT: ``OAuthResults`` lives in one process's memory. A real partner has no use for it at all:
 see that class for why this demo needs it and what replaces it. Everything that must last (the
 user's access token and whether they are connected) lives in the signed session cookie, see
-``acme_crm.database.CookieBackedDatabaseStorage`` and ``acme_crm.signing``. Upgrade trigger: the app
-runs on more than one instance or connects to a real CRM.
+``acme_dialpad_rightbar.database.CookieBackedDatabaseStorage`` and
+``acme_dialpad_rightbar.signing``. Upgrade trigger: the app runs on more than one instance or
+connects to a real CRM.
 """
 
 from typing import TYPE_CHECKING
@@ -47,9 +48,9 @@ class OAuthResults:
      only fact it has is "this user pressed Authorize", and it records that here.**
   5. The iframe panel's next ``ext-connection`` check collects the record (``consume``), answers
      "connected", and rewrites the session cookie with the connection on. The cookie, not this
-     store, is the demo's persistent record of the connection (see ``acme_crm.signing``): it is
-     signed, lasts 30 days, and later page loads see it and start connected, even after a server
-     restart.
+     store, is the demo's persistent record of the connection (see
+     ``acme_dialpad_rightbar.signing``): it is signed, lasts 30 days, and later page loads see it
+     and start connected, even after a server restart.
 
   **Why the result is kept in memory**
 

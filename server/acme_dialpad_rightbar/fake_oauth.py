@@ -9,7 +9,7 @@ with the ``state`` and a fixed ``code``, exactly where a real CRM's redirect wou
 from html import escape
 from typing import TYPE_CHECKING
 
-from acme_crm.pages import RenderedPage
+from acme_dialpad_rightbar.pages import RenderedPage
 
 if TYPE_CHECKING:
   from collections.abc import Sequence
@@ -24,7 +24,7 @@ _TEMPLATE = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Fake OAuth: authorize Acme CRM (demo)</title>
+<title>Fake OAuth: authorize Acme for Dialpad (demo)</title>
 <style nonce="{nonce}">
   body {{ font-family: system-ui, sans-serif; max-width: 26rem; margin: 3rem auto; padding: 0 1rem;
          line-height: 1.5; }}
@@ -39,10 +39,10 @@ _TEMPLATE = """<!doctype html>
 </head>
 <body>
 <p class="banner" role="note">This is a fake OAuth page (demo only)</p>
-<h1>Authorize Acme CRM</h1>
+<h1>Authorize Acme for Dialpad</h1>
 <p>This stands in for a real CRM's sign-in and consent screen. There is no real Acme account, and
 nothing here asks for a password.</p>
-<p>Authorizing connects your Dialpad user to the Acme CRM demo panel.
+<p>Authorizing connects your Dialpad user to the Acme for Dialpad demo panel.
 Scopes requested: {scopes}.</p>
 <form method="get" action="{action}">
 <input type="hidden" name="state" value="{state}">

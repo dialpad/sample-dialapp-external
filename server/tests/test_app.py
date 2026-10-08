@@ -1,4 +1,4 @@
-"""The Sanic app (acme_crm/app.py, endpoints/): page, tokens, connection, OAuth, contact, logs."""
+"""The Sanic app (``acme_dialpad_rightbar``): page, tokens, connection, OAuth, contact, logs."""
 
 import logging
 import re
@@ -11,12 +11,12 @@ from urllib.parse import urlsplit
 
 import pytest
 
-from acme_crm import signing
-from acme_crm.context import CLIENT_NAME
-from acme_crm.context import CONNECTED_SCOPES
-from acme_crm.fake_oauth import FAKE_CODE
-from acme_crm.idtoken import TEST_CLIENT_SECRET
-from acme_crm.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar import signing
+from acme_dialpad_rightbar.context import CLIENT_NAME
+from acme_dialpad_rightbar.context import CONNECTED_SCOPES
+from acme_dialpad_rightbar.fake_oauth import FAKE_CODE
+from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
 from tests.conftest import APP_SECRET
 from tests.conftest import Env
 from tests.conftest import Panel
@@ -36,7 +36,7 @@ PAT = {'user_id': 777, 'company_id': 12345}
 
 
 def authorize_url_of(page_data: dict[str, Any]) -> str:
-  """Return the ``acme-crm`` authorize URL from page data, as the Connect button would use it."""
+  """Return the authorize URL from page data, as the Connect button would use it."""
   return str(page_data['external_connection']['authorization_urls'][CLIENT_NAME])
 
 

@@ -17,15 +17,15 @@ from html import escape
 from typing import TYPE_CHECKING
 from typing import Any
 
-from acme_crm.contract import PAGE_DATA_ELEMENT_ID
-from acme_crm.contract import PAGE_DATA_VERSION
+from acme_dialpad_rightbar.contract import PAGE_DATA_ELEMENT_ID
+from acme_dialpad_rightbar.contract import PAGE_DATA_VERSION
 
 if TYPE_CHECKING:
   from collections.abc import Sequence
 
-  from acme_crm.assets import PageAssets
-  from acme_crm.contract import ErrorResponse
-  from acme_crm.contract import PageData
+  from acme_dialpad_rightbar.assets import PageAssets
+  from acme_dialpad_rightbar.contract import ErrorResponse
+  from acme_dialpad_rightbar.contract import PageData
 
 # An http(s) origin: scheme, host name or bracketed IPv6 address, optional port. Nothing else.
 _LABEL = r'[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?'

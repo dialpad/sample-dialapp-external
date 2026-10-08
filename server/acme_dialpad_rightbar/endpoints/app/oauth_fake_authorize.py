@@ -11,15 +11,15 @@ from sanic import HTTPResponse
 from sanic import Request
 from sanic.response import text
 
-from acme_crm.context import CONNECTED_SCOPES
-from acme_crm.fake_oauth import FAKE_CODE
-from acme_crm.fake_oauth import render_fake_authorize_page
-from acme_crm.pages import generate_nonce
-from acme_crm.responses import rendered
+from acme_dialpad_rightbar.context import CONNECTED_SCOPES
+from acme_dialpad_rightbar.fake_oauth import FAKE_CODE
+from acme_dialpad_rightbar.fake_oauth import render_fake_authorize_page
+from acme_dialpad_rightbar.pages import generate_nonce
+from acme_dialpad_rightbar.responses import rendered
 
 if TYPE_CHECKING:
-  from acme_crm.context import App
-  from acme_crm.context import AppContext
+  from acme_dialpad_rightbar.context import App
+  from acme_dialpad_rightbar.context import AppContext
 
 
 def register(app: App, ctx: AppContext) -> None:

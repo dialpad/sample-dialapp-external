@@ -6,5 +6,6 @@
   ``POST /api/contact``), the OAuth screens that stand in for a CRM, and development helpers.
 
 Each file defines one ``register(app, ctx)`` that adds its route, and each folder's ``__init__.py``
-lists them. ``acme_crm.app.create_app`` calls the two folders' ``register_*_endpoints``.
+lists them. ``acme_dialpad_rightbar.app.create_app`` calls the two folders'
+``register_*_endpoints``.
 """

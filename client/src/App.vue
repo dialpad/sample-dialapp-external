@@ -15,7 +15,7 @@ const connected = computed(() => state.value.connection.connected);
 </script>
 
 <template>
-  <h1 class="acme-title">Acme CRM (demo)</h1>
+  <h1 class="acme-title">Acme for Dialpad (demo)</h1>
   <DtNotice
     v-if="sessionExpired"
     kind="warning"

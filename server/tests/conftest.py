@@ -1,8 +1,8 @@
 """Shared test support: an app wired to a movable clock, and helpers to drive it like Dialpad does.
 
-``env`` builds the real Sanic app (``acme_crm.app.create_app``) in production mode, ``local_env`` in
-local mode, each with the built frontend faked by a tiny Vite manifest in a temp folder. Requests
-go through Sanic's in-process ASGI client, so no server or port is involved.
+``env`` builds the real Sanic app (``acme_dialpad_rightbar.app.create_app``) in production mode,
+``local_env`` in local mode, each with the built frontend faked by a tiny Vite manifest in a temp
+folder. Requests go through Sanic's in-process ASGI client, so no server or port is involved.
 """
 
 import json
@@ -23,12 +23,12 @@ from typing import override
 import pytest
 from sanic import Sanic
 
-from acme_crm.app import create_app
-from acme_crm.context import COOKIE_HEADER_NAME
-from acme_crm.context import App
-from acme_crm.idtoken import TEST_CLIENT_SECRET
-from acme_crm.idtoken import encode_mock_idtoken
-from acme_crm.settings import Settings
+from acme_dialpad_rightbar.app import create_app
+from acme_dialpad_rightbar.context import COOKIE_HEADER_NAME
+from acme_dialpad_rightbar.context import App
+from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.settings import Settings
 
 if TYPE_CHECKING:
   from collections.abc import Iterator

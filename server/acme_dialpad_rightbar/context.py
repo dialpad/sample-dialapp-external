@@ -1,10 +1,10 @@
 """What every route handler shares: the app's settings, its one in-memory store, assets and clock.
 
-``AppContext`` is built once by ``acme_crm.app.create_app`` and handed to each endpoint's
-``register`` function, so a handler needs no globals. It also holds the two operations every
-endpoint that talks to the iframe panel needs: reading the session cookie (``state_from_cookie``,
-``save_state``) and authenticating a request (``state_for``). The constants here name the demo's
-one OAuth client and its session cookie.
+``AppContext`` is built once by ``acme_dialpad_rightbar.app.create_app`` and handed to each
+endpoint's ``register`` function, so a handler needs no globals. It also holds the two operations
+every endpoint that talks to the iframe panel needs: reading the session cookie
+(``state_from_cookie``, ``save_state``) and authenticating a request (``state_for``). The constants
+here name the demo's one OAuth client and its session cookie.
 
 What this demo has to remember for good, the user's access token and whether they are connected,
 it keeps in the browser: one signed session cookie (HMAC-SHA256 with ``APP_SECRET``, bound to the
@@ -12,10 +12,11 @@ Dialpad user and company, valid for 30 days) is the app's persistent storage. Th
 database. The page load sets the cookie and embeds the same token in the page data; the endpoints
 the iframe panel calls accept a request only when its ``Authorization: Bearer`` value equals the
 token in the cookie. The handlers read and change that state only through
-``CookieBackedDatabaseStorage`` (``acme_crm.database``), whose getters are ``get_access_token`` and
-``is_external_connected``: it plays the per-user database row a real partner would keep. A real
-partner stores the CRM tokens it gets from the OAuth callback instead, and answers from those; see
-``acme_crm.stores.OAuthResults`` and ``acme_crm.signing``.
+``CookieBackedDatabaseStorage`` (``acme_dialpad_rightbar.database``), whose getters are
+``get_access_token`` and ``is_external_connected``: it plays the per-user database row a real
+partner would keep. A real partner stores the CRM tokens it gets from the OAuth callback instead,
+and answers from those; see ``acme_dialpad_rightbar.stores.OAuthResults`` and
+``acme_dialpad_rightbar.signing``.
 """
 
 from dataclasses import dataclass
@@ -28,24 +29,24 @@ from sanic import Request
 from sanic import Sanic
 from sanic.config import Config
 
-from acme_crm import signing
-from acme_crm.contract import ExternalConnection
-from acme_crm.database import CookieBackedDatabaseStorage
+from acme_dialpad_rightbar import signing
+from acme_dialpad_rightbar.contract import ExternalConnection
+from acme_dialpad_rightbar.database import CookieBackedDatabaseStorage
 
 if TYPE_CHECKING:
   from collections.abc import Callable
 
-  from acme_crm.assets import PageAssets
-  from acme_crm.settings import Settings
-  from acme_crm.stores import OAuthResults
-  from acme_crm.stores import UserKey
+  from acme_dialpad_rightbar.assets import PageAssets
+  from acme_dialpad_rightbar.settings import Settings
+  from acme_dialpad_rightbar.stores import OAuthResults
+  from acme_dialpad_rightbar.stores import UserKey
 
 App = Sanic[Config, SimpleNamespace]
 
 # The name the iframe panel shows and the page title.
-ACCOUNT_NAME = 'Acme CRM (demo)'
+ACCOUNT_NAME = 'Acme for Dialpad (demo)'
 # The OAuth client's name and scopes, as the contract's `ExternalConnection` carries them.
-CLIENT_NAME = 'acme-crm'
+CLIENT_NAME = 'acme-for-dialpad'
 CONNECTED_SCOPES = ['contacts.read']
 # The session cookie (access token and connection state), sent by browsers as `__Host-acme_session`.
 COOKIE_NAME = 'acme_session'
@@ -59,8 +60,8 @@ def _set_session_cookie(reply: HTTPResponse, value: str) -> None:
   """Set the session cookie on ``reply``, for ``COOKIE_MAX_AGE_SECONDS`` from now.
 
   The cookie is where this demo persists the user's access token and connection (see
-  ``acme_crm.signing``). Its attributes are ``Secure``, ``HttpOnly``, ``SameSite=None`` and
-  ``Partitioned``, because the iframe panel runs in a third-party iframe, and the ``__Host-``
+  ``acme_dialpad_rightbar.signing``). Its attributes are ``Secure``, ``HttpOnly``, ``SameSite=None``
+  and ``Partitioned``, because the iframe panel runs in a third-party iframe, and the ``__Host-``
   prefix, which pins it to this host and path ``/``.
   """
   reply.add_cookie(
@@ -105,10 +106,10 @@ class AppContext:
   def state_from_cookie(self, request: Request) -> CookieBackedDatabaseStorage | None:
     """Read this browser's state from the request's session cookie, if it has a valid one.
 
-    The cookie is this app's persistent storage (see ``acme_crm.database``): reading it is how a
-    page load, or an API call, learns the access token and whether the user is connected, with no
-    server-side record. ``None`` when it is missing, forged or too old. Reads the cookie only;
-    never sets it.
+    The cookie is this app's persistent storage (see ``acme_dialpad_rightbar.database``): reading it
+    is how a page load, or an API call, learns the access token and whether the user is connected,
+    with no server-side record. ``None`` when it is missing, forged or too old. Reads the cookie
+    only; never sets it.
     """
     return CookieBackedDatabaseStorage.from_cookie(
         request.cookies.get(COOKIE_HEADER_NAME),

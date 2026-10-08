@@ -14,8 +14,8 @@ from sanic import Request
 from sanic.response import text
 
 if TYPE_CHECKING:
-  from acme_crm.context import App
-  from acme_crm.context import AppContext
+  from acme_dialpad_rightbar.context import App
+  from acme_dialpad_rightbar.context import AppContext
 
 
 def register(app: App, _ctx: AppContext) -> None:

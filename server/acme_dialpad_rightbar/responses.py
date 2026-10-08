@@ -5,17 +5,17 @@ from typing import TYPE_CHECKING
 from sanic.response import html
 from sanic.response import json
 
-from acme_crm.contract import ErrorResponse
+from acme_dialpad_rightbar.contract import ErrorResponse
 
 if TYPE_CHECKING:
   from sanic import HTTPResponse
 
-  from acme_crm.contract import ExternalConnection
-  from acme_crm.pages import RenderedPage
+  from acme_dialpad_rightbar.contract import ExternalConnection
+  from acme_dialpad_rightbar.pages import RenderedPage
 
 
 def rendered(page: RenderedPage) -> HTTPResponse:
-  """Turn a page from ``acme_crm.pages`` into a response, with its status and headers."""
+  """Turn a page from ``acme_dialpad_rightbar.pages`` into a response, with status and headers."""
   return html(page.html, status=page.status, headers=page.headers)
 
 

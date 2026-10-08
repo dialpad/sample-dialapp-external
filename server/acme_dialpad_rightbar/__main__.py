@@ -1,13 +1,13 @@
-"""Run the server: ``python -m acme_crm`` (set ``LOCAL_MODE=1`` for local development).
+"""Run the server: ``python -m acme_dialpad_rightbar`` (set ``LOCAL_MODE=1`` for local development).
 
 See the README's Configuration section for the environment variables it reads.
 """
 
 import logging
 
-from acme_crm.app import create_app
-from acme_crm.settings import listen_port
-from acme_crm.settings import settings_from_env
+from acme_dialpad_rightbar.app import create_app
+from acme_dialpad_rightbar.settings import listen_port
+from acme_dialpad_rightbar.settings import settings_from_env
 
 
 def main() -> None:
