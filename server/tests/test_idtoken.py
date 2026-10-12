@@ -95,11 +95,6 @@ def test_a_mock_token_decodes_to_the_default_identity() -> None:
   assert claims.api_key.get_secret_value() == 'mock-api-key'
 
 
-def test_a_mock_token_needs_a_secret_long_enough_for_the_jwe_key() -> None:
-  with pytest.raises(ValueError, match='48 characters'):
-    encode_mock_idtoken('short')
-
-
 # Rejections
 
 _PAYLOAD = VECTORS['cases'][0]['expected_claims']
@@ -153,6 +148,8 @@ def test_missing_required_claims_raise_the_typed_error(missing: str) -> None:
     decode_idtoken(_dialpad_token(payload), DIALPAD_SECRET)
 
 
-def test_a_short_client_secret_is_a_configuration_error() -> None:
+def test_a_secret_too_short_for_the_jwe_key_is_refused_when_encoding_and_decoding() -> None:
+  with pytest.raises(ValueError, match='48 characters'):
+    encode_mock_idtoken('short')
   with pytest.raises(ValueError, match='48 characters'):
     decode_idtoken(VECTORS['cases'][0]['idtoken'], 'short')

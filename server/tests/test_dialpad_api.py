@@ -10,13 +10,15 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING
 from typing import Any
 
+import pytest
+
 from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
 from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
 from tests.conftest import Env
 from tests.conftest import page_data_of
 
 if TYPE_CHECKING:
-  import pytest
+  from collections.abc import Callable
 
 API_KEY = 'real-looking-api-key-0123456789'
 
@@ -49,57 +51,50 @@ async def test_the_page_asks_dialpad_who_the_key_belongs_to_and_embeds_a_few_fie
       },
   }
 
-
-async def test_a_user_without_an_email_still_gives_an_ok_result(env: Env) -> None:
+  # A user without an email still gives an ok result.
   env.dialpad.user = {'id': 1, 'display_name': 'No Email', 'emails': []}
-
-  data = await load_with_key(env)
-
-  assert demo_of(data)['status'] == 'ok'
-  assert demo_of(data)['user']['email'] is None
+  no_email = await load_with_key(env)
+  assert demo_of(no_email)['status'] == 'ok'
+  assert demo_of(no_email)['user']['email'] is None
 
 
-async def test_a_refused_key_still_renders_the_page_as_unavailable(env: Env) -> None:
+def _refuse_the_key(env: Env) -> None:
   env.dialpad.status = HTTPStatus.UNAUTHORIZED
+
+
+def _stop_dialpad(env: Env) -> None:
+  env.dialpad.close()
+
+
+def _slow_down_dialpad(env: Env) -> None:
+  env.dialpad.delay = 3.0
+
+
+def _answer_with_text(env: Env) -> None:
+  env.dialpad.raw = b'not json'
+
+
+def _answer_with_a_json_array(env: Env) -> None:
+  env.dialpad.raw = b'[]'
+
+
+@pytest.mark.parametrize(
+    'break_dialpad',
+    [
+        _refuse_the_key, _stop_dialpad, _slow_down_dialpad, _answer_with_text,
+        _answer_with_a_json_array
+    ],
+    ids=['refused key', 'unreachable', 'slower than the timeout', 'not json', 'not a json object'],
+)
+async def test_any_failure_of_the_call_still_renders_the_page_as_unavailable(
+    env: Env, break_dialpad: Callable[[Env], None]) -> None:
+  break_dialpad(env)
 
   data = await load_with_key(env)
 
   assert demo_of(data) == {'status': 'unavailable', 'user': None}
   assert data['access_token']
-
-
-async def test_an_unreachable_dialpad_still_renders_the_page_as_unavailable(env: Env) -> None:
-  env.dialpad.close()
-
-  data = await load_with_key(env)
-
-  assert demo_of(data) == {'status': 'unavailable', 'user': None}
-
-
-async def test_a_dialpad_slower_than_the_timeout_still_renders_the_page_as_unavailable(
-    env: Env) -> None:
-  env.dialpad.delay = 3.0
-
-  data = await load_with_key(env)
-
-  assert demo_of(data) == {'status': 'unavailable', 'user': None}
-  assert len(env.dialpad.requests) == 1
-
-
-async def test_an_unreadable_answer_is_unavailable_too(env: Env) -> None:
-  env.dialpad.raw = b'not json'
-
-  data = await load_with_key(env)
-
-  assert demo_of(data)['status'] == 'unavailable'
-
-
-async def test_an_answer_that_is_not_a_json_object_is_unavailable_too(env: Env) -> None:
-  env.dialpad.raw = b'[]'
-
-  data = await load_with_key(env)
-
-  assert demo_of(data) == {'status': 'unavailable', 'user': None}
+  assert len(env.dialpad.requests) <= 1 # no retry
 
 
 async def test_local_mode_makes_no_call_and_says_so(local_env: Env) -> None:

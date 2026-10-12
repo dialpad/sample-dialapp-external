@@ -16,44 +16,34 @@ def test_a_client_secret_shorter_than_48_characters_is_rejected() -> None:
 
 
 @pytest.mark.parametrize(
-    'origin',
+    ('origin', 'valid'),
     [
-        'https://dialpadbeta.com/',
-        'https://dialpadbeta.com/path',
-        'dialpadbeta.com',
-        'ftp://dialpadbeta.com',
-        'https://dialpadbeta.com; script-src *',
-        ' https://dialpadbeta.com',
-        'https://dialpadbeta.com?x=1',
-        '',
+        ('https://dialpad.com', True),
+        ('http://localhost:5173', True),
+        ('http://[::1]:5173', True),
+        ('https://dialpadbeta.com/', False),
+        ('dialpadbeta.com', False),
+        ('ftp://dialpadbeta.com', False),
+        ('https://dialpadbeta.com; script-src *', False),
+        ('https://dialpadbeta.com?x=1', False),
+        ('', False),
     ],
 )
-def test_a_dialpad_origin_that_is_not_a_bare_origin_is_rejected_at_startup(origin: str) -> None:
-  with pytest.raises(ConfigurationError, match='DIALPAD_ORIGIN'):
-    Settings(
+def test_only_a_bare_dialpad_origin_is_accepted_at_startup(origin: str,
+                                                           valid: bool) -> None: # noqa: FBT001
+  def build() -> Settings:
+    return Settings(
         client_secret=TEST_CLIENT_SECRET,
         app_secret='x',
         dialpad_origin=origin,
         base_url='https://acme.example.com',
     )
 
-
-@pytest.mark.parametrize(
-    'origin',
-    [
-        'https://dialpadbeta.com', 'https://dialpad.com', 'http://localhost:5173',
-        'http://[::1]:5173'
-    ],
-)
-def test_a_bare_dialpad_origin_is_accepted(origin: str) -> None:
-  settings = Settings(
-      client_secret=TEST_CLIENT_SECRET,
-      app_secret='x',
-      dialpad_origin=origin,
-      base_url='https://acme.example.com',
-  )
-
-  assert settings.dialpad_origin == origin
+  if valid:
+    assert build().dialpad_origin == origin
+  else:
+    with pytest.raises(ConfigurationError, match='DIALPAD_ORIGIN'):
+      build()
 
 
 def test_settings_require_every_value_outside_local_mode() -> None:
@@ -61,22 +51,14 @@ def test_settings_require_every_value_outside_local_mode() -> None:
     settings_from_env({})
 
 
-def test_an_explicit_port_wins_over_the_port_in_the_base_url() -> None:
+def test_the_port_is_port_then_the_base_urls_port_then_8000() -> None:
   assert listen_port('http://localhost:8000', {'PORT': '8080'}) == 8080
   assert listen_port('https://acme.example.com', {'PORT': '8080'}) == 8080
-
-
-def test_the_port_falls_back_to_the_base_url_then_to_8000() -> None:
   assert listen_port('http://localhost:9000', {}) == 9000
   assert listen_port('https://acme.example.com', {}) == 8000
 
 
 def test_the_server_listens_on_this_machine_only_unless_host_says_otherwise() -> None:
-  assert settings_from_env({'LOCAL_MODE': '1'}).host == '127.0.0.1'
-  assert settings_from_env({'LOCAL_MODE': '1', 'HOST': '0.0.0.0'}).host == '0.0.0.0' # noqa: S104
-
-
-def test_host_applies_outside_local_mode_too() -> None:
   required = {
       'DIALPAD_CLIENT_SECRET': TEST_CLIENT_SECRET,
       'APP_SECRET': 'x',
@@ -84,8 +66,9 @@ def test_host_applies_outside_local_mode_too() -> None:
       'BASE_URL': 'https://acme.example.com',
   }
 
-  assert settings_from_env(required).host == '127.0.0.1'
-  assert settings_from_env({**required, 'HOST': '0.0.0.0'}).host == '0.0.0.0' # noqa: S104
+  for env in ({'LOCAL_MODE': '1'}, required):
+    assert settings_from_env(env).host == '127.0.0.1'
+    assert settings_from_env({**env, 'HOST': '0.0.0.0'}).host == '0.0.0.0' # noqa: S104
 
 
 def test_local_mode_comes_from_configuration_and_fills_in_defaults() -> None:

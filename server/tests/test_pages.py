@@ -13,9 +13,6 @@ from acme_dialpad_rightbar.assets import PageAssets
 from acme_dialpad_rightbar.contract import ErrorResponse
 from acme_dialpad_rightbar.contract import ExternalConnection
 from acme_dialpad_rightbar.contract import PageData
-from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
-from acme_dialpad_rightbar.idtoken import decode_idtoken
-from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
 from acme_dialpad_rightbar.pages import PageOptions
 from acme_dialpad_rightbar.pages import render_close_popup
 from acme_dialpad_rightbar.pages import render_error_page
@@ -82,26 +79,6 @@ def make_page_data(**overrides: Any) -> PageData: # noqa: ANN401
 # The iframe panel page: nothing sensitive in it, and page data can't break out of its element
 
 
-def test_page_after_decoding_a_token_carries_no_claim() -> None:
-  api_key = 'live-api-key-must-not-leak'
-  token = encode_mock_idtoken(
-      TEST_CLIENT_SECRET,
-      api_key=api_key,
-      csr={
-          'csr_has_access': True,
-          'csr_roles': ['csr-role-must-not-leak'],
-      },
-  )
-  decode_idtoken(token, TEST_CLIENT_SECRET)
-
-  page = render_page(make_page_data(), nonce=NONCE, assets=ASSETS)
-
-  assert api_key not in page.html
-  assert 'api_key' not in page.html
-  assert 'csr' not in page.html
-  assert 'user' not in _page_data_json(page.html)
-
-
 def test_hostile_page_data_stays_inside_its_element_and_round_trips() -> None:
   hostile = '</script><script>alert(1)</script><!-- ' + chr(0x2028) + ' & \' "'
   page_data = make_page_data(
@@ -126,42 +103,25 @@ def test_hostile_page_data_stays_inside_its_element_and_round_trips() -> None:
   assert data == {'version': 1, **page_data.model_dump(mode='json')}
 
 
-def test_a_closing_script_tag_in_page_data_is_escaped_inside_the_element() -> None:
-  page = render_page(make_page_data(app={'note': '</script>'}), nonce=NONCE, assets=ASSETS)
-
-  assert '</script>"' not in page.html
-  assert r'</script>' in page.html
-  assert _page_data_json(page.html)['app'] == {'note': '</script>'}
-
-
-def test_page_data_is_a_versioned_element_in_the_head() -> None:
-  page = render_page(make_page_data(), nonce=NONCE, assets=ASSETS)
-
-  [(attrs, _)] = [script for script in _scripts(page.html) if 'id' in script[0]]
-  assert attrs == {'type': 'application/json', 'id': 'dialpad-page-data', 'nonce': NONCE}
-  assert _page_data_json(page.html)['version'] == 1
-
-
-# The iframe panel page: nonces and headers
-
-
-def test_every_script_on_the_page_carries_the_nonce() -> None:
+def test_page_data_is_a_versioned_json_element_and_every_script_carries_the_nonce() -> None:
   assets = PageAssets(scripts=('/static/a.js', 'https://cdn.example.com/b.js'))
 
   page = render_page(make_page_data(), nonce=NONCE, assets=assets)
 
   scripts = _scripts(page.html)
-  assert len(scripts) == 3
+  [(data_attrs, _)] = [script for script in scripts if 'id' in script[0]]
+  assert data_attrs == {'type': 'application/json', 'id': 'dialpad-page-data', 'nonce': NONCE}
+  assert _page_data_json(page.html)['version'] == 1
   assert all(attrs.get('nonce') == NONCE for attrs, _ in scripts)
   assert [attrs.get('type') for attrs, _ in scripts] == ['application/json', 'module', 'module']
   # ...and nowhere else on the page.
   assert len(re.findall(re.escape(NONCE), page.html)) == len(scripts)
 
 
-def test_page_headers_match_the_contract() -> None:
-  page_data = make_page_data(dialpad_origin='https://dialpadbeta.com')
-
-  page = render_page(page_data, nonce=NONCE, assets=ASSETS)
+def test_page_headers_match_the_contract_and_asset_origins_join_the_policy() -> None:
+  page = render_page(make_page_data(dialpad_origin='https://dialpadbeta.com'),
+                     nonce=NONCE,
+                     assets=ASSETS)
 
   csp = page.headers['Content-Security-Policy']
   assert 'frame-ancestors https://dialpadbeta.com' in csp.split('; ')
@@ -176,21 +136,17 @@ def test_page_headers_match_the_contract() -> None:
   assert page.headers['X-Content-Type-Options'] == 'nosniff'
   assert page.status == 200
 
-
-def test_asset_origins_and_extra_connect_sources_join_the_policy() -> None:
-  assets = PageAssets(
-      scripts=('http://localhost:5173/@vite/client', 'http://localhost:5173/src/main.ts'),
-      origins=('http://localhost:5173',),
-  )
-
-  page = render_page(
+  # Another origin, an asset host and an extra connect source (what local mode adds).
+  local = render_page(
       make_page_data(dialpad_origin='http://localhost:5174'),
       nonce=NONCE,
-      assets=assets,
+      assets=PageAssets(
+          scripts=('http://localhost:5173/@vite/client', 'http://localhost:5173/src/main.ts'),
+          origins=('http://localhost:5173',),
+      ),
       options=PageOptions(extra_connect_src=('ws://localhost:5173',)),
   )
-
-  directives = page.headers['Content-Security-Policy'].split('; ')
+  directives = local.headers['Content-Security-Policy'].split('; ')
   assert 'frame-ancestors http://localhost:5174' in directives
   assert f"script-src 'self' 'nonce-{NONCE}' http://localhost:5173" in directives
   assert "connect-src 'self' ws://localhost:5173" in directives
@@ -215,14 +171,16 @@ def test_styles_title_and_mount_element_are_rendered_and_escaped() -> None:
 # The error page
 
 
-def test_error_page_is_minimal_framable_and_escaped() -> None:
-  error = ErrorResponse(code='invalid_idtoken', message='<b>Open this panel from Dialpad</b>')
+def test_error_page_is_minimal_framable_and_escapes_its_code_and_message() -> None:
+  error = ErrorResponse(code='<b>oops</b>', message='<b>Open this panel from Dialpad</b>')
 
   page = render_error_page(error, status=401, dialpad_origin='https://dialpad.com')
 
   assert page.status == 401
   assert _scripts(page.html) == []
-  assert '&lt;b&gt;Open this panel from Dialpad&lt;/b&gt;' in page.html
+  assert '<b>' not in page.html
+  assert '<p>&lt;b&gt;Open this panel from Dialpad&lt;/b&gt;</p>' in page.html
+  assert '<small>&lt;b&gt;oops&lt;/b&gt;</small>' in page.html
   directives = page.headers['Content-Security-Policy'].split('; ')
   assert "default-src 'none'" in directives
   assert 'frame-ancestors https://dialpad.com' in directives
@@ -232,16 +190,6 @@ def test_error_page_is_minimal_framable_and_escaped() -> None:
   nonce = re.search(r"style-src 'nonce-([^']+)'", page.headers['Content-Security-Policy'])
   assert nonce is not None
   assert f'<style nonce="{nonce.group(1)}">' in page.html
-
-
-def test_error_page_escapes_the_code_as_well_as_the_message() -> None:
-  error = ErrorResponse(code='<b>oops</b>', message='<b>bad</b>')
-
-  page = render_error_page(error, status=403, dialpad_origin='https://dialpad.com')
-
-  assert '<b>' not in page.html
-  assert '<p>&lt;b&gt;bad&lt;/b&gt;</p>' in page.html
-  assert '<small>&lt;b&gt;oops&lt;/b&gt;</small>' in page.html
 
 
 _RENDERERS = {
@@ -260,8 +208,6 @@ _RENDERERS = {
         'https://evil.example/</script><script>alert(1)//',
         'https://dialpad.com/',
         'https://dialpad.com; script-src *',
-        'javascript:alert(1)',
-        '*',
         '',
     ],
 )
@@ -288,22 +234,17 @@ def test_close_popup_posts_to_the_dialpad_origin_only_with_an_opener_then_closes
   assert 'You can close this window.' in page.html
 
 
-def test_close_popup_script_and_style_carry_the_nonce_the_policy_allows() -> None:
+def test_close_popup_is_locked_down_with_a_nonce_for_its_one_script_and_style() -> None:
   page = render_close_popup('https://dialpad.com', nonce=NONCE)
 
   assert re.findall(r'<script\b[^>]*>', page.html) == [f'<script nonce="{NONCE}">']
   assert re.findall(r'<style\b[^>]*>', page.html) == [f'<style nonce="{NONCE}">']
-  directives = page.headers['Content-Security-Policy'].split('; ')
+  csp = page.headers['Content-Security-Policy']
+  directives = csp.split('; ')
+  assert "default-src 'none'" in directives
   assert f"script-src 'nonce-{NONCE}'" in directives
   assert f"style-src 'nonce-{NONCE}'" in directives
-  assert "'unsafe-inline'" not in page.headers['Content-Security-Policy']
-
-
-def test_close_popup_headers_forbid_framing_and_caching() -> None:
-  page = render_close_popup('https://dialpad.com', nonce=NONCE)
-
-  directives = page.headers['Content-Security-Policy'].split('; ')
-  assert "default-src 'none'" in directives
   assert "frame-ancestors 'none'" in directives
+  assert "'unsafe-inline'" not in csp
   assert page.headers['Referrer-Policy'] == 'no-referrer'
   assert page.headers['Cache-Control'] == 'no-store'

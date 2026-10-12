@@ -294,27 +294,20 @@ describe('Connect gate', () => {
     );
   });
 
-  it('shows the network state with Try again when the connection check throws', async () => {
-    const { wrapper } = await setup({ mode: 'network' });
+  it.each<[string, 'network' | 'server_error', string]>([
+    ['the connection check throws', 'network', "couldn't reach Acme"],
+    ['the server answers non-2xx', 'server_error', 'Something went wrong'],
+  ])(
+    'shows the failed state with Try again when %s',
+    async (_when, mode, message) => {
+      const { wrapper } = await setup({ mode });
 
-    expect(wrapper.get('[role="alert"]').text()).toContain(
-      "couldn't reach Acme",
-    );
-    expect(wrapper.get('[data-testid="connect-button"]').text()).toBe(
-      'Try again',
-    );
-  });
-
-  it('shows the request-failed state with Try again on a non-2xx response', async () => {
-    const { wrapper } = await setup({ mode: 'server_error' });
-
-    expect(wrapper.get('[role="alert"]').text()).toContain(
-      'Something went wrong',
-    );
-    expect(wrapper.get('[data-testid="connect-button"]').text()).toBe(
-      'Try again',
-    );
-  });
+      expect(wrapper.get('[role="alert"]').text()).toContain(message);
+      expect(wrapper.get('[data-testid="connect-button"]').text()).toBe(
+        'Try again',
+      );
+    },
+  );
 
   it('keeps polling through a failed check and still completes Connect', async () => {
     const { wrapper, host, server } = await setup();
@@ -361,7 +354,7 @@ describe('Connect gate', () => {
 });
 
 describe('Connected view', () => {
-  it("shows the user from Dialpad's get/user, not from the page", async () => {
+  it("shows the user from Dialpad's get/user, not from the page, and the scopes", async () => {
     const { wrapper } = await setup({ connected: true });
 
     const card = wrapper.get('[data-testid="user-card"]').text();
@@ -372,6 +365,9 @@ describe('Connected view', () => {
     expect(card).toContain('Licenses: agents');
     expect(card).toContain('Available · On duty · Online');
     expect(card).not.toContain('api_key');
+    expect(wrapper.get('[data-testid="scopes"]').text()).toContain(
+      'contacts.read',
+    );
   });
 
   it('shows admin and do-not-disturb flags only when they are set', async () => {
@@ -395,29 +391,27 @@ describe('Connected view', () => {
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
-  it('shows the scopes of the connection', async () => {
-    const { wrapper } = await setup({ connected: true });
+  it("asks the server for the CRM view of the contact Dialpad sends, and shows every field Acme'd, omitting empty ones", async () => {
+    const { wrapper, host, contactApi } = await setup({ connected: true });
+    const sent = makeContact({
+      displayName: 'Pat Customer',
+      primaryPhone: '+1 555 0199',
+      phones: ['+1 555 0199'],
+      emails: ['pat@example.com'],
+      jobTitle: null,
+    });
 
-    expect(wrapper.get('[data-testid="scopes"]').text()).toContain(
-      'contacts.read',
-    );
-  });
-
-  it("shows the contact Dialpad sends with every field Acme'd, omitting empty ones", async () => {
-    const { wrapper, host } = await setup({ connected: true });
-
-    host.sendContact(
-      makeContact({
-        displayName: 'Pat Customer',
-        primaryPhone: '+1 555 0199',
-        phones: ['+1 555 0199'],
-        emails: ['pat@example.com'],
-        jobTitle: null,
-      }),
-    );
+    host.sendContact(sent);
     await host.settle();
     await flushPromises();
 
+    expect(contactApi.requests).toEqual([
+      {
+        method: 'POST',
+        path: '/api/contact',
+        body: { contact: JSON.parse(JSON.stringify(sent)) as unknown },
+      },
+    ]);
     const contact = wrapper.get('[data-testid="acme-contact"]').text();
     expect(contact).toContain('displayName');
     expect(contact).toContain('Acme Pat Customer');
@@ -450,28 +444,23 @@ describe('Connected view', () => {
     expect(card).toContain('demo only');
   });
 
-  it("says so when the server could not reach Dialpad's API, and the iframe panel still works", async () => {
-    const { wrapper } = await setup({
-      connected: true,
-      app: { dialpadApi: { status: 'unavailable', user: null } },
-    });
+  it.each([
+    ['unavailable', 'Dialpad API unavailable'],
+    ['skipped', 'Skipped in local mode'],
+  ])(
+    "explains a %s call to Dialpad's API, and the iframe panel still works",
+    async (status, message) => {
+      const { wrapper } = await setup({
+        connected: true,
+        app: { dialpadApi: { status, user: null } },
+      });
 
-    expect(wrapper.get('[data-testid="dialpad-api-card"]').text()).toContain(
-      'Dialpad API unavailable',
-    );
-    expect(wrapper.find('[data-testid="user-card"]').exists()).toBe(true);
-  });
-
-  it("explains that local mode doesn't call Dialpad's API", async () => {
-    const { wrapper } = await setup({
-      connected: true,
-      app: { dialpadApi: { status: 'skipped', user: null } },
-    });
-
-    expect(wrapper.get('[data-testid="dialpad-api-card"]').text()).toContain(
-      'Skipped in local mode',
-    );
-  });
+      expect(wrapper.get('[data-testid="dialpad-api-card"]').text()).toContain(
+        message,
+      );
+      expect(wrapper.find('[data-testid="user-card"]').exists()).toBe(true);
+    },
+  );
 
   it.each([
     ['no app data', null],
@@ -484,23 +473,6 @@ describe('Connected view', () => {
       false,
     );
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
-  });
-
-  it('asks the server for the CRM view of the contact, with the contact as the body', async () => {
-    const { host, contactApi } = await setup({ connected: true });
-    const pat = makeContact({ id: '1', displayName: 'Pat Customer' });
-
-    host.sendContact(pat);
-    await host.settle();
-    await flushPromises();
-
-    expect(contactApi.requests).toEqual([
-      {
-        method: 'POST',
-        path: '/api/contact',
-        body: { contact: JSON.parse(JSON.stringify(pat)) as unknown },
-      },
-    ]);
   });
 
   it('shows that the contact is loading until the server answers, then the rows', async () => {
@@ -521,21 +493,27 @@ describe('Connected view', () => {
     );
   });
 
-  it('says so when the server cannot answer for the contact, and the rest of the panel works', async () => {
-    const { wrapper, host, contactApi } = await setup({ connected: true });
-    contactApi.mode = 'error';
+  it.each<[string, 'error' | 'empty', string]>([
+    ['cannot answer', 'error', "Couldn't load the contact"],
+    ['answers with no rows', 'empty', 'There are no details for this contact'],
+  ])(
+    'says so when the server %s for the contact, and the rest of the panel works',
+    async (_when, mode, message) => {
+      const { wrapper, host, contactApi } = await setup({ connected: true });
+      contactApi.mode = mode;
 
-    host.sendContact(makeContact({ displayName: 'Pat Customer' }));
-    await host.settle();
-    await flushPromises();
+      host.sendContact(makeContact({ displayName: 'Pat Customer' }));
+      await host.settle();
+      await flushPromises();
 
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-      "Couldn't load the contact",
-    );
-    expect(wrapper.find('[data-testid="user-card"]').exists()).toBe(true);
-  });
+      expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+        message,
+      );
+      expect(wrapper.find('[data-testid="user-card"]').exists()).toBe(true);
+    },
+  );
 
-  it('ignores a late answer for an earlier contact once a newer contact is open', async () => {
+  it('opens a new contact without disconnecting, and ignores a late answer for the earlier one', async () => {
     const { wrapper, host, contactApi } = await setup({ connected: true });
     contactApi.mode = 'hold';
 
@@ -552,31 +530,14 @@ describe('Connected view', () => {
     const shown = wrapper.get('[data-testid="acme-contact"]').text();
     expect(shown).toContain('Acme Sam Prospect');
     expect(shown).not.toContain('Acme Pat Customer');
+    expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
-  it('says there are no details when the server answers with no rows', async () => {
-    const { wrapper, host, contactApi } = await setup({ connected: true });
-    contactApi.mode = 'empty';
-
-    host.sendContact(makeContact({ displayName: 'Pat Customer' }));
-    await host.settle();
-    await flushPromises();
-
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-      'There are no details for this contact',
-    );
-  });
-
-  it('shows no active call until Dialpad sends one', async () => {
-    const { wrapper } = await setup({ connected: true });
-
+  it('shows no active call until Dialpad sends one, then follows it from ringing to connected to ended', async () => {
+    const { wrapper, host } = await setup({ connected: true });
     expect(wrapper.get('[data-testid="call-card"]').text()).toContain(
       'No active call',
     );
-  });
-
-  it('follows a call from ringing to connected to ended', async () => {
-    const { wrapper, host } = await setup({ connected: true });
 
     host.sendCall(
       makeCall({
@@ -604,20 +565,29 @@ describe('Connected view', () => {
     expect(wrapper.get('[data-testid="call-card"]').text()).toContain('Ended');
   });
 
-  it("shows one contact section when the call's contact is the iframe panel's contact", async () => {
-    const { wrapper, host } = await setup({ connected: true });
-    const pat = makeContact({ id: '1', displayName: 'Pat Customer' });
+  it.each([
+    [
+      "the iframe panel's contact",
+      makeContact({ id: '1', displayName: 'Pat Customer' }),
+    ],
+    ['no contact', null],
+  ])(
+    'shows no separate call contact section when the call has %s',
+    async (_what, callContact) => {
+      const { wrapper, host } = await setup({ connected: true });
+      const pat = makeContact({ id: '1', displayName: 'Pat Customer' });
 
-    host.sendContact(pat);
-    host.sendCall(makeCall({ state: 'ringing', contact: pat }));
-    await host.settle();
-    await flushPromises();
+      host.sendContact(pat);
+      host.sendCall(makeCall({ state: 'ringing', contact: callContact }));
+      await host.settle();
+      await flushPromises();
 
-    expect(wrapper.find('[data-testid="call-contact"]').exists()).toBe(false);
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-      'Acme Pat Customer',
-    );
-  });
+      expect(wrapper.find('[data-testid="call-contact"]').exists()).toBe(false);
+      expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+        'Acme Pat Customer',
+      );
+    },
+  );
 
   it("shows the call's contact as well when it is a different contact", async () => {
     const { wrapper, host } = await setup({ connected: true });
@@ -638,32 +608,6 @@ describe('Connected view', () => {
     expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
       'Acme Pat Customer',
     );
-  });
-
-  it('shows no call contact section when the call has no contact', async () => {
-    const { wrapper, host } = await setup({ connected: true });
-
-    host.sendCall(makeCall({ state: 'ringing', contact: null }));
-    await host.settle();
-    await flushPromises();
-
-    expect(wrapper.find('[data-testid="call-contact"]').exists()).toBe(false);
-  });
-
-  it('opens a new contact without disconnecting', async () => {
-    const { wrapper, host } = await setup({ connected: true });
-
-    host.sendContact(makeContact({ displayName: 'Pat Customer' }));
-    await host.settle();
-    await flushPromises();
-    host.sendContact(makeContact({ displayName: 'Sam Prospect' }));
-    await host.settle();
-    await flushPromises();
-
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-      'Acme Sam Prospect',
-    );
-    expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
   it('asks for inline confirmation before disconnecting, and Cancel backs out', async () => {
@@ -781,25 +725,19 @@ describe('Bootstrap errors', () => {
     expect(root.textContent).toContain('Open this panel from Dialpad');
   });
 
-  it("applies the host's theme at start and follows its changes", async () => {
+  it("mounts the iframe panel and applies the host's theme at start and on change", async () => {
     vi.mocked(initDialtoneTheme).mockClear();
     vi.mocked(setMode).mockClear();
     const host = createMockHost({ theme: { mode: 'dark' } });
-    await bootstrapWith(host, makePageData());
 
+    const root = await bootstrapWith(host, makePageData());
+
+    expect(root.textContent).toContain('Acme for Dialpad (demo)');
     expect(initDialtoneTheme).toHaveBeenCalledWith(expect.anything(), 'dark');
 
     host.setTheme({ mode: 'light' });
     await host.settle();
 
     expect(setMode).toHaveBeenLastCalledWith('light');
-  });
-
-  it('mounts the iframe panel when the SDK starts', async () => {
-    const host = createMockHost();
-
-    const root = await bootstrapWith(host, makePageData());
-
-    expect(root.textContent).toContain('Acme for Dialpad (demo)');
   });
 });

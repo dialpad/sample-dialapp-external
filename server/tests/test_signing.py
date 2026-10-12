@@ -14,35 +14,30 @@ SECRET = 'app-secret'
 NOW = 1_000_000.0
 
 
-def test_state_round_trips_the_user_it_was_issued_for() -> None:
+def test_a_state_is_valid_for_the_user_it_was_issued_for_until_ten_minutes_pass() -> None:
   state = signing.issue_state(5432, 12345, SECRET, NOW)
 
-  claims = signing.verify_state(state, SECRET, NOW + 1)
+  claims = signing.verify_state(state, SECRET, NOW + STATE_TTL_SECONDS - 1)
 
   assert claims is not None
   assert (claims.user_id, claims.company_id) == (5432, 12345)
-
-
-def test_state_expires_after_ten_minutes() -> None:
-  state = signing.issue_state(5432, 12345, SECRET, NOW)
-
-  assert signing.verify_state(state, SECRET, NOW + STATE_TTL_SECONDS - 1) is not None
   assert signing.verify_state(state, SECRET, NOW + STATE_TTL_SECONDS) is None
 
 
-def test_state_signed_with_another_secret_is_rejected() -> None:
-  state = signing.issue_state(5432, 12345, 'someone-elses-secret', NOW)
-
-  assert signing.verify_state(state, SECRET, NOW) is None
-
-
-def test_state_with_a_tampered_user_is_rejected() -> None:
+def test_a_forged_or_malformed_state_is_rejected() -> None:
   state = signing.issue_state(5432, 12345, SECRET, NOW)
-  forged = signing.sign({'kind': 'state', 'user_id': 1, 'company_id': 12345, 'exp': NOW + 60}, 'x')
+  tampered = signing.sign({
+      'kind': 'state',
+      'user_id': 1,
+      'company_id': 12345,
+      'exp': NOW + 60
+  }, 'x')
   body, _, mac = state.partition('.')
-  forged_body, _, _ = forged.partition('.')
+  tampered_body, _, _ = tampered.partition('.')
 
-  assert signing.verify_state(f'{forged_body}.{mac}', SECRET, NOW) is None
+  assert signing.verify_state(signing.issue_state(5432, 12345, 'other-secret', NOW), SECRET,
+                              NOW) is None
+  assert signing.verify_state(f'{tampered_body}.{mac}', SECRET, NOW) is None
   assert signing.verify_state(f'{body}.', SECRET, NOW) is None
   assert signing.verify_state('not-a-signed-value', SECRET, NOW) is None
   assert signing.verify_state('', SECRET, NOW) is None
