@@ -2,6 +2,7 @@
 // the server is a fetch function, and time moves with `host.advance()`.
 import {
   type FetchLike,
+  type Rightbar,
   type RightbarOptions,
   type User,
 } from '@dialpad/dialapp-external-sdk';
@@ -241,6 +242,39 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
+/**
+ * Make Dialpad reject every toast, and return a counter of how many were asked for.
+ *
+ * A plain function, not a `vi.fn()`: a spy attaches its own handler to the promise it returns, which
+ * would hide an unhandled rejection from `unhandledRejectionsDuring`.
+ */
+function rejectToasts(rightbar: Rightbar): { asked: number } {
+  const counter = { asked: 0 };
+  Object.assign(rightbar, {
+    showToast: () => {
+      counter.asked += 1;
+      return Promise.reject(new Error('Dialpad did not answer'));
+    },
+  });
+  return counter;
+}
+
+/** Run `action`, then report how many promise rejections nobody handled while it ran. */
+async function unhandledRejectionsDuring(
+  action: () => Promise<void>,
+): Promise<number> {
+  const unhandled = vi.fn();
+  process.on('unhandledRejection', unhandled);
+  try {
+    await action();
+    // Node reports a rejection nobody handled once the current turn's microtasks are done.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  } finally {
+    process.off('unhandledRejection', unhandled);
+  }
+  return unhandled.mock.calls.length;
+}
+
 describe('Connect gate', () => {
   it('shows Connect when not connected', async () => {
     const { wrapper } = await setup();
@@ -274,9 +308,34 @@ describe('Connect gate', () => {
 
     await host.advance(7_000);
     await flushPromises();
+    await host.settle();
 
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="connect-gate"]').exists()).toBe(false);
+    expect(host.received.toasts).toEqual([
+      { text: 'Connected to Acme CRM', type: 'success' },
+    ]);
+  });
+
+  it('still completes Connect when Dialpad rejects the toast', async () => {
+    const { wrapper, host, server, rightbar } = await setup();
+    const toasts = rejectToasts(rightbar);
+    await wrapper.get('[data-testid="connect-button"]').trigger('click');
+    await host.settle();
+    server.mode = 'connected';
+
+    const unhandled = await unhandledRejectionsDuring(async () => {
+      await host.advance(7_000);
+      await flushPromises();
+    });
+
+    expect(toasts.asked).toBe(1);
+    expect(unhandled).toBe(0);
+    expect(warnings).toHaveBeenCalledWith(
+      "Dialpad didn't show the toast",
+      expect.any(Error),
+    );
+    expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
   it('shows the timeout state with Try again when polling gives up after 2 minutes', async () => {
@@ -355,8 +414,9 @@ describe('Connect gate', () => {
 
 describe('Connected view', () => {
   it("shows the user from Dialpad's get/user, not from the page, and the scopes", async () => {
-    const { wrapper } = await setup({ connected: true });
+    const { wrapper, host } = await setup({ connected: true });
 
+    expect(host.received.toasts).toEqual([]);
     const card = wrapper.get('[data-testid="user-card"]').text();
     expect(card).toContain('Jane Agent');
     expect(card).toContain('Support Agent');
@@ -493,12 +553,24 @@ describe('Connected view', () => {
     );
   });
 
-  it.each<[string, 'error' | 'empty', string]>([
-    ['cannot answer', 'error', "Couldn't load the contact"],
-    ['answers with no rows', 'empty', 'There are no details for this contact'],
+  it.each<
+    [string, 'error' | 'empty', string, { text: string; type: string }[]]
+  >([
+    [
+      'cannot answer',
+      'error',
+      "Couldn't load the contact",
+      [{ text: "Couldn't load the contact from Acme CRM", type: 'error' }],
+    ],
+    [
+      'answers with no rows',
+      'empty',
+      'There are no details for this contact',
+      [],
+    ],
   ])(
     'says so when the server %s for the contact, and the rest of the panel works',
-    async (_when, mode, message) => {
+    async (_when, mode, message, toasts) => {
       const { wrapper, host, contactApi } = await setup({ connected: true });
       contactApi.mode = mode;
 
@@ -510,8 +582,37 @@ describe('Connected view', () => {
         message,
       );
       expect(wrapper.find('[data-testid="user-card"]').exists()).toBe(true);
+      expect(host.received.toasts).toEqual(toasts);
     },
   );
+
+  it('still shows the failed lookup when Dialpad rejects the error toast', async () => {
+    const { wrapper, host, contactApi, rightbar } = await setup({
+      connected: true,
+    });
+    const toasts = rejectToasts(rightbar);
+    contactApi.mode = 'error';
+
+    const unhandled = await unhandledRejectionsDuring(async () => {
+      host.sendContact(makeContact({ displayName: 'Pat Customer' }));
+      await host.settle();
+      await flushPromises();
+    });
+
+    expect(toasts.asked).toBe(1);
+    expect(unhandled).toBe(0);
+    expect(warnings).toHaveBeenCalledWith(
+      'The contact lookup failed',
+      expect.any(Error),
+    );
+    expect(warnings).toHaveBeenCalledWith(
+      "Dialpad didn't show the toast",
+      expect.any(Error),
+    );
+    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+      "Couldn't load the contact",
+    );
+  });
 
   it('opens a new contact without disconnecting, and ignores a late answer for the earlier one', async () => {
     const { wrapper, host, contactApi } = await setup({ connected: true });
@@ -653,6 +754,24 @@ describe('Connected view', () => {
       path: '/dialpad/ext-connection',
     });
     expect(wrapper.find('[data-testid="connect-gate"]').exists()).toBe(true);
+    expect(host.received.toasts).toEqual([
+      { text: 'Disconnected from Acme CRM', type: 'info' },
+    ]);
+  });
+
+  it("shows the same toast when the user disconnects from Dialpad's menu", async () => {
+    const { wrapper, host, server } = await setup({ connected: true });
+    server.mode = 'connected';
+
+    host.trigger('disconnect');
+    await host.settle();
+    await flushPromises();
+    await host.settle();
+
+    expect(wrapper.find('[data-testid="connect-gate"]').exists()).toBe(true);
+    expect(host.received.toasts).toEqual([
+      { text: 'Disconnected from Acme CRM', type: 'info' },
+    ]);
   });
 
   it('tells the user when Disconnect fails and stays connected', async () => {
@@ -669,6 +788,7 @@ describe('Connected view', () => {
       "couldn't disconnect",
     );
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
+    expect(host.received.toasts).toEqual([]);
   });
 });
 
@@ -709,6 +829,11 @@ describe('Bootstrap errors', () => {
     const root = await bootstrapWith(host, { not: 'page data' });
 
     expect(root.textContent).toContain('Open this panel from Dialpad');
+    expect(warnings).toHaveBeenCalledWith(
+      'The panel could not start',
+      'bad_page_data',
+      expect.any(String),
+    );
   });
 
   it('tells the user to open the iframe panel from Dialpad on init_timeout', async () => {
@@ -723,6 +848,11 @@ describe('Bootstrap errors', () => {
     await started;
 
     expect(root.textContent).toContain('Open this panel from Dialpad');
+    expect(warnings).toHaveBeenCalledWith(
+      'The panel could not start',
+      'init_timeout',
+      expect.any(String),
+    );
   });
 
   it("mounts the iframe panel and applies the host's theme at start and on change", async () => {

@@ -3,7 +3,7 @@
   "info": {
     "title": "Dialpad partner rightbar app contract",
     "version": "0.1.0",
-    "description": "Endpoints a partner rightbar app backend exposes. Paths other than the page are defaults under a configurable prefix (`/dialpad`), which the frontend SDK reads from the page data. The partner's own feature endpoints sit beside these, authenticated the same way, and are not part of the contract."
+    "description": "Endpoints a partner rightbar app backend exposes. Paths other than the page are under `/dialpad`, where the frontend SDK calls them. The partner's own feature endpoints sit beside these, authenticated the same way, and are not part of the contract."
   },
   "paths": {
     "/": {
@@ -315,12 +315,6 @@
           "dialpad_origin": {
             "description": "The Dialpad origin for this environment; the SDK talks only to it",
             "title": "Dialpad Origin",
-            "type": "string"
-          },
-          "api_prefix": {
-            "default": "/dialpad",
-            "description": "Prefix for the contract endpoints",
-            "title": "Api Prefix",
             "type": "string"
           },
           "access_token": {

@@ -3,7 +3,6 @@
 import pytest
 from pydantic import ValidationError
 
-from acme_dialpad_rightbar.contract import DEFAULT_API_PREFIX
 from acme_dialpad_rightbar.contract import ErrorResponse
 from acme_dialpad_rightbar.contract import ExternalConnection
 from acme_dialpad_rightbar.contract import IdTokenClaims
@@ -52,11 +51,11 @@ def test_claims_drop_unknown_claims_and_csr_and_hide_the_api_key() -> None:
 def test_page_data_has_no_place_for_the_api_key_or_a_user() -> None:
   page_data = a_page_data()
 
-  for extra in ({'api_key': 'k'}, {'user': IDENTITY}):
+  for extra in ({'api_key': 'k'}, {'user': IDENTITY}, {'api_prefix': '/dialpad'}):
     with pytest.raises(ValidationError):
       PageData.model_validate({**page_data.model_dump(), **extra})
   assert 'api_key' not in page_data.model_dump_json()
-  assert page_data.api_prefix == DEFAULT_API_PREFIX == '/dialpad'
+  assert 'api_prefix' not in page_data.model_dump()
 
 
 def test_not_connected_requires_an_authorization_url() -> None:

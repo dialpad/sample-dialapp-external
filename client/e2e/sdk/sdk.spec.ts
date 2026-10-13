@@ -64,6 +64,11 @@ async function hostThinksConnected(page: Page): Promise<boolean | undefined> {
   return page.evaluate(() => window.mockHost?.received.connected);
 }
 
+/** The dev host's list of toasts, which Dialpad would show outside the panel. */
+function toastList(page: Page) {
+  return page.locator('#toasts li');
+}
+
 test('connect by polling, reconnect on first paint, then disconnect', async ({
   page,
 }) => {
@@ -76,6 +81,7 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await expect(authWindow.getByRole('note')).toContainText('fake OAuth page');
   await expect(panel.getByRole('status')).toContainText('Waiting');
   await authorizeAndPoll(page, panel, authWindow);
+  await expect(toastList(page)).toHaveText(['success: Connected to Acme CRM']);
   await expect(panel.getByTestId('user-card')).toContainText('Jane Agent');
   // The server's demo call to Dialpad's API is skipped in local mode, and the card says so.
   await expect(panel.getByTestId('dialpad-api-card')).toContainText(
@@ -186,12 +192,39 @@ test("Disconnect from Dialpad's iframe panel menu shows the Connect gate", async
     (req) =>
       req.method() === 'POST' && req.url().endsWith('/dialpad/ext-disconnect'),
   );
-  await page.evaluate(() => {
-    window.mockHost?.trigger('disconnect');
-  });
+  await page
+    .getByRole('button', { name: "Disconnect from Dialpad's menu" })
+    .click();
   await disconnectCalled;
 
   await expect(panel.getByTestId('connect-gate')).toBeVisible();
   await expect(panel.getByTestId('connected-view')).toHaveCount(0);
   await expect.poll(() => hostThinksConnected(page)).toBe(false);
+  await expect(toastList(page)).toHaveText([
+    'success: Connected to Acme CRM',
+    'info: Disconnected from Acme CRM',
+  ]);
+});
+
+test('a failed contact lookup shows an error toast as well as the message in the panel', async ({
+  page,
+}) => {
+  const panel = await openDevPage(page);
+  await authorizeAndPoll(page, panel, await startConnect(page, panel));
+  await expect(panel.getByTestId('acme-contact')).toContainText(
+    'Acme Pat Customer',
+  );
+
+  await page.route('**/api/contact', (route) =>
+    route.fulfill({ status: 500, json: { code: 'oops', message: 'oops' } }),
+  );
+  await page.getByRole('button', { name: 'Change contact' }).click();
+
+  await expect(panel.getByTestId('acme-contact')).toContainText(
+    "Couldn't load the contact",
+  );
+  await expect(toastList(page)).toHaveText([
+    'success: Connected to Acme CRM',
+    "error: Couldn't load the contact from Acme CRM",
+  ]);
 });

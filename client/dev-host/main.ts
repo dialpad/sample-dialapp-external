@@ -7,7 +7,8 @@
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.
 // The first of three contacts is open when the iframe panel starts, as when Dialpad opens the iframe panel for a
 // contact. The buttons in `dev-host/index.html` cycle to the next contact, step a call through its
-// states, and switch light and dark.
+// states, switch light and dark, and disconnect the way Dialpad's panel menu does. Every toast the
+// panel shows is listed under the panel, since Dialpad would show them outside it.
 // Playwright tests drive the same host through `window.mockHost`.
 import {
   makeCall,
@@ -103,6 +104,26 @@ let callContact = CONTACTS[0];
 /** The theme the host is showing; the toggle button flips it. */
 let mode: 'light' | 'dark' = 'light';
 
+/** Redraw the list of toasts under the panel from what the mock host has received. */
+function showToasts(): void {
+  const list = document.getElementById('toasts');
+  if (!list) {
+    return;
+  }
+  list.replaceChildren(
+    ...host.received.toasts.map((toast) => {
+      const item = document.createElement('li');
+      // textContent, never innerHTML: the text comes from the app in the iframe.
+      item.textContent = `${toast.type}: ${toast.text}`;
+      return item;
+    }),
+  );
+}
+
+// The mock host's own listener (added by `mountMockHostPage`) runs first and records the toast, so by
+// the time this one runs `host.received.toasts` is current.
+window.addEventListener('message', showToasts);
+
 /** Run `handler` when the dev host's button with this id is clicked. */
 function onClick(id: string, handler: () => void): void {
   document.getElementById(id)?.addEventListener('click', handler);
@@ -121,6 +142,9 @@ onClick('change-call-state', () => {
     }
     host.sendCall(makeCall({ state, contact: callContact }));
   }
+});
+onClick('disconnect-from-menu', () => {
+  host.trigger('disconnect');
 });
 onClick('toggle-theme', () => {
   mode = mode === 'light' ? 'dark' : 'light';

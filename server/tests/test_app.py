@@ -128,7 +128,7 @@ async def test_the_page_embeds_page_data_and_nothing_from_the_idtoken(env: Env) 
   assert response.status_code == 200
   assert data['version'] == 1
   assert data['dialpad_origin'] == env.settings.dialpad_origin
-  assert data['api_prefix'] == '/dialpad'
+  assert 'api_prefix' not in data
   assert data['access_token']
   connection = data['external_connection']
   assert connection['connected'] is False

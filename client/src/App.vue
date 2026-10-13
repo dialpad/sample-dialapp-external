@@ -4,14 +4,27 @@
 // `bootstrap` once the SDK has started, so `useRightbar()` always has a snapshot to read.
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 import { DtNotice } from '@dialpad/dialtone/vue/lib/notice';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 
 import { sessionExpired } from './api';
 import ConnectedView from './components/ConnectedView.vue';
 import ConnectGate from './components/ConnectGate.vue';
 
-const { state } = useRightbar();
+const { state, showToast } = useRightbar();
 const connected = computed(() => state.value.connection.connected);
+
+// Tell the user in Dialpad, outside the panel, when the connection changes. One watcher covers every
+// way it changes: Connect finishing, the panel's Disconnect button and Dialpad's own panel menu all
+// end here. Opening the panel already connected is not a change, so it shows nothing. A toast is a
+// courtesy, so a host that rejects it must not break the panel; it is logged and the panel goes on.
+watch(connected, (isConnected) => {
+  const toast = isConnected
+    ? { text: 'Connected to Acme CRM', type: 'success' as const }
+    : { text: 'Disconnected from Acme CRM', type: 'info' as const };
+  showToast(toast).catch((error: unknown) => {
+    console.warn("Dialpad didn't show the toast", error);
+  });
+});
 </script>
 
 <template>

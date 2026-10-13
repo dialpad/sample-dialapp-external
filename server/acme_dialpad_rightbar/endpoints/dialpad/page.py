@@ -13,7 +13,6 @@ from sanic import HTTPResponse
 from sanic import Request
 
 from acme_dialpad_rightbar.context import ACCOUNT_NAME
-from acme_dialpad_rightbar.contract import DEFAULT_API_PREFIX
 from acme_dialpad_rightbar.contract import ErrorResponse
 from acme_dialpad_rightbar.contract import PageData
 from acme_dialpad_rightbar.database import CookieBackedDatabaseStorage
@@ -73,7 +72,6 @@ def register(app: App, ctx: AppContext) -> None:
         key)
     page_data = PageData(
         dialpad_origin=settings.dialpad_origin,
-        api_prefix=DEFAULT_API_PREFIX,
         access_token=state.get_access_token(),
         external_connection=ctx.external_connection(
             key,

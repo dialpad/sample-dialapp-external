@@ -20,9 +20,9 @@ PAGE_DATA_VERSION = 1
 # The id of the ``<script type="application/json">`` element carrying the page data.
 PAGE_DATA_ELEMENT_ID = 'dialpad-page-data'
 
-# Default prefix for the contract endpoints: ``<prefix>/ext-connection`` and
-# ``<prefix>/ext-disconnect``.
-DEFAULT_API_PREFIX = '/dialpad'
+# Where the contract endpoints live: ``/dialpad/ext-connection`` and ``/dialpad/ext-disconnect``.
+# The SDK always calls them here, so the page data carries no prefix.
+CONTRACT_PATH_PREFIX = '/dialpad'
 
 
 class IdTokenClaims(BaseModel):
@@ -50,7 +50,7 @@ class IdTokenClaims(BaseModel):
 class ExternalConnection(BaseModel):
   """The Dialpad user's connection to the partner's system.
 
-  The page data carries it so the first paint needs no request, and ``<prefix>/ext-connection``
+  The page data carries it so the first paint needs no request, and ``/dialpad/ext-connection``
   returns it whenever the SDK checks again (on start when not connected, and while Connect polls).
   """
 
@@ -92,10 +92,6 @@ class PageData(BaseModel):
 
   dialpad_origin: str = Field(
       description='The Dialpad origin for this environment; the SDK talks only to it',)
-  api_prefix: str = Field(
-      default=DEFAULT_API_PREFIX,
-      description='Prefix for the contract endpoints',
-  )
   access_token: str = Field(description="The partner's own access token for this Dialpad user",)
   external_connection: ExternalConnection = Field(
       description='The connection at render time, so the first paint needs no extra request',)

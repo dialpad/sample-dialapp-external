@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from sanic import HTTPResponse
 from sanic import Request
 
-from acme_dialpad_rightbar.contract import DEFAULT_API_PREFIX
+from acme_dialpad_rightbar.contract import CONTRACT_PATH_PREFIX
 from acme_dialpad_rightbar.responses import connection_response
 from acme_dialpad_rightbar.responses import unauthorized
 
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 def register(app: App, ctx: AppContext) -> None:
   """Register ``GET /dialpad/ext-connection``."""
-  @app.get(f'{DEFAULT_API_PREFIX}/ext-connection')
+  @app.get(f'{CONTRACT_PATH_PREFIX}/ext-connection')
   async def ext_connection(request: Request) -> HTTPResponse:
     """Answer whether the calling user is connected to Acme.
 

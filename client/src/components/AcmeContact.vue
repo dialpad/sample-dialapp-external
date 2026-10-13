@@ -9,7 +9,8 @@
 // (text prefixed with `Acme `), which proves the contact went to the server and back as the right
 // user. What a real app does: the server maps the contact to a CRM record with the user's stored
 // CRM token, fetches it and returns its fields; then this component calls the SDK's
-// `linkRecord(...)` with the record's URL so Dialpad can offer "View record" and screen-pop it.
+// `linkRecord(...)` with the record's URL so Dialpad shows a "View <type>" header button for it and
+// uses it for screen pops.
 //
 // `contact` is null until Dialpad sends one (the SDK's `state.contact`). Each new contact is looked
 // up again, and the answer to an older contact that arrives late is ignored.
@@ -17,9 +18,12 @@
 // It is used twice when a call is active: for the iframe panel's contact and, if that is a different
 // person, for the call's own contact. `title` and `testId` tell the two apart.
 import type { Contact } from '@dialpad/dialapp-external-sdk';
+import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 import { ref, useId, watch } from 'vue';
 
 import { type AcmeField, fetchAcmeFields } from '../contactApi';
+
+const { showToast } = useRightbar();
 
 const props = withDefaults(
   defineProps<{
@@ -59,9 +63,18 @@ watch(
         fields.value = rows;
         status.value = 'ready';
       }
-    } catch {
+    } catch (error) {
       if (mine === lookup) {
         status.value = 'failed';
+        console.warn('The contact lookup failed', error);
+        // Besides the message in the panel, tell the user in Dialpad. Best effort: a host that
+        // rejects the toast must not break the panel; it is logged and the panel goes on.
+        showToast({
+          text: "Couldn't load the contact from Acme CRM",
+          type: 'error',
+        }).catch((toastError: unknown) => {
+          console.warn("Dialpad didn't show the toast", toastError);
+        });
       }
     }
   },

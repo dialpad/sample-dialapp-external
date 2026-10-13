@@ -10,7 +10,7 @@ from sanic import HTTPResponse
 from sanic import Request
 from sanic.response import empty
 
-from acme_dialpad_rightbar.contract import DEFAULT_API_PREFIX
+from acme_dialpad_rightbar.contract import CONTRACT_PATH_PREFIX
 from acme_dialpad_rightbar.responses import unauthorized
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 def register(app: App, ctx: AppContext) -> None:
   """Register ``POST /dialpad/ext-disconnect``."""
-  @app.post(f'{DEFAULT_API_PREFIX}/ext-disconnect')
+  @app.post(f'{CONTRACT_PATH_PREFIX}/ext-disconnect')
   async def ext_disconnect(request: Request) -> HTTPResponse:
     """End the connection: turn ``connected`` off in the session cookie and answer ``204``.
 

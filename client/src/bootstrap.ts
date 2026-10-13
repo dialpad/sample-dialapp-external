@@ -38,6 +38,8 @@ export async function bootstrap(
     if (!(error instanceof RightbarError)) {
       throw error;
     }
+    // The user only sees "open this panel from Dialpad"; the code says which of the four reasons it is.
+    console.warn('The panel could not start', error.code, error.message);
     createApp(BootstrapError).mount(root);
     return;
   }

@@ -28,8 +28,16 @@
       <button id="change-contact" type="button">Change contact</button>
       <button id="change-call-state" type="button">Change call state</button>
       <button id="toggle-theme" type="button">Switch light / dark</button>
+      <button id="disconnect-from-menu" type="button">
+        Disconnect from Dialpad's menu
+      </button>
     </div>
     <div id="panel" style="width: 300px"></div>
+    <section aria-labelledby="toasts-heading">
+      <h2 id="toasts-heading">Toasts</h2>
+      <p>Dialpad shows these over its own UI, outside the panel.</p>
+      <ul id="toasts" aria-live="polite"></ul>
+    </section>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
