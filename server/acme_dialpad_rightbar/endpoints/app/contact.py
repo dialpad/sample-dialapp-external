@@ -32,8 +32,8 @@ or stored.
    (``Authorization: Bearer <CRM access token>``), and return only the fields the iframe panel
    shows, in your own response shape. Never return the CRM token.
 4. **Tell Dialpad about the match.** After the iframe panel gets the record, it calls the SDK's
-   ``linkRecord({...})`` so Dialpad can offer "View record" in the panel menu and use the record's
-   URL for screen pops when a call comes in.
+   ``linkRecord({...})``, so Dialpad shows a "View <type>" button in the panel header that opens the
+   record's URL, and uses that URL for screen pops when a call comes in.
 5. **Handle the CRM being slow or down** with a short timeout and an error the iframe panel can
    show, as ``acme_dialpad_rightbar.dialpad_api`` does for Dialpad's own API.
 """

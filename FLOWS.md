@@ -81,8 +81,8 @@ flowchart TD
   H --> I
 ```
 
-The page data holds only what the iframe panel needs: the Dialpad origin, the API
-prefix, the **access token**, and the `external_connection` (connected or not, an
+The page data holds only what the iframe panel needs: the Dialpad origin, the
+**access token**, and the `external_connection` (connected or not, an
 authorize URL per OAuth client, the scopes). The idtoken's profile and the
 `api_key` never go to the browser.
 
@@ -359,8 +359,9 @@ flowchart TD
 3. **Fetch the mapped record** with `Authorization: Bearer <CRM access token>` and
    return only the fields the panel shows, in your own response shape.
 4. **Tell Dialpad about the match.** When the panel has the record it calls the
-   SDK's `linkRecord(...)`, so Dialpad can offer "View record" in the panel menu and
-   use the record's URL for screen pops when a call comes in.
+   SDK's `linkRecord(...)`, so Dialpad shows a "View <type>" button in the panel
+   header that opens the record's URL, and uses that URL for screen pops when a
+   call comes in.
 5. **Handle the CRM being slow or down** with a short timeout and an error the
    panel can show.
 
@@ -373,8 +374,8 @@ both. Ignore an answer for a contact that is no longer the open one.
 
 ## 6. Server to server: calling Dialpad's API
 
-Your server calls Dialpad's public API (`https://dialpad.com/api/v2/…`, or
-`https://dialpadbeta.com/api/v2/…` for beta) with the user's `api_key`. The browser
+Your server calls Dialpad's public API (`https://dialpad.com/api/v2/…`) with the
+user's `api_key`. The browser
 never has the key and never calls Dialpad's API directly: what the panel needs from
 Dialpad (the user, the open contact, the call) arrives through the SDK's host
 protocol, which needs no key because Dialpad itself framed the page.

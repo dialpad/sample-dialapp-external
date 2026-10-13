@@ -167,7 +167,7 @@ def _common_headers(csp: str) -> dict[str, str]:
 def _json_for_script(value: object) -> str:
   r"""Encode ``value`` as JSON that is safe inside a ``<script>`` element.
 
-  ``<``, ``>``, ``&`` and ``'`` become ``<``-style escapes (which JSON reads back as the same
+  ``<``, ``>``, ``&`` and ``'`` become ``\u003c``-style escapes (which JSON reads back as the same
   characters), so no value can close the element, open a comment or break out of a quoted string.
   Keys are sorted so the same data always renders the same bytes.
   """

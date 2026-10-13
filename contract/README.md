@@ -6,7 +6,8 @@ that implements it works with the SDK. It describes:
 
 - the endpoints a backend exposes: the panel page (`GET /`, with the idtoken in the
   query), `GET /dialpad/ext-connection`, `POST /dialpad/ext-disconnect` and the
-  OAuth callback (its path is yours to choose);
+  OAuth callback (its path is yours to choose). The SDK always calls the two
+  `/dialpad` endpoints at those paths;
 - the schemas: the decoded idtoken's claims (`IdTokenClaims`), the page data the
   page embeds for the SDK (`PageData`), the connection status
   (`ExternalConnection`) and the error body (`ErrorResponse`).

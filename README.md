@@ -31,6 +31,9 @@ code never touches it:
   (`linkRecord`);
 - provides mock Dialpad hosts for unit tests and browser tests.
 
+[Using the SDK](#using-the-sdk) is everything your panel code needs from it, and
+[Testing your panel](#testing-your-panel) covers its mock Dialpad.
+
 **The Python server is a reference, not a requirement.** Use any backend in any
 language. It only has to do four things: decode the idtoken, serve the page with
 the page data in it (an access token and the connection status), answer the two
@@ -140,7 +143,10 @@ in for Dialpad: it asks the server for a page URL carrying a mock idtoken (made
 by `server/acme_dialpad_rightbar/idtoken.py` with its test secret), frames the app, answers
 `init`, opens the first of three contacts, and offers buttons to change contact
 (cycling through the three), change the call state (ringing, connected, ended,
-and a new call ringing), and switch light and dark.
+and a new call ringing), switch light and dark, and disconnect the way Dialpad's
+panel menu does. Under the panel it lists the toasts the app shows (Connect
+finished, Disconnected, a failed contact lookup), which Dialpad would show
+outside the panel.
 
 Click **Connect**. The fake authorize URL opens in a popup showing a page that
 says it is a fake OAuth page, with an **Authorize** button. The popup stays
@@ -155,48 +161,50 @@ the page's `Content-Security-Policy` in three places and nowhere else:
 `frame-ancestors` is the dev host's origin, `script-src` adds the Vite dev
 server's origin, and `connect-src` adds its websocket origin.
 
-## Run framed in dialpadbeta (flow 7)
+## Run framed in Dialpad
 
-This is documented, not exercised in this repository: it needs a beta OAuth app
-that Dialpad sets up for you.
+This is documented, not exercised in this repository: it needs an OAuth app that
+Dialpad sets up for you.
 
 1. Build the iframe panel (`pnpm build` in `client/`) and run the server from `server/`
    without `LOCAL_MODE`, with the four required variables from
    [Configuration](#configuration):
 
    ```sh
-   cd server && DIALPAD_CLIENT_SECRET=... DIALPAD_ORIGIN=https://dialpadbeta.com \
+   cd server && DIALPAD_CLIENT_SECRET=... DIALPAD_ORIGIN=https://dialpad.com \
      APP_SECRET=... BASE_URL=https://your-public-url .venv/bin/python -m acme_dialpad_rightbar
    ```
 
 2. Expose the server at that public HTTPS URL (how is up to you).
-3. Ask Dialpad to set the beta OAuth app's conversation sidebar URI to it.
+3. Ask Dialpad to set the OAuth app's conversation sidebar URI to it.
 4. Enable the app from Dialpad's admin settings.
-5. Open any contact in dialpadbeta: the iframe panel appears, and connect, reconnect,
+5. Open any contact in Dialpad: the iframe panel appears, and connect, reconnect,
    and disconnect work against the real host.
 
-Current Chrome, Edge, Firefox and Safari 26.2 or later are supported. The
-session cookie is `Partitioned` and holds the iframe panel's access token, so a browser
-that rejects it (older Safari rejects partitioned cookies, and some browsers block
-third-party cookies) can't use the iframe panel at all: every API call gets `401` and
-the iframe panel asks the user to reload.
+This demo's session cookie is `Partitioned` and holds the iframe panel's access
+token, so the demo works in current Chrome, Edge, Firefox and Safari 26.2 or later.
+A browser that rejects the cookie (older Safari rejects partitioned cookies, and some
+browsers block third-party cookies) can't use the iframe panel: every API call gets
+`401` and the panel asks the user to reload. That limit belongs to the demo's
+cookie; the SDK itself supports Chrome 109 and later and the Dialpad desktop app
+(see [Using the SDK](#using-the-sdk)).
 
 ## Configuration
 
 The server reads these environment variables; the iframe panel reads none. Nothing
 loads a `.env` file, so export them in your shell or your host's settings.
 
-| Variable                | Required                | Purpose                                                                                                                                                                                                                                            |
-| ----------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DIALPAD_CLIENT_SECRET` | yes, outside local mode | The OAuth app's client secret; decodes the idtoken. At least 48 characters (Dialpad's are 50). Local mode defaults to this app's own test secret (`TEST_CLIENT_SECRET` in `server/acme_dialpad_rightbar/idtoken.py`)                               |
-| `DIALPAD_ORIGIN`        | yes, outside local mode | `https://dialpadbeta.com` for beta or `https://dialpad.com` for production; the page's `frame-ancestors`. Must be a bare origin (scheme, host, optional port; no trailing slash or path), checked at startup. Local mode defaults to `VITE_ORIGIN` |
-| `APP_SECRET`            | yes, outside local mode | Demo only. A random secret the demo uses to sign the OAuth `state` and its session cookie (a real app keeps these in a database). Local mode defaults to a fixed development value                                                                 |
-| `BASE_URL`              | yes, outside local mode | The public HTTPS URL of the server, without a trailing slash; used to build the authorize and callback URLs. Local mode defaults to `http://localhost:8000`                                                                                        |
-| `HOST`                  | no                      | The address to listen on. Default `127.0.0.1` (this machine only); a container sets `0.0.0.0`. See [deployment/](deployment/README.md)                                                                                                             |
-| `LOCAL_MODE`            | no                      | `1` turns on local mode: the defaults above, the dev host's route, and the Vite dev server's origins in the CSP                                                                                                                                    |
-| `VITE_ORIGIN`           | no, local mode only     | The Vite dev server's origin. Default `http://localhost:5173`                                                                                                                                                                                      |
-| `DIST_DIR`              | no                      | Where `pnpm build` in `client/` wrote the iframe panel. Default `../client/dist` (relative to `server/`); the container sets `dist`                                                                                                                |
-| `PORT`                  | no                      | The port to listen on. If unset, the port in `BASE_URL`, else `8000`. A container host sets it                                                                                                                                                     |
+| Variable                | Required                | Purpose                                                                                                                                                                                                              |
+| ----------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DIALPAD_CLIENT_SECRET` | yes, outside local mode | The OAuth app's client secret; decodes the idtoken. At least 48 characters (Dialpad's are 50). Local mode defaults to this app's own test secret (`TEST_CLIENT_SECRET` in `server/acme_dialpad_rightbar/idtoken.py`) |
+| `DIALPAD_ORIGIN`        | yes, outside local mode | `https://dialpad.com`; the page's `frame-ancestors`. Must be a bare origin (scheme, host, optional port; no trailing slash or path), checked at startup. Local mode defaults to `VITE_ORIGIN`                        |
+| `APP_SECRET`            | yes, outside local mode | Demo only. A random secret the demo uses to sign the OAuth `state` and its session cookie (a real app keeps these in a database). Local mode defaults to a fixed development value                                   |
+| `BASE_URL`              | yes, outside local mode | The public HTTPS URL of the server, without a trailing slash; used to build the authorize and callback URLs. Local mode defaults to `http://localhost:8000`                                                          |
+| `HOST`                  | no                      | The address to listen on. Default `127.0.0.1` (this machine only); a container sets `0.0.0.0`. See [deployment/](deployment/README.md)                                                                               |
+| `LOCAL_MODE`            | no                      | `1` turns on local mode: the defaults above, the dev host's route, and the Vite dev server's origins in the CSP                                                                                                      |
+| `VITE_ORIGIN`           | no, local mode only     | The Vite dev server's origin. Default `http://localhost:5173`                                                                                                                                                        |
+| `DIST_DIR`              | no                      | Where `pnpm build` in `client/` wrote the iframe panel. Default `../client/dist` (relative to `server/`); the container sets `dist`                                                                                  |
+| `PORT`                  | no                      | The port to listen on. If unset, the port in `BASE_URL`, else `8000`. A container host sets it                                                                                                                       |
 
 Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control. The app reads
 them from the environment; on Cloud Run they are kept in Secret Manager and
@@ -205,6 +213,229 @@ passed in as environment variables (see [deployment/](deployment/README.md)).
 To run it as a container, for example on Cloud Run, see
 [deployment/](deployment/README.md).
 
+## Using the SDK
+
+`@dialpad/dialapp-external-sdk` is headless: it ships no UI, so you build the panel
+with your own components (this app uses Vue 3 and Dialtone 10). It supports Chrome
+109 and later and the Dialpad desktop app, and it is ES modules only, so use a
+bundler. This section is everything your panel code needs from it.
+
+### Start it
+
+`createRightbar()` reads the page data your server rendered, checks that Dialpad is
+framing the page, completes the handshake with Dialpad, and loads the active call,
+the theme, the Dialpad user and the open contact. It resolves with the running
+panel, whose `state` is ready to render. Start it once, before your first render
+(`client/src/bootstrap.ts` does):
+
+```ts
+import { createRightbar, RightbarError } from "@dialpad/dialapp-external-sdk";
+import { api } from "./api"; // your own module, with the standard fetch signature
+
+const root = document.getElementById("app")!;
+try {
+  const rightbar = await createRightbar({
+    heightRoot: root,
+    fetch: api,
+    onDisconnect: () => {
+      // clear any partner data the panel holds
+    },
+  });
+  // render your UI from rightbar.state
+} catch (error) {
+  if (!(error instanceof RightbarError)) throw error;
+  root.textContent = "Open this panel from Dialpad.";
+}
+```
+
+- **`heightRoot`** (required) is the element that holds the panel's content, normally
+  your mount element. The SDK reports its height to Dialpad, which sizes the iframe
+  to it. Overlays placed under `body` take no space in it and are not counted.
+- **`fetch`** is the request function for the SDK's own calls (`/dialpad/ext-connection`,
+  `/dialpad/ext-disconnect` and the polling). It defaults to the browser's `fetch`,
+  and the SDK adds the `Authorization` header to each call. This app passes its
+  `api()` wrapper (`client/src/api.ts`), which also notices a `401`.
+- **`onDisconnect`** is called after your `/dialpad/ext-disconnect` endpoint
+  succeeded, whether the user disconnected from your button or from Dialpad's panel
+  menu. The state already shows the panel as not connected; use it to clear partner
+  data your panel holds. It is not called when the call fails.
+
+`createRightbar()` rejects with a `RightbarError` whose `code` says why:
+
+| Code            | Meaning                                                  |
+| --------------- | -------------------------------------------------------- |
+| `bad_options`   | `heightRoot` is missing, or a callback is not a function |
+| `not_framed`    | The page is not open inside Dialpad                      |
+| `bad_page_data` | The page data element is missing or invalid              |
+| `init_timeout`  | Dialpad did not answer the handshake within 10 seconds   |
+
+In every case the panel cannot work, so show a short "Open this panel from Dialpad"
+message instead of the app, as the example does. Call `rightbar.destroy()` when the
+panel unmounts: it stops listening to Dialpad, the polling and the height reports.
+
+With Vue, `app.use(rightbarPlugin, rightbar)` (from
+`@dialpad/dialapp-external-sdk/vue`) provides the instance, and a component reads it
+with `const { state, authorize, disconnect } = useRightbar()`, where `state` is a
+ref. With any other framework, read `rightbar.state` and follow its changes
+yourself; see [plain JavaScript](#the-same-iframe-panel-in-plain-javascript) and
+[React](#adapting-the-iframe-panel-to-react).
+
+The page data's `app` field, which your server fills with whatever JSON the panel
+needs when it loads, is `rightbar.app` (`null` when there is none). This demo puts
+the result of its server-side call to Dialpad's API there.
+
+### The panel's size
+
+The panel is 318 pixels wide in the right sidebar by default (266 to 414 as the
+user resizes it) and a fixed 230 pixels in the mini call bar, so lay it out for 230.
+Its height follows `heightRoot`. A modal dialog cannot leave the iframe and the
+panel is narrow, so confirm actions inline, as this app's Disconnect button does.
+
+### The state
+
+```ts
+rightbar.state;
+// { ready, user, contact, call, theme: { mode, brand },
+//   connection: { connected, pending, authorizationUrls, name, scopes, error } }
+```
+
+Every change produces a new snapshot, and the parts that did not change keep their
+references. `rightbar.subscribe((next, prev) => …)` follows every change, and
+`rightbar.watch((state) => state.contact, (contact) => …)` runs its callback now and
+then whenever that part changes.
+
+| Field        | What it holds                                                                                                                                                                                                        |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ready`      | `true` once the handshake and the first loads are done, which is always the case when `createRightbar()` has resolved                                                                                                |
+| `user`       | The Dialpad user, from what Dialpad answered at start (IDs, names, emails, phone numbers, licenses, admin flags, availability), or `null`. Dialpad sends no update, so the status fields are as of the panel's start |
+| `contact`    | The contact open in Dialpad, or `null`. It is reloaded when the user presses Dialpad's refresh button or the contact's record changes                                                                                |
+| `call`       | The active call, updated on every call event, or `null` without one                                                                                                                                                  |
+| `theme`      | `{ mode: 'light' \| 'dark', brand }`. Follow `mode`, as `bootstrap.ts` does; `brand` is always `null` today                                                                                                          |
+| `connection` | The user's connection to your system, below                                                                                                                                                                          |
+
+`connection` holds:
+
+| Field               | What it holds                                                                                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `connected`         | The user has a working connection: show the connected view                                                                                                       |
+| `pending`           | Connect is in progress                                                                                                                                           |
+| `authorizationUrls` | Where Connect can send the user, by OAuth client name. Most apps have one; a company with several OAuth clients has one per client                               |
+| `name`              | The name of the integration's OAuth client                                                                                                                       |
+| `scopes`            | The OAuth scopes the client has. Use them to hide actions the user cannot take. Empty when not connected                                                         |
+| `error`             | `null`, or why the last connection call failed: `{ code: 'request_failed', status }`, `{ code: 'network' }` or `{ code: 'timeout' }`. The next success clears it |
+
+### Actions and events
+
+| Call                                                          | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authorize(client?)`                                          | Starts Connect: asks Dialpad to open one of `connection.authorizationUrls` and polls until connected, or for 2 minutes. `client` names the OAuth client and can be left out when there is only one; it rejects for an unknown name, or when there are several and none is named. Does nothing when already connected, and starts over when called during Connect                                                                                                        |
+| `refresh()`                                                   | Calls `GET /dialpad/ext-connection` and updates `connection`. The SDK also calls it at start when the page data says not connected, which picks up a Connect finished in an earlier panel. Never rejects: a failure goes in `connection.error`                                                                                                                                                                                                                          |
+| `disconnect()`                                                | Calls `POST /dialpad/ext-disconnect`, shows the panel as not connected and calls `onDisconnect`. Dialpad's panel menu does the same. On failure `connected` stays as it was and `connection.error` is set; it never rejects                                                                                                                                                                                                                                             |
+| `authHeaders()`                                               | `{ Authorization: 'Bearer <access token>' }`, for your own requests to your backend                                                                                                                                                                                                                                                                                                                                                                                     |
+| `linkRecord({ type, url })` / `linkRecord(null)`              | Tells Dialpad which of your records matches the open contact, typically after your server found it. Dialpad shows a "View `<type>`" button in the panel's header that opens `url` in a new tab (only while connected and the panel menu has Disconnect), and uses `url` as `screenPop()`'s default. `null` unlinks. Linking also changes the panel menu, see below                                                                                                      |
+| `showRefreshButton(show)`                                     | Shows or hides the refresh button in the panel's header. When the user presses it, the SDK reloads `state.contact` and then emits `refreshContact`                                                                                                                                                                                                                                                                                                                      |
+| `showToast({ text, type })`                                   | Shows a short message in Dialpad, outside the panel. `type` is `info` (the default), `success` or `error`. This app shows one when Connect finishes, when the user disconnects and when a contact lookup fails                                                                                                                                                                                                                                                          |
+| `screenPop({ url?, force? })`                                 | Asks Dialpad to open a record for the active call, by default the linked record's URL. Without `force`, Dialpad pops only when the user has screen pops turned on, during a live inbound call, at most once per call, and not for an office or department contact                                                                                                                                                                                                       |
+| `on('rematch' \| 'refreshContact' \| 'createTask', callback)` | Calls `callback` when the event happens and returns a function that stops it. `refreshContact` fires after the SDK reloaded `state.contact`, either because the user pressed the header refresh button or because the contact's record changed in Dialpad. `rematch` and `createTask` fire when the user picks "Rematch" or "Create Task" in the panel menu, which Dialpad offers only to apps whose menu configuration includes them, and only once a record is linked |
+| `destroy()`                                                   | Shuts the panel down when it unmounts                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+
+The panel menu depends on `linkRecord()`. Dialpad shows no menu until the app is
+connected, then only Disconnect while no record is linked. Once a record is linked,
+the menu becomes the app's own entry in Dialpad's menu configuration, which Dialpad
+looks up by the app's name in lower case with the first space replaced by `_`; an app
+without an entry gets an empty menu. This demo never links a record, so its menu is
+only Disconnect. If you link records, ask Dialpad to set up your app's menu entry
+first.
+
+### Connect
+
+Connect links the Dialpad user to their account in your system through your own OAuth
+flow.
+
+1. Your Connect button calls `authorize()`. Dialpad opens the authorize URL (a popup
+   on the web, a separate window on the desktop app) and `connection.pending` turns
+   `true`. When a company has several OAuth clients, show their names and pass the
+   chosen one: `authorize('sandbox')`.
+2. The user signs in. Your OAuth callback stores their tokens and returns the
+   close-popup page. On the web that page tells Dialpad (`close_popup`), which
+   answers the SDK's pending request, and the SDK checks `/dialpad/ext-connection` at
+   once. The desktop app's login window has no opener, so there the SDK's polling
+   completes Connect.
+3. Meanwhile the SDK checks `GET /dialpad/ext-connection` after 7 seconds, then every
+   5 seconds. A failed check does not end Connect; the next one decides.
+4. When `/dialpad/ext-connection` answers `connected: true`, the state turns
+   `connected: true, pending: false`. After 2 minutes without that, Connect stops
+   with `pending: false` and `error: { code: 'timeout' }`, and your UI should offer
+   to try again (`ConnectGate.vue` does).
+
+Disconnect works the same way from your button and from Dialpad's panel menu. The
+SDK keeps the authorization URLs, so Connect shows straight away, and when your
+endpoint answers with no body it checks `/dialpad/ext-connection` for current ones.
+If the call fails, the state keeps `connected` and sets `connection.error`.
+
+## Testing your panel
+
+The SDK ships a mock Dialpad, so you can test your own panel without Dialpad.
+
+| Helper                                                                                 | Entry point                             |
+| -------------------------------------------------------------------------------------- | --------------------------------------- |
+| `createMockHost()`, with `host.createRightbar()`, `advance()`, `settle()`, `received`  | `@dialpad/dialapp-external-sdk/testing` |
+| `mountMockHostPage({ src })`, for real browsers (Playwright, a dev page)               | `/testing`                              |
+| `makePageData()`, `makeUser()`, `makeContact()`, `makeCall()`, `disposeAllMockHosts()` | `/testing`                              |
+| A setup file for Vitest or Jest                                                        | `/testing/setup`                        |
+| `mountWithRightbar(component, options)`, for Vue components                            | `/vue/testing`                          |
+
+For Vitest, add the setup file:
+
+```ts
+// vitest.config.ts
+test: {
+  environment: 'jsdom',
+  globals: true,
+  setupFiles: ['@dialpad/dialapp-external-sdk/testing/setup'],
+}
+```
+
+`createMockHost()` runs in memory with its own clock, so a Connect test calls
+`await host.advance(7_000)` instead of using fake timers. `host.received` records what
+the panel asked Dialpad to do (toasts, the linked record, screen pops, the refresh
+button, authorize requests). `mountMockHostPage()` frames your real page, whose
+backend renders the page data from a mock idtoken (this app's local mode serves such
+a URL at `/dev/frame-url`), so it takes no page data itself. Pass `fetch` to
+`host.createRightbar()` to answer the two Connect endpoints. With `globals: true` (or
+in Jest) the setup file disposes every mock host after each test; otherwise call
+`disposeAllMockHosts()` in your own `afterEach`.
+
+A first test:
+
+```ts
+import { expect, test } from "vitest";
+import {
+  createMockHost,
+  makeCall,
+  makeContact,
+} from "@dialpad/dialapp-external-sdk/testing";
+
+test("shows the call as it connects", async () => {
+  const host = createMockHost({ contact: makeContact({ displayName: "Ada" }) });
+  const rightbar = await host.createRightbar({
+    heightRoot: document.createElement("div"),
+  });
+  expect(rightbar.state.contact?.displayName).toBe("Ada");
+
+  host.sendCall(makeCall({ state: "connected" }));
+  await host.settle();
+  expect(rightbar.state.call?.state).toBe("connected");
+
+  await rightbar.linkRecord({ type: "Contact", url: "https://crm.example/1" });
+  expect(host.received.linkedRecord?.url).toBe("https://crm.example/1");
+});
+```
+
+This repository's own tests are worked examples: `client/src/App.test.ts` drives every
+state of the panel against the mock host (`pnpm test:run`), and `client/e2e/sdk/` drives
+the dev host in a real browser (`pnpm test:e2e`).
+
 ## The contract
 
 [`contract/openapi.json`](contract/openapi.json) is an OpenAPI 3.1 document that
@@ -212,20 +443,24 @@ specifies what a backend must expose for the SDK and Dialpad, in any language. I
 `info.version` is the SDK version it describes (check it against the SDK in
 `client/vendor/` when you upgrade). It is generated, so don't edit it by hand.
 
-| Operation                      | What it is                                                          |
-| ------------------------------ | ------------------------------------------------------------------- |
-| `GET /`                        | The panel page, served at the app's conversation sidebar URI        |
-| `GET /dialpad/ext-connection`  | This Dialpad user's connection to the partner's system              |
-| `POST /dialpad/ext-disconnect` | Disconnects this Dialpad user from the partner's system             |
-| `GET /oauth/callback`          | The partner's CRM OAuth callback (the path is the partner's choice) |
+| Operation                      | Authenticated by        | Answers                                                                                                                                                                                    |
+| ------------------------------ | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /`                        | `?idtoken=…`            | The panel page, served at the app's conversation sidebar URI. `401` is a minimal error page when the idtoken doesn't decode; `403` is the same kind of page when your app refuses the user |
+| `GET /dialpad/ext-connection`  | The bearer access token | `200` with an `ExternalConnection`: this Dialpad user's connection to your system. `401` when your token is rejected                                                                       |
+| `POST /dialpad/ext-disconnect` | The bearer access token | `204` with no body (a `200` with an `ExternalConnection` works too): disconnects this Dialpad user. `401` when your token is rejected                                                      |
+| `GET /oauth/callback`          | Your own OAuth `state`  | `200` with the close-popup page, after storing the tokens. The path is your choice                                                                                                         |
 
 Its schemas are `IdTokenClaims` (what decoding the idtoken returns), `PageData` (what
 the page embeds for the SDK), `ExternalConnection` (the connection status) and
-`ErrorResponse`. The `/dialpad` prefix is a default: the SDK reads the real one from
-the page data. Your own feature endpoints sit beside these and are not part of the
-contract. `server/acme_dialpad_rightbar/contract.py` is this app's Python
-implementation of the schemas. The flows in [FLOWS.md](FLOWS.md) show when each
-operation is called.
+`ErrorResponse`. The SDK always calls the contract endpoints under `/dialpad`. Your own
+feature endpoints sit beside these and are not part of the contract.
+
+An `ExternalConnection`, which `ext-connection` answers and the page data carries, has
+four fields: `connected`; `authorization_urls`, the authorize URL for each OAuth client
+by client name, with at least one entry when `connected` is false; `name`, the OAuth
+client's name; and `scopes`, the client's OAuth scopes, empty when not connected.
+`server/acme_dialpad_rightbar/contract.py` is this app's Python implementation of the
+schemas. The flows in [FLOWS.md](FLOWS.md) show when each operation is called.
 
 ## How it works
 
@@ -414,17 +649,12 @@ the Dialpad user, and `ext-connection` answers "connected" when those tokens
 exist, from the database, on any instance and after any restart. Then there is
 no handoff and no expiry, and both `OAuthResults` and the cookie can go.
 
-Without a database, this demo keeps what has to last, the user's access token
-and "this user is connected to external CRM", in the browser: the signed, 30-day
-session cookie is its persistent storage. It survives a server restart or
-scale-to-zero, and it is signed so it can't be forged. Changing `APP_SECRET`
-signs everyone out: every open iframe panel gets `401` and shows "Reload the
-panel". The cookie is not encrypted (it is `HttpOnly`, so page scripts can't read
-it), it is per browser (Disconnect changes it only in the browser that asked), a
-browser that refuses it can't use the iframe panel, and the server can't revoke
-one early. A real partner's stored tokens, looked up by Dialpad user, have none of
-those limits, and a real partner would keep a durable session or issue expiring
-tokens instead of this cookie.
+Without a database, this demo keeps what has to last, the user's access token and
+"this user is connected to the CRM", in the signed, 30-day session cookie, which
+survives a server restart or scale-to-zero. The cookie's limits are listed under
+[Why the demo has an `APP_SECRET`](#why-the-demo-has-an-app_secret) and in
+[section 6](#6-what-the-demo-does-not-do); a real partner's stored tokens and
+sessions have none of them.
 
 ## Security: what the demo shows
 
@@ -452,6 +682,31 @@ keyed with the first 48 characters of your **OAuth app's client secret**, the
 JWT signed with `HS256` and the full client secret. Its claims are the Dialpad
 `user_id`, `company_id` and `office_id`, the user's `name`, `email`,
 `phone_number` and `image_url`, an internal `csr` claim, and the `api_key`.
+
+**How to decode it.** Any JOSE library can do this; the demo uses `joserfc`
+(`decode_idtoken` in `server/acme_dialpad_rightbar/idtoken.py`).
+
+1. Read the `idtoken` query parameter. If it is missing or empty, answer `401`.
+2. Decrypt it as a compact JWE. The key is the first 48 characters of the client
+   secret, as UTF-8 bytes, used directly: `dir` means no key wrapping, hashing or
+   derivation. Allow only `alg: dir` and `enc: A192CBC-HS384`, and refuse a token
+   with any other header. Dialpad generates client secrets 50 characters long, so
+   a shorter secret is a configuration error, not a bad token.
+3. The decrypted payload is a compact JWT. Verify its signature with the full
+   client secret, as UTF-8 bytes, allowing only `HS256`, so `none` or any other
+   algorithm is refused.
+4. Read the claims. `user_id`, `company_id`, `office_id` and `api_key` are
+   required; the profile claims (`name`, `email`, `phone_number`, `image_url`)
+   may be missing. Drop `csr`, and ignore claims you don't know, since Dialpad may
+   add more. The token has no `exp` claim, so don't make your JWT library require
+   one.
+5. Treat a failure at any step the same way: answer `401` with an error page,
+   render no page data, and don't log the token.
+
+To test a decoder in another language, use the tokens in
+`server/tests/vectors/dialpad_idtokens.json`. They are built the way Dialpad
+builds them, with a test client secret that is in the same file, and each one
+lists the claims it must decode to.
 
 **Where to use it: on your server, on that one page request, and nowhere else.**
 `decode_idtoken` (`server/acme_dialpad_rightbar/idtoken.py`) accepts only those two
@@ -534,11 +789,11 @@ short expiry works as well as a session table, without the lookup.
 ### 3. Authenticating requests to Dialpad
 
 Calls from your server to Dialpad's public API carry the api key as a bearer
-token, against the Dialpad origin you are configured for (`DIALPAD_ORIGIN`, the
-beta or production host):
+token, against the Dialpad origin you are configured for (`DIALPAD_ORIGIN`,
+`https://dialpad.com`):
 
 ```http
-GET https://dialpadbeta.com/api/v2/users/me
+GET https://dialpad.com/api/v2/users/me
 Authorization: Bearer <api_key>
 ```
 
@@ -607,10 +862,9 @@ Every page the server renders carries a `Content-Security-Policy`, plus
 Other protections around the page:
 
 - **Escaping.** Every value put into HTML goes through `html.escape` (title,
-  asset URLs, the error page's code and message). The page data JSON in its
-  `<script>` element is encoded so `<`, `>`, `&` and `'` become `<`-style
-  escapes, so a value containing `</script>` cannot close the element. Tests use
-  hostile values for both.
+  asset URLs, the error page's code and message). The page data JSON has its own
+  rule; see [Escaping the page data](#escaping-the-page-data). Tests use hostile
+  values for both.
 - **The Dialpad origin is checked twice before it reaches a header or a
   script:** `DIALPAD_ORIGIN` must be a bare origin at startup, and the renderers
   refuse anything that isn't one, because a `;` or a space in a CSP value would
@@ -624,6 +878,41 @@ Other protections around the page:
   data.
 - **The page data holds no secrets:** no api key, no user profile, only the
   access token the iframe panel needs, the connection status and the demo result.
+
+#### Escaping the page data
+
+The page data travels inside the page as JSON, in this element:
+
+```html
+<script type="application/json" id="dialpad-page-data" nonce="…">
+  {"version": 1, …}
+</script>
+```
+
+`html.escape` is the wrong tool here. The browser doesn't decode HTML entities
+inside a `<script>` element, so `&lt;` would reach the SDK as those four
+characters, not as `<`. Plain `json.dumps` isn't enough either: the browser ends
+the element at the first `</script>` in the text, wherever it appears, including
+inside a JSON string. A contact name such as `</script><script>alert(1)</script>`
+would close the element and inject a script.
+
+So after encoding the JSON, replace these four characters everywhere in it:
+
+| Character | Write it as |
+| --------- | ----------- |
+| `<`       | `\u003c`    |
+| `>`       | `\u003e`    |
+| `&`       | `\u0026`    |
+| `'`       | `\u0027`    |
+
+JSON reads each escape back as the same character, so `JSON.parse` in the SDK
+gets the original values, but the text can no longer close the element, open an
+HTML comment (`<!--`), or break out of a quoted attribute. The replacement is
+safe to do on the whole encoded text, because those characters can only appear
+inside JSON strings. Other characters stay as they are.
+
+Or use a library that does this for you: Jinja2's `tojson` filter in Python,
+Gson's `new Gson().toJson(value)` on the JVM, etc.
 
 ### 5. Secrets and logs
 

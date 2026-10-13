@@ -7,9 +7,9 @@
 // What a real app would do: the same request, but the server uses the user's stored CRM token to
 // map the Dialpad contact to a CRM record (by a saved mapping, or by searching the CRM for the
 // contact's phone numbers and emails), fetches that record and returns the fields to show. Once the
-// panel has the record it calls the SDK's `linkRecord(...)` so Dialpad can offer "View record" in
-// the panel menu and use the record's URL for screen pops. The server side is described in
-// `server/acme_dialpad_rightbar/endpoints/app/contact.py`.
+// panel has the record it calls the SDK's `linkRecord(...)`, so Dialpad shows a "View <type>" button
+// in the panel header that opens the record's URL, and uses that URL for screen pops. The server
+// side is described in `server/acme_dialpad_rightbar/endpoints/app/contact.py`.
 import type { Contact } from '@dialpad/dialapp-external-sdk';
 
 import { api } from './api';
