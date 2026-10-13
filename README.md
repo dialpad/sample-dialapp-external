@@ -16,7 +16,9 @@ with every field "Acme'd" (text gets an `Acme ` prefix).
 (see [Install](#install)). It is headless, so you build the panel with any
 framework or none (this repository uses Vue; see the sections on
 [plain JavaScript](#the-same-iframe-panel-in-plain-javascript) and
-[React](#adapting-the-iframe-panel-to-react)). The SDK does all of this, so your
+[React](#adapting-the-iframe-panel-to-react)). Vue is the preferred choice:
+Dialtone, Dialpad's design system, ships its components as Vue components, so a
+Dialpad-like UI is simpler and faster to build. The SDK does all of this, so your
 code never touches it:
 
 - reads the page data the server put in the iframe's HTML, and checks the page is
