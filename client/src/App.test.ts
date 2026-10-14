@@ -120,12 +120,25 @@ function acmeRows(contact: Record<string, unknown>) {
     }));
 }
 
+/** The fake record page's URL for a contact id, as the fake server answers it. */
+function recordOf(id: string) {
+  return { type: 'Contact', url: `https://acme.example.com/records/${id}` };
+}
+
+/** The record the server answers with for a contact: its fake record page, or null without an id. */
+function acmeRecord(contact: Record<string, unknown>) {
+  return typeof contact.id === 'string' && contact.id !== ''
+    ? recordOf(contact.id)
+    : null;
+}
+
 /**
  * A fake of the server's `POST /api/contact`, standing in for the global `fetch` the panel's own
  * requests (the ones made through `api()`) use, and recording every request it gets.
  *
- * `mode` decides how it answers: `ok` (the Acme'd rows at once), `empty` (no rows), `error` (a 500),
- * or `hold` (each answer waits in `held` until a test calls its `respond`, to answer out of order).
+ * `mode` decides how it answers: `ok` (the Acme'd rows and the record at once), `empty` (no rows),
+ * `error` (a 500), or `hold` (each answer waits in `held` until a test calls its `respond`, to
+ * answer out of order).
  */
 function fakeContactApi() {
   const contactApi = {
@@ -148,6 +161,7 @@ function fakeContactApi() {
         const answer = () =>
           json({
             fields: contactApi.mode === 'empty' ? [] : acmeRows(body.contact),
+            record: acmeRecord(body.contact),
           });
         if (contactApi.mode === 'hold') {
           return new Promise<Response>((resolve) => {
@@ -252,6 +266,18 @@ function rejectToasts(rightbar: Rightbar): { asked: number } {
   const counter = { asked: 0 };
   Object.assign(rightbar, {
     showToast: () => {
+      counter.asked += 1;
+      return Promise.reject(new Error('Dialpad did not answer'));
+    },
+  });
+  return counter;
+}
+
+/** Make Dialpad reject every `linkRecord`, and return a counter of how many were asked for. */
+function rejectLinks(rightbar: Rightbar): { asked: number } {
+  const counter = { asked: 0 };
+  Object.assign(rightbar, {
+    linkRecord: () => {
       counter.asked += 1;
       return Promise.reject(new Error('Dialpad did not answer'));
     },
@@ -451,9 +477,10 @@ describe('Connected view', () => {
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
-  it("asks the server for the CRM view of the contact Dialpad sends, and shows every field Acme'd, omitting empty ones", async () => {
+  it("asks the server for the CRM view of the contact Dialpad sends, shows every field Acme'd, omitting empty ones, and links its record", async () => {
     const { wrapper, host, contactApi } = await setup({ connected: true });
     const sent = makeContact({
+      id: '1',
       displayName: 'Pat Customer',
       primaryPhone: '+1 555 0199',
       phones: ['+1 555 0199'],
@@ -478,6 +505,7 @@ describe('Connected view', () => {
     expect(contact).toContain('Acme +1 555 0199');
     expect(contact).toContain('Acme pat@example.com');
     expect(contact).not.toContain('jobTitle');
+    expect(host.received.linkedRecord).toEqual(recordOf('1'));
   });
 
   it("shows the user the server fetched from Dialpad's API with the api key", async () => {
@@ -614,6 +642,27 @@ describe('Connected view', () => {
     );
   });
 
+  it('still shows the contact when Dialpad rejects the link', async () => {
+    const { wrapper, host, rightbar } = await setup({ connected: true });
+    const links = rejectLinks(rightbar);
+
+    const unhandled = await unhandledRejectionsDuring(async () => {
+      host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
+      await host.settle();
+      await flushPromises();
+    });
+
+    expect(links.asked).toBe(1);
+    expect(unhandled).toBe(0);
+    expect(warnings).toHaveBeenCalledWith(
+      "Dialpad didn't link the record",
+      expect.any(Error),
+    );
+    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+      'Acme Pat Customer',
+    );
+  });
+
   it('opens a new contact without disconnecting, and ignores a late answer for the earlier one', async () => {
     const { wrapper, host, contactApi } = await setup({ connected: true });
     contactApi.mode = 'hold';
@@ -623,15 +672,35 @@ describe('Connected view', () => {
     host.sendContact(makeContact({ id: '2', displayName: 'Sam Prospect' }));
     await host.settle();
     await flushPromises();
+    const linkedWhilePending = host.received.linkedRecord;
     contactApi.held[1]?.respond();
     await flushPromises();
     contactApi.held[0]?.respond();
+    await host.settle();
     await flushPromises();
 
     const shown = wrapper.get('[data-testid="acme-contact"]').text();
     expect(shown).toContain('Acme Sam Prospect');
     expect(shown).not.toContain('Acme Pat Customer');
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
+    expect(linkedWhilePending).toBeNull();
+    expect(host.received.linkedRecord).toEqual(recordOf('2'));
+  });
+
+  it('unlinks the record when the lookup for the next contact fails', async () => {
+    const { host, contactApi } = await setup({ connected: true });
+    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
+    await host.settle();
+    await flushPromises();
+    const linked = host.received.linkedRecord;
+
+    contactApi.mode = 'error';
+    host.sendContact(makeContact({ id: '2', displayName: 'Sam Prospect' }));
+    await host.settle();
+    await flushPromises();
+
+    expect(linked).toEqual(recordOf('1'));
+    expect(host.received.linkedRecord).toBeNull();
   });
 
   it('shows no active call until Dialpad sends one, then follows it from ringing to connected to ended', async () => {
@@ -690,8 +759,9 @@ describe('Connected view', () => {
     },
   );
 
-  it("shows the call's contact as well when it is a different contact", async () => {
-    const { wrapper, host } = await setup({ connected: true });
+  it("shows the call's contact as well when it is a different contact, but links only the panel's", async () => {
+    const { wrapper, host, contactApi } = await setup({ connected: true });
+    contactApi.mode = 'hold';
 
     host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
     host.sendCall(
@@ -702,13 +772,22 @@ describe('Connected view', () => {
     );
     await host.settle();
     await flushPromises();
+    // Answer the call contact's lookup last, so a link from it would be the one left.
+    const sam = contactApi.held.find((held) => held.contact.id === '2');
+    contactApi.held.find((held) => held.contact.id === '1')?.respond();
+    await flushPromises();
+    sam?.respond();
+    await host.settle();
+    await flushPromises();
 
+    expect(sam).toBeDefined();
     expect(wrapper.get('[data-testid="call-contact"]').text()).toContain(
       'Acme Sam Prospect',
     );
     expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
       'Acme Pat Customer',
     );
+    expect(host.received.linkedRecord).toEqual(recordOf('1'));
   });
 
   it('asks for inline confirmation before disconnecting, and Cancel backs out', async () => {
@@ -759,9 +838,13 @@ describe('Connected view', () => {
     ]);
   });
 
-  it("shows the same toast when the user disconnects from Dialpad's menu", async () => {
+  it("shows the same toast and unlinks the record when the user disconnects from Dialpad's menu", async () => {
     const { wrapper, host, server } = await setup({ connected: true });
     server.mode = 'connected';
+    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
+    await host.settle();
+    await flushPromises();
+    const linked = host.received.linkedRecord;
 
     host.trigger('disconnect');
     await host.settle();
@@ -772,6 +855,8 @@ describe('Connected view', () => {
     expect(host.received.toasts).toEqual([
       { text: 'Disconnected from Acme CRM', type: 'info' },
     ]);
+    expect(linked).toEqual(recordOf('1'));
+    expect(host.received.linkedRecord).toBeNull();
   });
 
   it('tells the user when Disconnect fails and stays connected', async () => {

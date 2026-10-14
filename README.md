@@ -148,7 +148,8 @@ by `server/acme_dialpad_rightbar/idtoken.py` with its test secret), frames the a
 and a new call ringing), switch light and dark, and disconnect the way Dialpad's
 panel menu does. Under the panel it lists the toasts the app shows (Connect
 finished, Disconnected, a failed contact lookup), which Dialpad would show
-outside the panel.
+outside the panel, and the record the panel linked, which Dialpad would show as
+a "View Contact" button in the panel's header.
 
 Click **Connect**. The fake authorize URL opens in a popup showing a page that
 says it is a fake OAuth page, with an **Authorize** button. The popup stays
@@ -336,7 +337,7 @@ then whenever that part changes.
 | `refresh()`                                                   | Calls `GET /dialpad/ext-connection` and updates `connection`. The SDK also calls it at start when the page data says not connected, which picks up a Connect finished in an earlier panel. Never rejects: a failure goes in `connection.error`                                                                                                                                                                                                                          |
 | `disconnect()`                                                | Calls `POST /dialpad/ext-disconnect`, shows the panel as not connected and calls `onDisconnect`. Dialpad's panel menu does the same. On failure `connected` stays as it was and `connection.error` is set; it never rejects                                                                                                                                                                                                                                             |
 | `authHeaders()`                                               | `{ Authorization: 'Bearer <access token>' }`, for your own requests to your backend                                                                                                                                                                                                                                                                                                                                                                                     |
-| `linkRecord({ type, url })` / `linkRecord(null)`              | Tells Dialpad which of your records matches the open contact, typically after your server found it. Dialpad shows a "View `<type>`" button in the panel's header that opens `url` in a new tab (only while connected and the panel menu has Disconnect), and uses `url` as `screenPop()`'s default. `null` unlinks. Linking also changes the panel menu, see below                                                                                                      |
+| `linkRecord({ type, url })` / `linkRecord(null)`              | Tells Dialpad which of your records matches the open contact, typically after your server found it. Dialpad shows a "View `<type>`" button in the panel's header that opens `url` in a new tab (only while connected and the panel menu has Disconnect), and uses `url` as `screenPop()`'s default. `null` unlinks. Linking also changes the panel menu, see below. This app links the open contact's record once its lookup succeeds                                   |
 | `showRefreshButton(show)`                                     | Shows or hides the refresh button in the panel's header. When the user presses it, the SDK reloads `state.contact` and then emits `refreshContact`                                                                                                                                                                                                                                                                                                                      |
 | `showToast({ text, type })`                                   | Shows a short message in Dialpad, outside the panel. `type` is `info` (the default), `success` or `error`. This app shows one when Connect finishes, when the user disconnects and when a contact lookup fails                                                                                                                                                                                                                                                          |
 | `screenPop({ url?, force? })`                                 | Asks Dialpad to open a record for the active call, by default the linked record's URL. Without `force`, Dialpad pops only when the user has screen pops turned on, during a live inbound call, at most once per call, and not for an office or department contact                                                                                                                                                                                                       |
@@ -347,9 +348,14 @@ The panel menu depends on `linkRecord()`. Dialpad shows no menu until the app is
 connected, then only Disconnect while no record is linked. Once a record is linked,
 the menu becomes the app's own entry in Dialpad's menu configuration, which Dialpad
 looks up by the app's name in lower case with the first space replaced by `_`; an app
-without an entry gets an empty menu. This demo never links a record, so its menu is
-only Disconnect. If you link records, ask Dialpad to set up your app's menu entry
-first.
+without an entry gets an empty menu, which also hides the "View `<type>`" button.
+Ask Dialpad to set up your app's menu entry before you link records.
+
+This demo links the open contact's record, its fake record page
+(`/records/<contact id>`), once the lookup succeeds. It unlinks as soon as the
+contact changes, when the lookup fails, and when the user disconnects, so Dialpad
+never shows a record for another contact. Only the panel's own contact is linked,
+not a call's other contact: Dialpad keeps one linked record per panel.
 
 ### Connect
 
@@ -488,16 +494,17 @@ Each endpoint is one file under `server/acme_dialpad_rightbar/endpoints/`: the o
 its SDK calls (the [contract](#the-contract)) are in `dialpad/`, and the application's own
 are in `app/`. Each folder's `__init__.py` lists them.
 
-| Endpoint                       | File                          | Behaviour                                                                                                                                                                                                                                                                                      |
-| ------------------------------ | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /`                        | `dialpad/page.py`             | The page. `401` HTML if the idtoken doesn't decode                                                                                                                                                                                                                                             |
-| `GET /dialpad/ext-connection`  | `dialpad/ext_connection.py`   | Bearer token matching the cookie's. Consumes a stored OAuth result, else answers from the cookie. Fresh authorize URL                                                                                                                                                                          |
-| `POST /dialpad/ext-disconnect` | `dialpad/ext_disconnect.py`   | Bearer token matching the cookie's. Turns the connection off in the cookie, answers `204` with no body                                                                                                                                                                                         |
-| `POST /api/contact`            | `app/contact.py`              | A sample endpoint that the client library doesn't invoke but the application's own frontend does, showcasing feature extensibility. Bearer token matching the cookie's, user connected. Answers with the CRM's view of a Dialpad contact (see [below](#the-contact-lookup-demo-vs-a-real-app)) |
-| `GET /oauth/fake-authorize`    | `app/oauth_fake_authorize.py` | Demo only. A page labelled fake, with an Authorize button that goes to the callback with `state` and a fixed `code`                                                                                                                                                                            |
-| `GET /oauth/callback`          | `app/oauth_callback.py`       | The OAuth redirect URI. Verifies `state`, closes the popup. The demo only records that the user connected; a real app also exchanges the `code` for CRM tokens and persists them in a database                                                                                                 |
-| `GET /healthz`                 | `app/healthz.py`              | Answers `ok`. Mainly for the Playwright e2e setup; partners can ignore it                                                                                                                                                                                                                      |
-| `GET /dev/frame-url`           | `app/dev_frame_url.py`        | Local mode only. The dev host's page URL with a mock idtoken                                                                                                                                                                                                                                   |
+| Endpoint                       | File                          | Behaviour                                                                                                                                                                                                                                                                                                             |
+| ------------------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /`                        | `dialpad/page.py`             | The page. `401` HTML if the idtoken doesn't decode                                                                                                                                                                                                                                                                    |
+| `GET /dialpad/ext-connection`  | `dialpad/ext_connection.py`   | Bearer token matching the cookie's. Consumes a stored OAuth result, else answers from the cookie. Fresh authorize URL                                                                                                                                                                                                 |
+| `POST /dialpad/ext-disconnect` | `dialpad/ext_disconnect.py`   | Bearer token matching the cookie's. Turns the connection off in the cookie, answers `204` with no body                                                                                                                                                                                                                |
+| `POST /api/contact`            | `app/contact.py`              | A sample endpoint that the client library doesn't invoke but the application's own frontend does, showcasing feature extensibility. Bearer token matching the cookie's, user connected. Answers with the CRM's view of a Dialpad contact and the record to link (see [below](#the-contact-lookup-demo-vs-a-real-app)) |
+| `GET /records/<contact id>`    | `app/fake_record.py`          | Demo only. A page labelled fake that stands in for the CRM's page for a record, showing the contact id. The panel links it, so Dialpad's "View Contact" button opens it                                                                                                                                               |
+| `GET /oauth/fake-authorize`    | `app/oauth_fake_authorize.py` | Demo only. A page labelled fake, with an Authorize button that goes to the callback with `state` and a fixed `code`                                                                                                                                                                                                   |
+| `GET /oauth/callback`          | `app/oauth_callback.py`       | The OAuth redirect URI. Verifies `state`, closes the popup. The demo only records that the user connected; a real app also exchanges the `code` for CRM tokens and persists them in a database                                                                                                                        |
+| `GET /healthz`                 | `app/healthz.py`              | Answers `ok`. Mainly for the Playwright e2e setup; partners can ignore it                                                                                                                                                                                                                                             |
+| `GET /dev/frame-url`           | `app/dev_frame_url.py`        | Local mode only. The dev host's page URL with a mock idtoken                                                                                                                                                                                                                                                          |
 
 ## How the demo differs from a real app
 
@@ -512,7 +519,7 @@ callback stored).
 | [2. Authenticating requests](FLOWS.md#2-authenticating-every-request-from-the-iframe-panel) | The bearer token must equal the cookie's token (a double submit)                                                                             | Looks the bearer token up in a session table; no cookie                                    |
 | [3. OAuth](FLOWS.md#3-external-oauth-connect)                                               | A fake authorize page; the callback leaves an in-memory note that the iframe panel's next check collects, and the cookie records "connected" | The CRM's authorize page; the callback exchanges the `code` for CRM tokens and stores them |
 | [4. Disconnect](FLOWS.md#4-external-disconnect)                                             | Turns "connected" off in the cookie, in that browser only                                                                                    | Revokes and deletes the user's CRM tokens                                                  |
-| [5. Contact pulling](FLOWS.md#5-external-contact-pulling)                                   | Prefixes every text field with `Acme `                                                                                                       | Maps the contact to a CRM record, fetches it with the CRM token, calls `linkRecord`        |
+| [5. Contact pulling](FLOWS.md#5-external-contact-pulling)                                   | Prefixes every text field with `Acme ` and links a fake record page                                                                          | Maps the contact to a CRM record, fetches it with the CRM token, calls `linkRecord`        |
 | [6. Server to server](FLOWS.md#6-server-to-server-calling-dialpads-api)                     | One call on the page request                                                                                                                 | Stores the key and calls Dialpad's API whenever needed                                     |
 | [7. Webhooks](FLOWS.md#7-event-subscriptions-and-webhooks)                                  | Not implemented                                                                                                                              | A receiver that verifies each event's signed JWT                                           |
 
@@ -585,9 +592,10 @@ The cookie's attributes and the signed values:
 `POST /api/contact`, and the server (`server/acme_dialpad_rightbar/endpoints/app/contact.py`,
 whose docstring also describes the real thing) answers with every non-empty field
 prefixed `Acme `. That proves the contact reached the server and came back, and
-that the request was authenticated as the right user. The iframe panel shows a
-loading state and a failure message, and ignores a late answer for a contact that
-is no longer open. A real app does what
+that the request was authenticated as the right user. It also answers with a
+record, the fake record page for the contact's id, which the iframe panel links
+with `linkRecord`. The iframe panel shows a loading state and a failure message,
+and ignores a late answer for a contact that is no longer open. A real app does what
 [flow 5](FLOWS.md#5-external-contact-pulling) describes.
 
 ### The demo call to Dialpad's API
@@ -950,11 +958,12 @@ Gson's `new Gson().toJson(value)` on the JVM, etc.
 
 | Here                                                                                             | With                                                                                                                                                                                                  |
 | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/records/<contact id>`                                                                          | Your CRM's URL for the mapped record, returned by the contact lookup; delete `server/acme_dialpad_rightbar/fake_record.py` and `endpoints/app/fake_record.py`                                         |
 | `/oauth/fake-authorize`                                                                          | Your CRM's real authorize URL; delete `server/acme_dialpad_rightbar/fake_oauth.py`                                                                                                                    |
 | `/oauth/callback`                                                                                | Keep the route, its `state` check and the close-popup page; replace what it records with the `code` exchange and persisting the CRM tokens in a database                                              |
 | `server/acme_dialpad_rightbar/stores.py` (in-memory)                                             | Nothing: store the CRM tokens in the callback and answer from them (see [flow 3](FLOWS.md#3-external-oauth-connect))                                                                                  |
 | The session cookie (`server/acme_dialpad_rightbar/database.py`, `signing.py`)                    | Your stored CRM tokens, and a real session (a durable store or expiring tokens). The signed cookie is this demo's persistent storage of the access token and the connection, not part of the contract |
-| `server/acme_dialpad_rightbar/endpoints/app/contact.py`, `client/src/components/AcmeContact.vue` | The contact lookup: map the Dialpad contact to a CRM record with the user's CRM token, and return its fields (see [flow 5](FLOWS.md#5-external-contact-pulling))                                      |
+| `server/acme_dialpad_rightbar/endpoints/app/contact.py`, `client/src/components/AcmeContact.vue` | The contact lookup: map the Dialpad contact to a CRM record with the user's CRM token, and return its fields and its URL in the CRM (see [flow 5](FLOWS.md#5-external-contact-pulling))               |
 | `client/src/components/ConnectGate.vue`                                                          | Copy it and change the copy; it renders the SDK's `connection` state                                                                                                                                  |
 | `ACCOUNT_NAME` in `server/acme_dialpad_rightbar/context.py`                                      | Your CRM's account name                                                                                                                                                                               |
 | `server/acme_dialpad_rightbar/dialpad_api.py`, `DialpadApiCard.vue`                              | Delete both, and the call in `endpoints/dialpad/page.py`. Store the api key and call Dialpad when you need to                                                                                         |
@@ -1219,8 +1228,9 @@ function createContactSection(rightbar) {
 }
 ```
 
-A real app would also call `rightbar.linkRecord(...)` here once the server has
-returned a mapped CRM record (see
+Call `rightbar.linkRecord(...)` here too once the server has returned the record,
+and `rightbar.linkRecord(null)` when the contact changes, as this app's
+`AcmeContact.vue` does (see
 [The contact lookup](#the-contact-lookup-demo-vs-a-real-app)).
 
 ### Tests and build

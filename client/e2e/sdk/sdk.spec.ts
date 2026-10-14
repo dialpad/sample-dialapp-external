@@ -69,6 +69,11 @@ function toastList(page: Page) {
   return page.locator('#toasts li');
 }
 
+/** The dev host's view of the record the panel linked, which Dialpad shows as a header button. */
+function linkedRecord(page: Page) {
+  return page.locator('#linked-record');
+}
+
 test('connect by polling, reconnect on first paint, then disconnect', async ({
   page,
 }) => {
@@ -89,11 +94,20 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   );
 
   // Data flows from the host to the iframe panel: the contact open in the dev host, shown Acme'd, is
-  // there as soon as the user is connected. Changing contact cycles through three and wraps.
+  // there as soon as the user is connected, and its record is linked back to the host. Changing
+  // contact cycles through three and wraps, and the link follows.
   const contact = panel.getByTestId('acme-contact');
   await expect(contact).toContainText('Acme Pat Customer');
+  await expect(linkedRecord(page).getByRole('link')).toHaveAttribute(
+    'href',
+    /\/records\/4800000000000001$/,
+  );
   await page.getByRole('button', { name: 'Change contact' }).click();
   await expect(contact).toContainText('Acme Sam Prospect');
+  await expect(linkedRecord(page).getByRole('link')).toHaveAttribute(
+    'href',
+    /\/records\/4800000000000002$/,
+  );
   await page.getByRole('button', { name: 'Change contact' }).click();
   await expect(contact).toContainText('Acme Robin Partner');
   await page.getByRole('button', { name: 'Change contact' }).click();
@@ -108,6 +122,7 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await panel.getByTestId('disconnect-button').click();
   await panel.getByTestId('disconnect-confirm').click();
   await expect(panel.getByTestId('connect-gate')).toBeVisible();
+  await expect(linkedRecord(page)).toHaveText('None');
 });
 
 test("calls reach the iframe panel, with the call's contact when it differs", async ({

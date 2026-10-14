@@ -361,7 +361,10 @@ flowchart TD
 4. **Tell Dialpad about the match.** When the panel has the record it calls the
    SDK's `linkRecord(...)`, so Dialpad shows a "View <type>" button in the panel
    header that opens the record's URL, and uses that URL for screen pops when a
-   call comes in.
+   call comes in. Unlink with `linkRecord(null)` as soon as the contact changes,
+   when the lookup fails and when the user disconnects, so Dialpad never shows a
+   record for another contact. This demo links its fake record page
+   (`/records/<contact id>`).
 5. **Handle the CRM being slow or down** with a short timeout and an error the
    panel can show.
 

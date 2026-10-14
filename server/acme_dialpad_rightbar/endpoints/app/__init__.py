@@ -3,6 +3,9 @@
 * ``POST /api/contact``: a sample endpoint that the client library doesn't invoke, but the
   application's own frontend does, showcasing feature extensibility (``contact.py``). A real
   application has many such routes: contacts, notes, search, and so on.
+* ``GET /records/<contact id>``: a stand-in for the partner CRM's page for a record, clearly
+  labelled fake, which the iframe panel links so Dialpad's "View Contact" button opens it
+  (``fake_record.py``). A real partner links their CRM's own record page.
 * ``GET /oauth/fake-authorize``: a stand-in for the partner CRM's consent screen, clearly labelled
   fake (``oauth_fake_authorize.py``). A real partner replaces it with their CRM's authorize URL.
 * ``GET /oauth/callback``: the OAuth redirect URI, which a real app has too (``oauth_callback.py``).
@@ -18,6 +21,7 @@ from typing import TYPE_CHECKING
 
 from acme_dialpad_rightbar.endpoints.app import contact
 from acme_dialpad_rightbar.endpoints.app import dev_frame_url
+from acme_dialpad_rightbar.endpoints.app import fake_record
 from acme_dialpad_rightbar.endpoints.app import healthz
 from acme_dialpad_rightbar.endpoints.app import oauth_callback
 from acme_dialpad_rightbar.endpoints.app import oauth_fake_authorize
@@ -34,6 +38,7 @@ def register_app_endpoints(app: App, ctx: AppContext) -> None:
   """
   healthz.register(app, ctx)
   contact.register(app, ctx)
+  fake_record.register(app, ctx)
   oauth_fake_authorize.register(app, ctx)
   oauth_callback.register(app, ctx)
   if ctx.settings.local_mode:

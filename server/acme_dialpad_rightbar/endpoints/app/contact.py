@@ -14,8 +14,9 @@ way, with ``ctx.state_for(request)``: the bearer token must match the session co
 
 **What this demo does.** There is no CRM, so there is no mapping. The route returns every non-empty
 field of the Dialpad contact with an ``Acme `` prefix on its text, which proves the contact went to
-the server and back, and that the request was authenticated as the right user. Nothing is looked up
-or stored.
+the server and back, and that the request was authenticated as the right user. It also returns a
+``record`` for the iframe panel to link: the fake record page (``fake_record.py``) for the contact's
+id. Nothing is looked up or stored.
 
 **What a real app would do instead**, in this route, once it has authenticated the request:
 
@@ -31,9 +32,10 @@ or stored.
 3. **Fetch the mapped record.** Call the CRM's API with the user's CRM token as the bearer token
    (``Authorization: Bearer <CRM access token>``), and return only the fields the iframe panel
    shows, in your own response shape. Never return the CRM token.
-4. **Tell Dialpad about the match.** After the iframe panel gets the record, it calls the SDK's
-   ``linkRecord({...})``, so Dialpad shows a "View <type>" button in the panel header that opens the
-   record's URL, and uses that URL for screen pops when a call comes in.
+4. **Tell Dialpad about the match.** Return the record's type and its URL in the CRM. After the
+   iframe panel gets the record, it calls the SDK's ``linkRecord({...})``, as this demo does, so
+   Dialpad shows a "View <type>" button in the panel header that opens the record's URL, and uses
+   that URL for screen pops when a call comes in.
 5. **Handle the CRM being slow or down** with a short timeout and an error the iframe panel can
    show, as ``acme_dialpad_rightbar.dialpad_api`` does for Dialpad's own API.
 """
@@ -59,12 +61,15 @@ CONTACT_PATH = '/api/contact'
 
 def register(app: App, ctx: AppContext) -> None:
   """Register ``POST /api/contact``."""
+  settings = ctx.settings
+
   @app.post(CONTACT_PATH)
   async def contact(request: Request) -> HTTPResponse:
     """Answer with the CRM's view of the Dialpad contact in the request body.
 
     The body is ``{"contact": {...}}``, the contact as the SDK has it. The answer is
-    ``{"fields": [{"label": ..., "value": ...}, ...]}``. The request is authenticated like every
+    ``{"fields": [{"label": ..., "value": ...}, ...], "record": {"type": "Contact", "url": ...}}``,
+    with ``record`` null when the contact has no id to link. The request is authenticated like every
     route the iframe panel calls, with ``ctx.state_for``: the bearer token must match the session
     cookie's (``401`` otherwise). A user who has not connected gets ``403``, because a real CRM
     lookup needs their CRM token. A body that is not that shape gets ``400``.
@@ -94,4 +99,9 @@ def register(app: App, ctx: AppContext) -> None:
       shown = ', '.join(
           f'Acme {item}' if isinstance(item, str) else json.dumps(item) for item in items)
       rows.append({'label': label, 'value': shown})
-    return json_response({'fields': rows})
+    contact_id = fields.get('id')
+    record = {
+        'type': 'Contact',
+        'url': settings.record_url(contact_id),
+    } if isinstance(contact_id, str) and contact_id else None
+    return json_response({'fields': rows, 'record': record})

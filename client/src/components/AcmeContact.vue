@@ -7,23 +7,26 @@
 //
 // What the demo does: the reference app has no CRM, so the server answers with every field "Acme'd"
 // (text prefixed with `Acme `), which proves the contact went to the server and back as the right
-// user. What a real app does: the server maps the contact to a CRM record with the user's stored
-// CRM token, fetches it and returns its fields; then this component calls the SDK's
-// `linkRecord(...)` with the record's URL so Dialpad shows a "View <type>" header button for it and
-// uses it for screen pops.
+// user, and with its fake record page as the record. What a real app does: the server maps the
+// contact to a CRM record with the user's stored CRM token, fetches it and returns its fields and
+// its URL in the CRM. Either way, this component then calls the SDK's `linkRecord(...)` with the
+// record, so Dialpad shows a "View <type>" header button for it and uses it for screen pops.
 //
 // `contact` is null until Dialpad sends one (the SDK's `state.contact`). Each new contact is looked
-// up again, and the answer to an older contact that arrives late is ignored.
+// up again, and the answer to an older contact that arrives late is ignored. The record is unlinked
+// as soon as the contact changes, when the lookup fails, and when the section goes away (on
+// disconnect), so Dialpad never shows a record for another contact.
 //
 // It is used twice when a call is active: for the iframe panel's contact and, if that is a different
-// person, for the call's own contact. `title` and `testId` tell the two apart.
-import type { Contact } from '@dialpad/dialapp-external-sdk';
+// person, for the call's own contact. `title` and `testId` tell the two apart, and only the panel's
+// own contact sets `link`: Dialpad keeps one linked record per panel.
+import type { Contact, LinkedRecord } from '@dialpad/dialapp-external-sdk';
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
-import { ref, useId, watch } from 'vue';
+import { onBeforeUnmount, ref, useId, watch } from 'vue';
 
-import { type AcmeField, fetchAcmeFields } from '../contactApi';
+import { type AcmeField, fetchAcmeContact } from '../contactApi';
 
-const { showToast } = useRightbar();
+const { showToast, linkRecord } = useRightbar();
 
 const props = withDefaults(
   defineProps<{
@@ -32,9 +35,28 @@ const props = withDefaults(
     title?: string;
     /** The section's `data-testid`, so tests can tell the two uses apart. */
     testId?: string;
+    /** Whether to link the contact's record in Dialpad; only for the panel's own contact. */
+    link?: boolean;
   }>(),
-  { title: "This contact, Acme'd", testId: 'acme-contact' },
+  { title: "This contact, Acme'd", testId: 'acme-contact', link: false },
 );
+
+/** Whether this section has a record linked in Dialpad, so it unlinks only what it linked. */
+let linked = false;
+
+/**
+ * Link `record` in Dialpad, or unlink with `null`. Nothing happens without `link`, or when unlinking
+ * with nothing linked. Best effort: a host that rejects it must not break the panel; it is logged.
+ */
+function setLinkedRecord(record: LinkedRecord | null): void {
+  if (!props.link || (record === null && !linked)) {
+    return;
+  }
+  linked = record !== null;
+  linkRecord(record).catch((error: unknown) => {
+    console.warn("Dialpad didn't link the record", error);
+  });
+}
 
 /** An id for the heading that is unique per instance, since two sections can be on screen. */
 const headingId = useId();
@@ -52,16 +74,18 @@ watch(
     lookup += 1;
     const mine = lookup;
     fields.value = [];
+    setLinkedRecord(null);
     if (!contact) {
       status.value = 'idle';
       return;
     }
     status.value = 'loading';
     try {
-      const rows = await fetchAcmeFields(contact);
+      const answer = await fetchAcmeContact(contact);
       if (mine === lookup) {
-        fields.value = rows;
+        fields.value = answer.fields;
         status.value = 'ready';
+        setLinkedRecord(answer.record);
       }
     } catch (error) {
       if (mine === lookup) {
@@ -80,6 +104,10 @@ watch(
   },
   { immediate: true },
 );
+
+onBeforeUnmount(() => {
+  setLinkedRecord(null);
+});
 </script>
 
 <template>

@@ -9,7 +9,8 @@
 // The first of three contacts is open when the iframe panel starts, as when Dialpad opens the iframe panel for a
 // contact. The buttons in `dev-host/index.html` cycle to the next contact, step a call through its
 // states, switch light and dark, and disconnect the way Dialpad's panel menu does. Every toast the
-// panel shows is listed under the panel, since Dialpad would show them outside it.
+// panel shows is listed under the panel, since Dialpad would show them outside it, and so is the
+// record the panel linked, which Dialpad would show as a "View <type>" button in the panel header.
 // Playwright tests drive the same host through `window.mockHost`.
 import {
   makeCall,
@@ -133,9 +134,40 @@ function showToasts(): void {
   );
 }
 
-// The mock host's own listener (added by `mountMockHostPage`) runs first and records the toast, so by
-// the time this one runs `host.received.toasts` is current.
+/**
+ * Redraw the record the panel linked, as the link Dialpad's header button would open, or "None".
+ * Only an http(s) URL becomes a link, since the URL comes from the app in the iframe.
+ */
+function showLinkedRecord(): void {
+  const element = document.getElementById('linked-record');
+  if (!element) {
+    return;
+  }
+  const record = host.received.linkedRecord;
+  if (!record) {
+    element.textContent = 'None';
+    return;
+  }
+  const label = `View ${record.type}`;
+  const isWebUrl =
+    URL.canParse(record.url) &&
+    ['http:', 'https:'].includes(new URL(record.url).protocol);
+  if (!isWebUrl) {
+    element.textContent = `${label}: ${record.url}`;
+    return;
+  }
+  const link = document.createElement('a');
+  link.href = record.url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = label;
+  element.replaceChildren(link, ` (${record.url})`);
+}
+
+// The mock host's own listener (added by `mountMockHostPage`) runs first and records the toast or
+// the linked record, so by the time these run `host.received` is current.
 window.addEventListener('message', showToasts);
+window.addEventListener('message', showLinkedRecord);
 
 /** Run `handler` when the dev host's button with this id is clicked. */
 function onClick(id: string, handler: () => void): void {
