@@ -289,7 +289,9 @@ the result of its server-side call to Dialpad's API there.
 ### The panel's size
 
 The panel is 318 pixels wide in the right sidebar by default (266 to 414 as the
-user resizes it) and a fixed 230 pixels in the mini call bar, so lay it out for 230.
+user resizes it) and 250 pixels in Dialpad Everywhere. Design the panel to be
+responsive across that range, and test it at 250 pixels at the very least. This app shrinks itself in narrower panels with a media query in
+[`client/src/style.css`](client/src/style.css).
 Its height follows `heightRoot`. A modal dialog cannot leave the iframe and the
 panel is narrow, so confirm actions inline, as this app's Disconnect button does.
 

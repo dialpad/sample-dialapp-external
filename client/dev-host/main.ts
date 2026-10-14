@@ -2,7 +2,8 @@
 //
 // It is a thin wrapper around the SDK's `mountMockHostPage()`. On load it asks the server (in local
 // mode) for the iframe panel's page URL with a mock idtoken made by `server/acme_dialpad_rightbar/idtoken.py`, and frames it in
-// an iframe, answering the SDK's `init` and `get/user` like Dialpad does. Connect opens the fake
+// an iframe, at the right sidebar's width or, with `?dpe`, at DPE's, answering the SDK's `init` and
+// `get/user` like Dialpad does. Connect opens the fake
 // authorize URL in a popup (a page marked as fake, with an Authorize button) and, like the desktop
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.
 // The first of three contacts is open when the iframe panel starts, as when Dialpad opens the iframe panel for a
@@ -76,10 +77,22 @@ const CONTACTS = [
 /** Which of `CONTACTS` the host currently has open. */
 let contactIndex = 0;
 
+/**
+ * The panel's width: the right sidebar's default, or with `?dpe` in the URL Dialpad Everywhere's
+ * 250 pixels, where the app's CSS scales itself down.
+ */
+const dpe = new URLSearchParams(window.location.search).has('dpe');
+const panelName = dpe ? 'DPE (250 px)' : 'right sidebar (318 px)';
+const panelNameElement = document.getElementById('panel-name');
+if (panelNameElement) {
+  panelNameElement.textContent = panelName;
+}
+
 const host = mountMockHostPage({
   src: url,
   container: document.getElementById('panel') ?? undefined,
   contact: CONTACTS[contactIndex],
+  width: dpe ? 250 : 318,
 });
 
 window.mockHost = host;
