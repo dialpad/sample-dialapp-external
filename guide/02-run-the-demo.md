@@ -43,7 +43,7 @@ file. To move to a new one, from `client/`:
 3. Run the client's checks: `pnpm types:check && pnpm test:run`, and
    `pnpm test:e2e` if you keep the browser tests.
 
-The [contract](01-how-it-works.md#the-contract) isn't in the tarball:
+The [contract](01-the-big-picture.md#the-contract) isn't in the tarball:
 `contract/openapi.json` is a copy, and its `info.version` names the SDK version
 it describes. Check that it still matches. The server has nothing to update,
 because it uses no Dialpad library.
@@ -138,6 +138,6 @@ demo. [Chapter 11](11-from-demo-to-your-app.md) lists what to replace.
 
 ---
 
-**Previous:** [1. How a rightbar app works](01-how-it-works.md) ·
+**Previous:** [1. The big picture](01-the-big-picture.md) ·
 **Next:** [3. Load the panel page](03-load-the-panel-page.md) ·
 [Contents](../README.md#the-guide)

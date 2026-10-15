@@ -1,4 +1,4 @@
-# 1. How a rightbar app works
+# 1. The big picture
 
 A rightbar app is a web page that Dialpad shows in a panel beside a contact or a
 call. It shows the user what your system knows about that person, usually their

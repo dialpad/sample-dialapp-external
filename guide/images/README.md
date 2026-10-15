@@ -12,7 +12,7 @@ Dialpad's own UI.
 To add:
 
 - **The panel in Dialpad's right sidebar**, for the top of
-  [chapter 1](../01-how-it-works.md). Captured by hand in dialpadbeta.
+  [chapter 1](../01-the-big-picture.md). Captured by hand in dialpadbeta.
 - **The panel header's View Contact button and the panel menu**, for
   [chapter 7](../07-show-the-crm-record.md#link-the-record-in-dialpad). Captured
   by hand in dialpadbeta, once the demo links records.

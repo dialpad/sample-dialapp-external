@@ -54,7 +54,7 @@ Read chapter 1 for the whole picture, then the chapters for the parts you build.
 
 | Chapter                                                                   | What you learn                                                                          |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| [1. How a rightbar app works](guide/01-how-it-works.md)                   | The pieces, the life of a panel, key terms, the four secrets, and the contract          |
+| [1. The big picture](guide/01-the-big-picture.md)                         | The pieces, the life of a panel, key terms, the four secrets, and the contract          |
 | [2. Run the demo](guide/02-run-the-demo.md)                               | Install, upgrade the SDK, run locally with the dev host, and run in Dialpad             |
 | [3. Load the panel page](guide/03-load-the-panel-page.md)                 | Decode the idtoken, start a session, and render the page and its page data              |
 | [4. Build the panel with the SDK](guide/04-build-the-panel.md)            | Start the SDK, render from its state, design for the panel's size, and use Dialpad's UI |
