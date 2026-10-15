@@ -5,6 +5,8 @@ call. It shows the user what your system knows about that person, usually their
 record in a CRM. This chapter gives you the whole picture; the chapters after it
 build each part.
 
+<img src="images/dialpad-sidebar.png" width="890" alt="Dialpad with a contact open. The conversation is in the middle. The right sidebar shows Dialpad's Profile card, then the app's section, headed Sample DialApp External (the app's name in Dialpad), with the Acme for Dialpad panel listing the contact's fields, each prefixed Acme.">
+
 ## The pieces
 
 ```mermaid
