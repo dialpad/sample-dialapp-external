@@ -87,18 +87,35 @@ and keep query strings out of your access logs and error reports.
 ## Keep the API key
 
 The idtoken's `api_key` is a credential for Dialpad's public API, for this user
-and your app. It never expires. Store it the first time you see it for a Dialpad
-user, encrypted and keyed by company ID and user ID, and replace it when a later
-idtoken carries a different one. Never send it to the browser or log it.
+and your app. It never expires. Store it in your database the first time you see
+it for a Dialpad user: one row per user, keyed by Dialpad company ID and user ID,
+with the key encrypted at rest. When a later idtoken carries a different key,
+replace the stored one. Never send the key to the browser or log it.
 [Chapter 8](08-call-dialpad.md) shows how to use it.
 
 ## Start a session
 
 The panel's later requests come from the iframe, which has no idtoken. So the
-page request starts a session: create a random, opaque access token, store its
-hash with the Dialpad user and an expiry, and put the token in the page data.
-Every page load creates a new session. [Chapter 5](05-authenticate-requests.md)
-shows how the panel uses the token.
+page request starts a session:
+
+1. Create a random, opaque access token, such as 32 random bytes encoded as
+   URL-safe base64.
+2. Save a session row in your database:
+
+   | Column                  | What it holds                                                                                |
+   | ----------------------- | -------------------------------------------------------------------------------------------- |
+   | `token_hash`            | A hash of the access token, such as SHA-256. Look sessions up by it                          |
+   | `company_id`, `user_id` | The Dialpad user the session belongs to                                                      |
+   | `expires_at`            | When the session stops working. Choose a lifetime that covers a user's working day, at least |
+
+   Store only the hash, so someone who reads the table can't use the tokens.
+
+3. Put the token itself in the page data.
+
+Every page load creates a new session, so delete expired rows from time to time.
+The API key and the CRM connection belong to the user, not to a session, so they
+outlive it. [Chapter 5](05-authenticate-requests.md) shows how the panel sends
+the token and how your server checks it.
 
 ## Render the page
 
