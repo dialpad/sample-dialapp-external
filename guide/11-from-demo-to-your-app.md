@@ -80,24 +80,51 @@ A real app stores the key and calls Dialpad whenever it needs to
 - It has no webhook receiver, and no replay protection for the idtoken beyond
   keeping it out of logs, caches, and referrers.
 
-## What to replace
+## What to keep, change, and delete
 
-| Here                                                                                             | With                                                                                                              |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `/oauth/fake-authorize`                                                                          | Your CRM's authorize URL; delete `server/acme_dialpad_rightbar/fake_oauth.py`                                     |
-| `/oauth/callback`                                                                                | Keep the route, its `state` check, and the close-popup page; make it exchange the `code` and store the CRM tokens |
-| `server/acme_dialpad_rightbar/stores.py`                                                         | Nothing: store the CRM tokens in the callback and answer from them                                                |
-| The session cookie (`database.py`, `signing.py`)                                                 | Your stored CRM tokens and a real session table, or expiring tokens                                               |
-| `server/acme_dialpad_rightbar/endpoints/app/contact.py`, `client/src/components/AcmeContact.vue` | Your contact mapping and CRM record ([chapter 7](07-show-the-crm-record.md))                                      |
-| `client/src/components/ConnectGate.vue`                                                          | Copy it and change the text; it renders the SDK's `connection`                                                    |
-| `ACCOUNT_NAME` in `server/acme_dialpad_rightbar/context.py`                                      | Your CRM's account name                                                                                           |
-| `server/acme_dialpad_rightbar/dialpad_api.py`, `DialpadApiCard.vue`                              | Delete both, and the call in `endpoints/dialpad/page.py`. Store the API key and call Dialpad when you need to     |
-| `client/e2e/sdk/`                                                                                | Delete it, with `playwright.config.ts`, the `test:e2e` script, and `@playwright/test`, or adapt it to your app    |
+These two tables cover every source file, and they're the complete list of what
+the demo fakes. A fake they don't list is a bug in the tables.
 
-Keep `idtoken.py` (the decoder), `pages.py` (the page, close-popup, and error
-pages, with their security headers), and `contract.py` (the models the SDK
-reads). They're the server half of the contract. Keep `TEST_CLIENT_SECRET` and
-`encode_mock_idtoken` if you keep local mode.
+The server's files are in `server/acme_dialpad_rightbar/`:
+
+| File                                                       | Do     | What                                                                                                                                        |
+| ---------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `idtoken.py`                                               | Keep   | The idtoken decoder. `TEST_CLIENT_SECRET` and `encode_mock_idtoken` are for local mode                                                      |
+| `pages.py`                                                 | Keep   | The page, close-popup, and error pages, with their security headers and escaping                                                            |
+| `contract.py`                                              | Keep   | The models the SDK reads, the server half of the [contract](01-the-big-picture.md#the-contract)                                             |
+| `app.py`, `__main__.py`, `assets.py`, `responses.py`       | Keep   | Remove the routes you delete from `endpoints/`                                                                                              |
+| `settings.py`                                              | Change | Point `authorize_url` at your CRM's authorize URL, and drop `APP_SECRET` if nothing signs with it                                           |
+| `context.py`                                               | Change | Replace the session cookie (`state_from_cookie`, `save_state`, `state_for`) with your session table. Set the names and scopes to your CRM's |
+| `database.py`                                              | Delete | It plays a database row in a cookie. Use your database ([chapter 3](03-load-the-panel-page.md#start-a-session))                             |
+| `signing.py`                                               | Change | Delete the cookie half. Keep the signed OAuth `state`, or keep `state` in a store with a short expiry                                       |
+| `stores.py`                                                | Delete | Store the CRM tokens in the callback and answer from them ([OAuth results in memory](#oauth-results-in-memory))                             |
+| `fake_oauth.py`, `endpoints/app/oauth_fake_authorize.py`   | Delete | Your CRM's authorize page replaces them                                                                                                     |
+| `dialpad_api.py`                                           | Delete | Store the API key and call Dialpad when you need to ([chapter 8](08-call-dialpad.md))                                                       |
+| `endpoints/dialpad/page.py`                                | Change | Store the API key, create a session row, and drop the demo call to Dialpad's API                                                            |
+| `endpoints/dialpad/ext_connection.py`, `ext_disconnect.py` | Change | Answer from the stored CRM tokens; Disconnect revokes and deletes them ([chapter 6](06-connect-to-the-crm.md))                              |
+| `endpoints/app/oauth_callback.py`                          | Change | Keep the `state` check and the close-popup page. Exchange the `code` and store the CRM tokens                                               |
+| `endpoints/app/contact.py`                                 | Change | Your contact mapping and CRM record ([chapter 7](07-show-the-crm-record.md))                                                                |
+| `endpoints/app/dev_frame_url.py`                           | Keep   | Only if you keep local mode                                                                                                                 |
+| `endpoints/app/healthz.py`                                 | Delete | Only the browser tests use it                                                                                                               |
+| `server/tests/`                                            | Change | Keep the tests of the files you keep, and test your own                                                                                     |
+
+The client's files are in `client/`:
+
+| File                                                                                     | Do     | What                                                                                                             |
+| ---------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
+| `src/main.ts`, `src/bootstrap.ts`, `src/api.ts`, `src/App.vue`, `src/BootstrapError.vue` | Keep   | Starting the SDK, the fetch wrapper, and the root. Change "Acme" in the text                                     |
+| `src/style.css`, `src/contacts.ts`, `src/vue-shim.d.ts`                                  | Keep   | The panel's styles, comparing Dialpad contacts, and a type shim for ESLint                                       |
+| `src/components/ConnectGate.vue`, `DisconnectButton.vue`                                 | Change | Change the text. They render the SDK's `connection`                                                              |
+| `src/components/ConnectedView.vue`                                                       | Change | What your panel shows once connected                                                                             |
+| `src/components/AcmeContact.vue`, `src/contactApi.ts`                                    | Change | Your CRM record ([chapter 7](07-show-the-crm-record.md))                                                         |
+| `src/components/UserCard.vue`, `CallCard.vue`                                            | Keep   | Examples of the SDK's user and call. Delete them if your panel doesn't show these                                |
+| `src/components/DialpadApiCard.vue`                                                      | Delete | It shows the demo call to Dialpad's API                                                                          |
+| `src/customPageAppData.ts`                                                               | Change | Check your own [page data](04-build-the-panel.md#pass-your-own-data-to-the-panel), or delete it if you have none |
+| `src/App.test.ts`, `src/contacts.test.ts`                                                | Change | Adapt them to your panel ([chapter 10](10-test-your-app.md))                                                     |
+| `dev-host/`                                                                              | Keep   | Only if you keep local mode                                                                                      |
+| `e2e/sdk/`, `playwright.config.ts`                                                       | Delete | They test this repository. Also remove the `test:e2e` script and `@playwright/test`, or adapt the tests          |
+| `scripts/vendor.mjs`, `scripts/guide-images.mjs`                                         | Delete | Dialpad's tooling for this repository. Also remove their scripts in `package.json`                               |
+| `vendor/`                                                                                | Keep   | The SDK tarball ([chapter 2](02-run-the-demo.md#upgrade-the-sdk))                                                |
 
 To run your app as a container, see
 [`deployment/README.md`](../deployment/README.md).
