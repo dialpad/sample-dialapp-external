@@ -67,7 +67,7 @@ Read chapter 1 for the whole picture, then the chapters for the parts you build.
 | [11. Turn the demo into your app](guide/11-from-demo-to-your-app.md)      | What the demo fakes and why, and what to replace                                        |
 | [12. Build the panel in plain JavaScript](guide/12-plain-javascript.md)   | The same panel without a framework                                                      |
 | [13. Build the panel in React](guide/13-react.md)                         | The same panel in React                                                                 |
-| [Reference](guide/reference.md)                                           | Configuration, this app's endpoints, and the SDK at a glance                            |
+| [Reference](guide/reference.md)                                           | The server's environment variables, this app's endpoints, and the SDK at a glance       |
 
 ## The repository
 

@@ -2,7 +2,7 @@
 
 Look things up here. The [chapters](../README.md#the-guide) explain them.
 
-## Configuration
+## The server's environment variables
 
 The server reads these environment variables; the panel reads none. Nothing
 loads a `.env` file, so export them in your shell or set them in your host.

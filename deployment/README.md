@@ -29,7 +29,7 @@ variables below are passed when the container runs.
 
 ## Environment variables
 
-See the [configuration reference](../guide/reference.md#configuration) for all
+See the [environment variables reference](../guide/reference.md#the-servers-environment-variables) for all
 of them. A container needs these four, none of which is baked into the image:
 
 | Variable                | Value                                                                    |
