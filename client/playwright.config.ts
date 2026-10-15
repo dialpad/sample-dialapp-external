@@ -21,7 +21,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      // The server's own virtual environment (see the README), run from server/ so it finds acme_dialpad_rightbar.
+      // The server's own virtual environment (see guide/02-run-the-demo.md), run from server/ so it finds acme_dialpad_rightbar.
       command: '.venv/bin/python -m acme_dialpad_rightbar',
       cwd: '../server',
       url: 'http://localhost:8000/healthz',
