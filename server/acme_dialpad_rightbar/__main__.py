@@ -1,6 +1,6 @@
 """Run the server: ``python -m acme_dialpad_rightbar`` (set ``LOCAL_MODE=1`` for local development).
 
-See the README's Configuration section for the environment variables it reads.
+See guide/reference.md for the environment variables it reads.
 """
 
 import logging
