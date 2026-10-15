@@ -20,9 +20,8 @@ the guide to see how each part works, and copy it to start your own.
   Python server here is one implementation.
 - **The idtoken's API key** lets your server call Dialpad's public API. It stays
   on your server, and a real app stores it.
-- **The demo fakes** what a real app keeps in a database: the OAuth flow, the CRM
-  tokens, and sessions, which live in a signed cookie. The guide says what to
-  replace.
+- **The demo has no database or real CRM**, so it fakes those parts. The guide
+  says what to replace.
 - **Security** comes from a content security policy that lets only Dialpad frame
   the panel, a fresh nonce per response, escaped page data, and no secrets in
   logs.
