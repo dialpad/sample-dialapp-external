@@ -11,9 +11,10 @@ don't, so use Dialtone's CSS and design tokens on your own React components.
 ## Start the SDK
 
 Start the SDK outside React, before the first render, as the Vue app does in
-`bootstrap.ts`. If you start it inside a `useEffect`, React's Strict Mode (on by
-default in development) mounts, unmounts, and remounts the component, which
-creates two SDK instances and runs the `init` handshake twice.
+`bootstrap.ts`. If you start it inside a `useEffect` and wrap your app in
+`<StrictMode>`, as most React templates do, React mounts, unmounts, and remounts
+the component in development. That creates two SDK instances and runs the `init`
+handshake twice.
 
 ```tsx
 // main.tsx

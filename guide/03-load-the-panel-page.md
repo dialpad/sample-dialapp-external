@@ -155,10 +155,10 @@ After encoding the JSON, replace these four characters everywhere in it:
 
 | Character | Write it as |
 | --------- | ----------- |
-| `<`       | `<`         |
-| `>`       | `>`         |
-| `&`       | `&`         |
-| `'`       | `'`         |
+| `<`       | `\u003c`    |
+| `>`       | `\u003e`    |
+| `&`       | `\u0026`    |
+| `'`       | `\u0027`    |
 
 `JSON.parse` reads each escape back as the same character, so the SDK gets the
 original values, but the text can no longer close the element, open an HTML
