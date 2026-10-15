@@ -76,6 +76,8 @@ width, or at 250 pixels, the width of Dialpad Everywhere. Under the panel, the
 dev host lists the toasts the panel asked for, which Dialpad shows outside the
 panel.
 
+<img src="images/dev-host.png" width="600" alt="The dev host after Connect: the buttons to change the contact, the call, and the theme, the connected panel at 318 pixels showing the user and the contact with its fields prefixed Acme, and the Connected to Acme CRM toast under the panel.">
+
 ### Try Connect
 
 1. Click **Connect**. A popup opens the demo's fake authorize page, and the panel

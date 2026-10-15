@@ -135,6 +135,12 @@ in `rem` but text from `--dt-font-size-root`, so it changes both:
 }
 ```
 
+The same panel at both widths, at actual size:
+
+| Right sidebar, 318 pixels                                                                                  | Dialpad Everywhere, 250 pixels                                                                                                          |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| <img src="images/panel-318.png" width="318" alt="The connected panel at 318 pixels wide, at normal size."> | <img src="images/panel-250.png" width="250" alt="The same panel at 250 pixels wide, with its text and spacing scaled down by a fifth."> |
+
 A few more things about the space you have:
 
 - **No modal dialogs.** A dialog can't leave the iframe, and the panel is narrow,

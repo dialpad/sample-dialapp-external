@@ -19,7 +19,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:e2e": "playwright test",
-    "vendor": "node scripts/vendor.mjs"
+    "vendor": "node scripts/vendor.mjs",
+    "guide:images": "node scripts/guide-images.mjs"
   },
   "dependencies": {
     "@dialpad/dialapp-external-sdk": "file:vendor/dialpad-dialapp-external-sdk-0.1.0.tgz",
