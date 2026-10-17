@@ -3,8 +3,8 @@
 Dialpad opens the URL registered as the OAuth app's conversation sidebar URI and appends
 ``?idtoken=<token>``. This is the one request authenticated by the idtoken (decoded with the OAuth
 app's client secret); every later request from the iframe panel uses the access token this page
-hands out instead. See ``acme_dialpad_rightbar.idtoken`` for the token and the README's Security
-section for why.
+hands out instead. See ``acme_dialpad_rightbar.idtoken`` for the token, and chapters 3 and 5 of the
+guide (``guide/``) for why.
 """
 
 from typing import TYPE_CHECKING

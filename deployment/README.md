@@ -29,8 +29,8 @@ variables below are passed when the container runs.
 
 ## Environment variables
 
-See the [Configuration table in the README](../README.md#configuration) for all of
-them. A container needs these four, none of which is baked into the image:
+See the [environment variables reference](../guide/reference.md#the-servers-environment-variables) for all
+of them. A container needs these four, none of which is baked into the image:
 
 | Variable                | Value                                                                    |
 | ----------------------- | ------------------------------------------------------------------------ |
@@ -274,7 +274,7 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
   Entries already written stay until their retention ends.
 
 - **The page request calls Dialpad's API.** As a demo (unnecessary for the app;
-  see the README's [demo call](../README.md#the-demo-call-to-dialpads-api)),
+  see the guide's [demo call](../guide/11-from-demo-to-your-app.md#the-demo-call-to-dialpads-api)),
   loading the page makes an outbound HTTPS request to `DIALPAD_ORIGIN` with the
   idtoken's api key, which Cloud Run allows by default. It waits at most 3
   seconds, so a slow or unreachable Dialpad API delays the iframe panel's first paint
@@ -283,7 +283,7 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
 - **The OAuth is fake.** `/oauth/fake-authorize` stands in for the CRM's consent
   screen, and `/oauth/callback` only records that the user connected. A real
   partner replaces the fake page and makes the callback exchange the `code` for
-  CRM tokens and persist them in a database (see the README's "What to replace").
+  CRM tokens and persist them in a database (see the guide's [What to keep, change, and delete](../guide/11-from-demo-to-your-app.md#what-to-keep-change-and-delete)).
 - **Cookies.** The session cookie is the app's persistent storage of the user's
   access token and whether they are connected. It is signed with `APP_SECRET`
   (changing the secret signs everyone out: every open iframe panel gets `401` and
@@ -294,34 +294,3 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
   iframe panel. It is `Secure`, `HttpOnly`, `SameSite=None` and `Partitioned`, so it
   works in a third-party iframe over HTTPS. Cloud Run terminates TLS and the app
   sets the cookie regardless of the scheme it sees internally.
-
-## What has been verified
-
-**The image, locally with Docker**
-
-- It builds for arm64 and for linux/amd64.
-- The container runs as a non-root user and serves the page, `/assets/...`,
-  `/healthz`, the fake authorize page and the callback.
-- `ext-connection` answers `200` with the matching bearer token and cookie, and
-  `401` with only one of them or a wrong token; it still answers `200` after a
-  restart of the container.
-- The page sets the session cookie with all its attributes (`Secure`, `HttpOnly`,
-  `SameSite=None`, `Partitioned`, 30 days). Neither the idtoken nor the access
-  token appears in the container's log.
-- A missing or malformed setting makes the container exit at once with a clear
-  message. The amd64 image answers `/healthz` and serves the page under emulation.
-
-**On Cloud Run, built with `cloudbuild.yaml` and deployed with the commands above**
-
-- The service runs one instance on port 8080 with `DIALPAD_CLIENT_SECRET` and
-  `APP_SECRET` as Secret Manager references (no plain values).
-- Over the public HTTPS URL, with a mock idtoken signed with the configured
-  client secret: the page renders with the `frame-ancestors` policy, `no-store` and
-  the session cookie; a bad idtoken gets `401`; a full Connect (the fake authorize
-  page, then the callback) makes `ext-connection` answer connected;
-  `POST /api/contact` returns the prefixed fields; Disconnect answers `204` and
-  ends the connection.
-- `/healthz` on the public URL returns Google's 404, not the app's `ok`.
-- The app's own logs hold no idtoken; Cloud Run's request log does.
-- Redeploying as in Day two keeps the environment variables, secret references and
-  instance limit, and serves the new bundle.

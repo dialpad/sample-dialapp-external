@@ -91,7 +91,7 @@ jobs:
         working-directory: client
         run: pnpm lint:ci
 
-      # Also checks the README, FLOWS.md and the other Markdown files it lists.
+      # Also checks the README, the guide and the other Markdown files it lists.
       - name: Format (Prettier)
         id: format
         continue-on-error: true
