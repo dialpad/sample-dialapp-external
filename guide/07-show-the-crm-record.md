@@ -214,8 +214,10 @@ department contact.
   failure, and ignores late answers. Once the lookup succeeds, it links the
   record, and it unlinks as described above.
 - `client/src/bootstrap.ts` sets the panel menu from the connection: `[]` before
-  the user connects, and `['disconnect']` once connected. The demo has no
-  mapping and no tasks, so it offers neither **Rematch** nor **Create Task**.
+  the user connects, and `['rematch', 'createTask', 'disconnect']` once
+  connected. The demo has no mapping and no tasks, so picking **Rematch** or
+  **Create Task** only shows a toast saying the sample app doesn't implement
+  it. A real app offers each only when it can act on it, as in the table above.
 
 ---
 

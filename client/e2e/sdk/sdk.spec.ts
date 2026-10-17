@@ -79,6 +79,13 @@ function panelMenu(page: Page) {
   return page.locator('#panel-menu');
 }
 
+/** The dev host's menu buttons while the user is connected, in order. */
+const CONNECTED_MENU = [
+  "Rematch from Dialpad's menu",
+  "Create Task from Dialpad's menu",
+  "Disconnect from Dialpad's menu",
+];
+
 test('connect by polling, reconnect on first paint, then disconnect', async ({
   page,
 }) => {
@@ -93,10 +100,8 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await expect(panel.getByRole('status')).toContainText('Waiting');
   await authorizeAndPoll(page, panel, authWindow);
   await expect(toastList(page)).toHaveText(['success: Connected to Acme CRM']);
-  // Connected, the panel's menu is Disconnect only.
-  await expect(panelMenu(page).getByRole('button')).toHaveText([
-    "Disconnect from Dialpad's menu",
-  ]);
+  // Connected, the panel's menu is Rematch, Create Task and Disconnect.
+  await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
   await expect(panel.getByTestId('user-card')).toContainText('Jane Agent');
   // The server's demo call to Dialpad's API is skipped in local mode, and the card says so.
   await expect(panel.getByTestId('dialpad-api-card')).toContainText(
@@ -128,9 +133,7 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await expect(panel.getByTestId('connected-view')).toBeVisible();
   await expect(panel.getByTestId('connect-gate')).toHaveCount(0);
   // The reloaded panel sets its menu again, since Dialpad forgets it on reload.
-  await expect(panelMenu(page).getByRole('button')).toHaveText([
-    "Disconnect from Dialpad's menu",
-  ]);
+  await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
 
   // Disconnect, with inline confirmation: the record is unlinked and the menu is empty again.
   await panel.getByTestId('disconnect-button').click();
@@ -235,6 +238,29 @@ test("Disconnect from Dialpad's iframe panel menu shows the Connect gate", async
     'success: Connected to Acme CRM',
     'info: Disconnected from Acme CRM',
   ]);
+});
+
+test("Rematch and Create Task from Dialpad's menu say they aren't implemented", async ({
+  page,
+}) => {
+  const panel = await openDevPage(page);
+  await authorizeAndPoll(page, panel, await startConnect(page, panel));
+  await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
+
+  await panelMenu(page)
+    .getByRole('button', { name: "Rematch from Dialpad's menu" })
+    .click();
+  await panelMenu(page)
+    .getByRole('button', { name: "Create Task from Dialpad's menu" })
+    .click();
+
+  await expect(toastList(page)).toHaveText([
+    'success: Connected to Acme CRM',
+    "info: Rematch isn't implemented in this sample app",
+    "info: Create Task isn't implemented in this sample app",
+  ]);
+  await expect(panel.getByTestId('connected-view')).toBeVisible();
+  await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
 });
 
 test('a failed contact lookup shows an error toast as well as the message in the panel', async ({

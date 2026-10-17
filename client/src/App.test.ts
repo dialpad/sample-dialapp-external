@@ -996,7 +996,10 @@ describe("Dialpad's panel menu", () => {
     return created;
   }
 
-  it('is empty from the start while the user is not connected, then Disconnect once connected', async () => {
+  /** The menu once connected, as Dialpad keeps it (its own values, in order). */
+  const CONNECTED_MENU = ['rematch', 'create_task', 'disconnect'];
+
+  it('is empty from the start while the user is not connected, then Rematch, Create Task and Disconnect once connected', async () => {
     const host = createMockHost();
     const server = fakeServer();
 
@@ -1006,22 +1009,61 @@ describe("Dialpad's panel menu", () => {
     server.mode = 'connected';
     await rightbar.refresh();
     await host.settle();
-    expect(host.received.menu).toEqual(['disconnect']);
+    expect(host.received.menu).toEqual(CONNECTED_MENU);
   });
 
-  it('is Disconnect from the start when the panel opens connected, then empty after a disconnect', async () => {
+  it('is the full menu from the start when the panel opens connected, then empty after a disconnect', async () => {
     const host = createMockHost();
     const server = fakeServer();
     server.mode = 'connected';
 
     await start(host, server, true);
-    expect(host.received.menu).toEqual(['disconnect']);
+    expect(host.received.menu).toEqual(CONNECTED_MENU);
 
     host.trigger('disconnect');
     await host.settle();
     await flushPromises();
     await host.settle();
     expect(host.received.menu).toEqual([]);
+  });
+
+  it.each([
+    ['rematch', "Rematch isn't implemented in this sample app"],
+    ['create_task', "Create Task isn't implemented in this sample app"],
+  ] as const)(
+    'says %s is not implemented when the user picks it, and stays connected',
+    async (item, text) => {
+      const host = createMockHost();
+      const server = fakeServer();
+      server.mode = 'connected';
+      const rightbar = await start(host, server, true);
+
+      host.trigger(item);
+      await host.settle();
+
+      expect(host.received.toasts).toEqual([{ text, type: 'info' }]);
+      expect(rightbar.state.connection.connected).toBe(true);
+      expect(host.received.menu).toEqual(CONNECTED_MENU);
+    },
+  );
+
+  it('logs a toast Dialpad rejects for a menu item, without an unhandled rejection', async () => {
+    const host = createMockHost();
+    const server = fakeServer();
+    server.mode = 'connected';
+
+    const unhandled = await unhandledRejectionsDuring(async () => {
+      const rightbar = await start(host, server, true);
+      rejectToasts(rightbar);
+      host.trigger('rematch');
+      await host.settle();
+    });
+
+    expect(unhandled).toBe(0);
+    expect(warnings).toHaveBeenCalledWith(
+      "Dialpad didn't show the toast",
+      expect.any(Error),
+    );
   });
 
   it('logs a menu Dialpad rejects, without an unhandled rejection', async () => {
