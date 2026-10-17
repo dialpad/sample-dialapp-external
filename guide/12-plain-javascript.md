@@ -14,8 +14,8 @@ without Vue; this repository doesn't build or run the sketch.
   panel only needs a `<div id="app">` and a script, which `pages.py` already
   renders.
 - **The SDK calls.** `createRightbar`, `rightbar.state`, `rightbar.subscribe`,
-  `rightbar.watch`, `authorize`, `disconnect`, `authHeaders`, `linkRecord`, and the
-  rest.
+  `rightbar.watch`, `authorize`, `disconnect`, `authHeaders`, `linkRecord`,
+  `setMenu`, and the rest.
 - **The framework-free modules**: `contactApi.ts` (the request to
   `POST /api/contact`), `customPageAppData.ts` (validates the page data's `app`
   field), and `contacts.ts` (compares two contacts) import nothing from Vue.
@@ -79,6 +79,12 @@ async function start() {
   rightbar.watch(
     (state) => state.theme.mode,
     (mode) => setMode(mode),
+  );
+  // Set Dialpad's panel menu from the connection, now and on every change (chapter 7).
+  rightbar.watch(
+    (state) => state.connection.connected,
+    (connected) =>
+      rightbar.setMenu(connected ? ["disconnect"] : []).catch(console.warn),
   );
 
   const contact = createContactSection(rightbar); // owns its own lookups, see below

@@ -29,6 +29,10 @@ id. Nothing is looked up or stored.
    contact's phone numbers and emails, normalised to the format the CRM stores (usually E.164
    phone numbers, lower-cased emails), and decide what zero, one and several matches mean: offer
    to create a record, use the match, or let the user pick. Save the choice in the mapping table.
+   When the user picks **Rematch** in Dialpad's panel menu because the match was wrong, the iframe
+   panel asks another route of yours to delete this contact's saved mapping, then calls this route
+   again, which searches afresh. An app that maps contacts offers Rematch with the SDK's
+   ``setMenu`` once a record is linked (chapter 7 of the guide).
 3. **Fetch the mapped record.** Call the CRM's API with the user's CRM token as the bearer token
    (``Authorization: Bearer <CRM access token>``), and return only the fields the iframe panel
    shows, in your own response shape. Never return the CRM token.

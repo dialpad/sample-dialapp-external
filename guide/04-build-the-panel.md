@@ -161,6 +161,7 @@ Some things appear outside your panel, in Dialpad:
 | `showToast({ text, type })`      | Shows a short message in Dialpad, outside the panel. `type` is `info` (the default), `success`, or `error`                                                          |
 | `showRefreshButton(show)`        | Shows or hides the refresh button in the panel's header. When the user presses it, the SDK reloads `state.contact` and then emits `refreshContact`                  |
 | `on('refreshContact', callback)` | Runs `callback` after the SDK reloads `state.contact`, from the refresh button or because the contact's record changed in Dialpad. Returns a function that stops it |
+| `setMenu(items)`                 | Sets the items in Dialpad's panel menu ([chapter 7](07-show-the-crm-record.md#the-panel-menu))                                                                      |
 
 This app shows a toast when Connect finishes, when the user disconnects, and when
 a contact lookup fails.

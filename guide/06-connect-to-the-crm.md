@@ -133,7 +133,9 @@ next check or page load.
 ## Disconnect
 
 The user disconnects from a **Disconnect** button in your panel, or from
-Dialpad's panel menu. Both take the same path; the menu skips your confirmation.
+Dialpad's panel menu when your panel lists `disconnect` in it
+([chapter 7](07-show-the-crm-record.md#the-panel-menu)). Both take the same
+path; the menu skips your confirmation.
 
 ```mermaid
 sequenceDiagram

@@ -36,10 +36,16 @@
       <button id="change-contact" type="button">Change contact</button>
       <button id="change-call-state" type="button">Change call state</button>
       <button id="toggle-theme" type="button">Switch light / dark</button>
-      <button id="disconnect-from-menu" type="button">
-        Disconnect from Dialpad's menu
-      </button>
     </div>
+    <section aria-labelledby="panel-menu-heading">
+      <h2 id="panel-menu-heading">Panel menu</h2>
+      <p>
+        The items the panel set with
+        <code>setMenu</code>
+        , which Dialpad shows in the panel's header menu.
+      </p>
+      <div id="panel-menu" aria-live="polite">Not set</div>
+    </section>
     <div id="panel"></div>
     <section aria-labelledby="toasts-heading">
       <h2 id="toasts-heading">Toasts</h2>

@@ -14,8 +14,7 @@ To add:
 
 - **The panel header's View Contact button and the panel menu**, for
   [chapter 7](../07-show-the-crm-record.md#link-the-record-in-dialpad). Captured
-  by hand in dialpadbeta, once Dialpad's linking change is live and the app has
-  its panel menu entry.
+  by hand in dialpadbeta, once Dialpad's `set/menu` is live there.
 
 ## Conventions
 

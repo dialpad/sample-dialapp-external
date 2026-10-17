@@ -21,7 +21,8 @@ export type CreateRightbar = (options: RightbarOptions) => Promise<Rightbar>;
  *
  * Called once, as soon as the page's script runs, when `root` is still empty. It asks the SDK to
  * start (the SDK reads the page data, checks the page is framed by Dialpad and does the `init`
- * handshake), applies Dialpad's light or dark mode, and mounts the Vue app, which then renders from
+ * handshake), applies Dialpad's light or dark mode, sets Dialpad's panel menu from the connection,
+ * and mounts the Vue app, which then renders from
  * the SDK's snapshot. If the SDK refuses to start (`bad_options`, `not_framed`, `bad_page_data` or
  * `init_timeout`) the page is not in a working Dialpad iframe, so a short "open this panel from
  * Dialpad" message is mounted instead and nothing else runs. Any other error is a bug and is
@@ -51,6 +52,21 @@ export async function bootstrap(
     (s) => s.theme.mode,
     (mode) => {
       setMode(mode);
+    },
+  );
+
+  // Set Dialpad's panel menu from the connection, now and on every change. Dialpad shows exactly
+  // these items and forgets them when the panel reloads, so this runs at every start. An app that
+  // maps contacts adds 'rematch' once a record is linked, and one whose CRM has tasks adds
+  // 'createTask' (chapter 7 of the guide). A menu Dialpad rejects is logged and the panel goes on.
+  rightbar.watch(
+    (s) => s.connection.connected,
+    (connected) => {
+      rightbar
+        .setMenu(connected ? ['disconnect'] : [])
+        .catch((error: unknown) => {
+          console.warn("Dialpad didn't set the panel menu", error);
+        });
     },
   );
 

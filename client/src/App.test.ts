@@ -956,3 +956,90 @@ describe('Bootstrap errors', () => {
     expect(setMode).toHaveBeenLastCalledWith('light');
   });
 });
+
+describe("Dialpad's panel menu", () => {
+  /**
+   * Run the real `bootstrap`, with the mock host standing in for Dialpad and `server` for Acme.
+   *
+   * `connected` is what the page data says at load. Returns the SDK instance `bootstrap` created,
+   * so a test can check the connection again.
+   */
+  async function start(
+    host: ReturnType<typeof createMockHost>,
+    server: ReturnType<typeof fakeServer>,
+    connected: boolean,
+    patch: (rightbar: Rightbar) => void = () => undefined,
+  ): Promise<Rightbar> {
+    const root = document.createElement('div');
+    document.body.append(root);
+    let created: Rightbar | undefined;
+    await bootstrap(root, async (options) => {
+      created = await host.createRightbar({
+        ...options,
+        fetch: server.fetch,
+        pageData: makePageData({
+          externalConnection: {
+            connected,
+            name: 'acme-for-dialpad',
+            scopes: connected ? ['contacts.read'] : [],
+            authorizationUrls: { 'acme-for-dialpad': AUTHORIZE_URL },
+          },
+        }),
+      });
+      patch(created);
+      return created;
+    });
+    await host.settle();
+    if (!created) {
+      throw new Error('bootstrap never created the SDK');
+    }
+    return created;
+  }
+
+  it('is empty from the start while the user is not connected, then Disconnect once connected', async () => {
+    const host = createMockHost();
+    const server = fakeServer();
+
+    const rightbar = await start(host, server, false);
+    expect(host.received.menu).toEqual([]);
+
+    server.mode = 'connected';
+    await rightbar.refresh();
+    await host.settle();
+    expect(host.received.menu).toEqual(['disconnect']);
+  });
+
+  it('is Disconnect from the start when the panel opens connected, then empty after a disconnect', async () => {
+    const host = createMockHost();
+    const server = fakeServer();
+    server.mode = 'connected';
+
+    await start(host, server, true);
+    expect(host.received.menu).toEqual(['disconnect']);
+
+    host.trigger('disconnect');
+    await host.settle();
+    await flushPromises();
+    await host.settle();
+    expect(host.received.menu).toEqual([]);
+  });
+
+  it('logs a menu Dialpad rejects, without an unhandled rejection', async () => {
+    const host = createMockHost();
+    const server = fakeServer();
+
+    const unhandled = await unhandledRejectionsDuring(async () => {
+      await start(host, server, false, (rightbar) => {
+        Object.assign(rightbar, {
+          setMenu: () => Promise.reject(new Error('Dialpad did not answer')),
+        });
+      });
+    });
+
+    expect(unhandled).toBe(0);
+    expect(warnings).toHaveBeenCalledWith(
+      "Dialpad didn't set the panel menu",
+      expect.any(Error),
+    );
+  });
+});

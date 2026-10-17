@@ -8,14 +8,16 @@
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.
 // The first of three contacts is open when the iframe panel starts, as when Dialpad opens the iframe panel for a
 // contact. The buttons in `dev-host/index.html` cycle to the next contact, step a call through its
-// states, switch light and dark, and disconnect the way Dialpad's panel menu does. Every toast the
-// panel shows is listed under the panel, since Dialpad would show them outside it, and so is the
-// record the panel linked, which Dialpad would show as a "View <type>" button in the panel header.
+// states, and switch light and dark. Above the panel is the panel menu the panel set with
+// `setMenu`, whose buttons pick an item the way Dialpad's menu does. Every toast the panel shows is
+// listed under the panel, since Dialpad would show them outside it, and so is the record the panel
+// linked, which Dialpad would show as a "View <type>" button in the panel header.
 // Playwright tests drive the same host through `window.mockHost`.
 import {
   makeCall,
   makeContact,
   mountMockHostPage,
+  type HostEvent,
   type MockHostPage,
 } from '@dialpad/dialapp-external-sdk/testing';
 
@@ -164,10 +166,56 @@ function showLinkedRecord(): void {
   element.replaceChildren(link, ` (${record.url})`);
 }
 
-// The mock host's own listener (added by `mountMockHostPage`) runs first and records the toast or
-// the linked record, so by the time these run `host.received` is current.
+/** The label Dialpad gives each menu item, by its host value, which is also its event. */
+const MENU_LABELS = {
+  disconnect: 'Disconnect',
+  rematch: 'Rematch',
+  create_task: 'Create Task',
+} as const satisfies Partial<Record<HostEvent, string>>;
+
+/** Whether `item`, a host value from `host.received.menu`, is a menu item the dev host knows. */
+function isMenuItem(item: string): item is keyof typeof MENU_LABELS {
+  return Object.hasOwn(MENU_LABELS, item);
+}
+
+/**
+ * Redraw the panel menu from what the panel set: a button per item, which picks it the way
+ * Dialpad's menu does, "None" for an empty menu, or "Not set" before the panel's first `setMenu`
+ * (Dialpad would then build the menu from its own configuration for the app).
+ */
+function showPanelMenu(): void {
+  const element = document.getElementById('panel-menu');
+  if (!element) {
+    return;
+  }
+  const items = host.received.menu;
+  if (items === null) {
+    element.textContent = 'Not set';
+    return;
+  }
+  if (items.length === 0) {
+    element.textContent = 'None';
+    return;
+  }
+  // The mock host keeps only the items it knows, as Dialpad does, so every item has a label.
+  element.replaceChildren(
+    ...items.filter(isMenuItem).map((item) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = `${MENU_LABELS[item]} from Dialpad's menu`;
+      button.addEventListener('click', () => {
+        host.trigger(item);
+      });
+      return button;
+    }),
+  );
+}
+
+// The mock host's own listener (added by `mountMockHostPage`) runs first and records the toast,
+// the linked record or the menu, so by the time these run `host.received` is current.
 window.addEventListener('message', showToasts);
 window.addEventListener('message', showLinkedRecord);
+window.addEventListener('message', showPanelMenu);
 
 /** Run `handler` when the dev host's button with this id is clicked. */
 function onClick(id: string, handler: () => void): void {
@@ -187,9 +235,6 @@ onClick('change-call-state', () => {
     }
     host.sendCall(makeCall({ state, contact: callContact }));
   }
-});
-onClick('disconnect-from-menu', () => {
-  host.trigger('disconnect');
 });
 onClick('toggle-theme', () => {
   mode = mode === 'light' ? 'dark' : 'light';
