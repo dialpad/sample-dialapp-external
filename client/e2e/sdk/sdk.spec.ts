@@ -263,6 +263,36 @@ test("Rematch and Create Task from Dialpad's menu say they aren't implemented", 
   await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
 });
 
+test("Refresh Contact from Dialpad's header looks the contact up again, while connected", async ({
+  page,
+}) => {
+  const refreshButton = page.locator('#refresh-button');
+  const panel = await openDevPage(page);
+  await expect(refreshButton).toHaveText('Hidden');
+  await authorizeAndPoll(page, panel, await startConnect(page, panel));
+  await expect(panel.getByTestId('acme-contact')).toContainText(
+    'Acme Pat Customer',
+  );
+
+  const lookedUpAgain = page.waitForRequest(
+    (req) => req.method() === 'POST' && req.url().endsWith('/api/contact'),
+  );
+  await refreshButton
+    .getByRole('button', { name: "Refresh Contact from Dialpad's header" })
+    .click();
+  await lookedUpAgain;
+  await expect(panel.getByTestId('acme-contact')).toContainText(
+    'Acme Pat Customer',
+  );
+  await expect(toastList(page)).toHaveText(['success: Connected to Acme CRM']);
+
+  await page
+    .getByRole('button', { name: "Disconnect from Dialpad's menu" })
+    .click();
+  await expect(panel.getByTestId('connect-gate')).toBeVisible();
+  await expect(refreshButton).toHaveText('Hidden');
+});
+
 test('a failed contact lookup shows an error toast as well as the message in the panel', async ({
   page,
 }) => {

@@ -508,6 +508,26 @@ describe('Connected view', () => {
     expect(host.received.linkedRecord).toEqual(recordOf('1'));
   });
 
+  it("looks the same contact up again when the user presses Dialpad's refresh button", async () => {
+    const { wrapper, host, contactApi } = await setup({ connected: true });
+    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
+    await host.settle();
+    await flushPromises();
+    contactApi.requests.length = 0;
+
+    host.trigger('refresh_contact');
+    await host.settle();
+    await flushPromises();
+
+    expect(contactApi.requests).toEqual([
+      expect.objectContaining({ method: 'POST', path: '/api/contact' }),
+    ]);
+    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+      'Acme Pat Customer',
+    );
+    expect(host.received.linkedRecord).toEqual(recordOf('1'));
+  });
+
   it("shows the user the server fetched from Dialpad's API with the api key", async () => {
     const { wrapper } = await setup({
       connected: true,
@@ -1010,6 +1030,7 @@ describe("Dialpad's panel menu", () => {
     await rightbar.refresh();
     await host.settle();
     expect(host.received.menu).toEqual(CONNECTED_MENU);
+    expect(host.received.refreshButtonShown).toBe(true);
   });
 
   it('is the full menu from the start when the panel opens connected, then empty after a disconnect', async () => {
@@ -1019,12 +1040,14 @@ describe("Dialpad's panel menu", () => {
 
     await start(host, server, true);
     expect(host.received.menu).toEqual(CONNECTED_MENU);
+    expect(host.received.refreshButtonShown).toBe(true);
 
     host.trigger('disconnect');
     await host.settle();
     await flushPromises();
     await host.settle();
     expect(host.received.menu).toEqual([]);
+    expect(host.received.refreshButtonShown).toBe(false);
   });
 
   it.each([
@@ -1081,6 +1104,26 @@ describe("Dialpad's panel menu", () => {
     expect(unhandled).toBe(0);
     expect(warnings).toHaveBeenCalledWith(
       "Dialpad didn't set the panel menu",
+      expect.any(Error),
+    );
+  });
+
+  it('logs a refresh button Dialpad rejects, without an unhandled rejection', async () => {
+    const host = createMockHost();
+    const server = fakeServer();
+
+    const unhandled = await unhandledRejectionsDuring(async () => {
+      await start(host, server, false, (rightbar) => {
+        Object.assign(rightbar, {
+          showRefreshButton: () =>
+            Promise.reject(new Error('Dialpad did not answer')),
+        });
+      });
+    });
+
+    expect(unhandled).toBe(0);
+    expect(warnings).toHaveBeenCalledWith(
+      "Dialpad didn't show the refresh button",
       expect.any(Error),
     );
   });

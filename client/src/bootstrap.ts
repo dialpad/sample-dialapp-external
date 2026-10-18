@@ -21,9 +21,8 @@ export type CreateRightbar = (options: RightbarOptions) => Promise<Rightbar>;
  *
  * Called once, as soon as the page's script runs, when `root` is still empty. It asks the SDK to
  * start (the SDK reads the page data, checks the page is framed by Dialpad and does the `init`
- * handshake), applies Dialpad's light or dark mode, sets up Dialpad's panel menu, and mounts the
- * Vue app, which then renders from
- * the SDK's snapshot. If the SDK refuses to start (`bad_options`, `not_framed`, `bad_page_data` or
+ * handshake), applies Dialpad's light or dark mode, sets up Dialpad's panel menu and header refresh
+ * button, and mounts the Vue app, which then renders from the SDK's snapshot. If the SDK refuses to start (`bad_options`, `not_framed`, `bad_page_data` or
  * `init_timeout`) the page is not in a working Dialpad iframe, so a short "open this panel from
  * Dialpad" message is mounted instead and nothing else runs. Any other error is a bug and is
  * rethrown. `create` defaults to the real SDK; tests pass the mock host's.
@@ -70,13 +69,15 @@ export const MENU_NOT_IMPLEMENTED = {
 } as const;
 
 /**
- * Set Dialpad's panel menu from the connection, now and on every change, and answer its items.
+ * Set Dialpad's panel menu and header refresh button from the connection, now and on every change,
+ * and answer the menu's items.
  *
  * Dialpad shows exactly these items and forgets them when the panel reloads, so this runs at every
- * start. Disconnect needs nothing here: the SDK disconnects. A real app offers Rematch once its
- * server has matched the contact to a record, and makes it forget that match and look the contact
- * up again; it offers Create Task when the CRM has tasks, and shows a form for one (chapter 7 of
- * the guide). A menu or toast Dialpad rejects is logged and the panel goes on.
+ * start. Disconnect needs nothing here: the SDK disconnects. Refresh needs nothing here either: the
+ * SDK reloads the contact and `AcmeContact.vue` looks it up again. A real app offers Rematch once
+ * its server has matched the contact to a record, and makes it forget that match and look the
+ * contact up again; it offers Create Task when the CRM has tasks, and shows a form for one
+ * (chapter 7 of the guide). A menu, button or toast Dialpad rejects is logged and the panel goes on.
  */
 function setUpPanelMenu(rightbar: Rightbar): void {
   rightbar.watch(
@@ -87,6 +88,9 @@ function setUpPanelMenu(rightbar: Rightbar): void {
         .catch((error: unknown) => {
           console.warn("Dialpad didn't set the panel menu", error);
         });
+      rightbar.showRefreshButton(connected).catch((error: unknown) => {
+        console.warn("Dialpad didn't show the refresh button", error);
+      });
     },
   );
   for (const item of ['rematch', 'createTask'] as const) {

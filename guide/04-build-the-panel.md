@@ -164,7 +164,8 @@ Some things appear outside your panel, in Dialpad:
 | `setMenu(items)`                 | Sets the items in Dialpad's panel menu ([chapter 7](07-show-the-crm-record.md#the-panel-menu))                                                                      |
 
 This app shows a toast when Connect finishes, when the user disconnects, and when
-a contact lookup fails.
+a contact lookup fails. It shows the refresh button while the user is connected
+([chapter 7](07-show-the-crm-record.md#refresh-the-record)).
 
 ## Pass your own data to the panel
 

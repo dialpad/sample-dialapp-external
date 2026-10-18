@@ -192,6 +192,31 @@ rightbar.on("createTask", () => {
 });
 ```
 
+### Refresh the record
+
+Dialpad's refresh button, in the panel's header, lets the user ask for the CRM's
+latest. Show it with `showRefreshButton(true)` once the user connects, and hide
+it with `showRefreshButton(false)` when they disconnect. When the user presses
+it, the SDK reloads `state.contact` and then emits `refreshContact`.
+
+The SDK keeps the same `state.contact` object when the reloaded contact hasn't
+changed, so a watch on the contact doesn't run. Look the contact up again in the
+`refreshContact` callback instead. The SDK also emits `refreshContact` when
+Dialpad changes the contact, and your watch already looks that one up, so skip
+the lookup when the contact changed since the last `refreshContact`:
+
+```ts
+let lastContact = rightbar.state.contact;
+rightbar.on("refreshContact", () => {
+  const contact = rightbar.state.contact;
+  const unchanged = contact === lastContact;
+  lastContact = contact;
+  if (unchanged && contact) {
+    lookUp(contact); // the same lookup as when the contact changes
+  }
+});
+```
+
 ### Screen pops
 
 A _screen pop_ opens the caller's record when a call comes in.
@@ -218,6 +243,9 @@ department contact.
   connected. The demo has no mapping and no tasks, so picking **Rematch** or
   **Create Task** only shows a toast saying the sample app doesn't implement
   it. A real app offers each only when it can act on it, as in the table above.
+- `bootstrap.ts` also shows the refresh button while the user is connected.
+  When the user presses it, `AcmeContact.vue` looks the contact up again, as
+  described in [Refresh the record](#refresh-the-record).
 
 ---
 

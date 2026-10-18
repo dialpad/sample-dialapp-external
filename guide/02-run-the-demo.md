@@ -69,6 +69,8 @@ buttons to:
 - Change the open contact (it cycles through three).
 - Change the call: ringing, connected, ended, and a new call ringing.
 - Switch between light and dark.
+- Press **Refresh Contact**, the refresh button in Dialpad's panel header, which
+  the panel shows once you've connected. The panel looks the contact up again.
 - Pick an item in the panel menu the panel set, the way Dialpad's panel menu
   does. Once you've connected, it holds **Rematch** and **Create Task**, which
   the demo answers with a toast saying they aren't implemented, and
@@ -80,7 +82,7 @@ dev host lists the toasts the panel asked for, which Dialpad shows outside the
 panel, and the record the panel linked, which Dialpad shows as a **View
 Contact** button in the panel's header.
 
-<img src="images/dev-host.png" width="600" alt="The dev host after Connect: the buttons to change the contact, the call, and the theme, the panel menu holding Rematch, Create Task, and Disconnect, the connected panel at 318 pixels showing the user and the contact with its fields prefixed Acme, and the Connected to Acme CRM toast under the panel.">
+<img src="images/dev-host.png" width="600" alt="The dev host after Connect: the buttons to change the contact, the call, and the theme, the Refresh Contact button, the panel menu holding Rematch, Create Task, and Disconnect, the connected panel at 318 pixels showing the user and the contact with its fields prefixed Acme, and the Connected to Acme CRM toast under the panel.">
 
 ### Try Connect
 

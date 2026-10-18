@@ -8,8 +8,9 @@
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.
 // The first of three contacts is open when the iframe panel starts, as when Dialpad opens the iframe panel for a
 // contact. The buttons in `dev-host/index.html` cycle to the next contact, step a call through its
-// states, and switch light and dark. Above the panel is the panel menu the panel set with
-// `setMenu`, whose buttons pick an item the way Dialpad's menu does. Every toast the panel shows is
+// states, and switch light and dark. Above the panel are the header's refresh button, while the
+// panel shows it with `showRefreshButton`, and the panel menu the panel set with `setMenu`, whose
+// buttons press it or pick an item the way Dialpad's header does. Every toast the panel shows is
 // listed under the panel, since Dialpad would show them outside it, and so is the record the panel
 // linked, which Dialpad would show as a "View <type>" button in the panel header.
 // Playwright tests drive the same host through `window.mockHost`.
@@ -211,10 +212,37 @@ function showPanelMenu(): void {
   );
 }
 
+/**
+ * Redraw the header's refresh button: a button while the panel shows it, which presses it the way
+ * Dialpad's does (the SDK reloads the contact and the panel looks it up again), or "Hidden".
+ */
+function showRefreshButton(): void {
+  const element = document.getElementById('refresh-button');
+  if (!element) {
+    return;
+  }
+  if (!host.received.refreshButtonShown) {
+    element.textContent = 'Hidden';
+    return;
+  }
+  if (element.querySelector('button')) {
+    return;
+  }
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = "Refresh Contact from Dialpad's header";
+  button.addEventListener('click', () => {
+    host.trigger('refresh_contact');
+  });
+  element.replaceChildren(button);
+}
+
 // The mock host's own listener (added by `mountMockHostPage`) runs first and records the toast,
-// the linked record or the menu, so by the time these run `host.received` is current.
+// the linked record, the refresh button or the menu, so by the time these run `host.received` is
+// current.
 window.addEventListener('message', showToasts);
 window.addEventListener('message', showLinkedRecord);
+window.addEventListener('message', showRefreshButton);
 window.addEventListener('message', showPanelMenu);
 
 /** Run `handler` when the dev host's button with this id is clicked. */
