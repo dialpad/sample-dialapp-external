@@ -12,13 +12,12 @@
 // panel shows it with `showRefreshButton`, and the panel menu the panel set with `setMenu`, whose
 // buttons press it or pick an item the way Dialpad's header does. Every toast the panel shows is
 // listed under the panel, since Dialpad would show them outside it, and so is the record the panel
-// linked, which Dialpad would show as a "View <type>" button in the panel header.
+// linked, which Dialpad would show as "View <type>" in the panel header.
 // Playwright tests drive the same host through `window.mockHost`.
 import {
   makeCall,
   makeContact,
   mountMockHostPage,
-  type HostEvent,
   type MockHostPage,
 } from '@dialpad/dialapp-external-sdk/testing';
 
@@ -167,22 +166,10 @@ function showLinkedRecord(): void {
   element.replaceChildren(link, ` (${record.url})`);
 }
 
-/** The label Dialpad gives each menu item, by its host value, which is also its event. */
-const MENU_LABELS = {
-  disconnect: 'Disconnect',
-  rematch: 'Rematch',
-  create_task: 'Create Task',
-} as const satisfies Partial<Record<HostEvent, string>>;
-
-/** Whether `item`, a host value from `host.received.menu`, is a menu item the dev host knows. */
-function isMenuItem(item: string): item is keyof typeof MENU_LABELS {
-  return Object.hasOwn(MENU_LABELS, item);
-}
-
 /**
- * Redraw the panel menu from what the panel set: a button per item, which picks it the way
- * Dialpad's menu does, "None" for an empty menu, or "Not set" before the panel's first `setMenu`
- * (Dialpad would then build the menu from its own configuration for the app).
+ * Redraw the panel menu from what the panel set: a button per item, labelled with the item's label,
+ * which picks it the way Dialpad's menu does, "None" for an empty menu, or "Not set" before the
+ * panel's first `setMenu` (Dialpad then shows no menu for a panel on this SDK).
  */
 function showPanelMenu(): void {
   const element = document.getElementById('panel-menu');
@@ -198,14 +185,15 @@ function showPanelMenu(): void {
     element.textContent = 'None';
     return;
   }
-  // The mock host keeps only the items it knows, as Dialpad does, so every item has a label.
+  // The mock host keeps only the items Dialpad would, so each has an id and a label.
   element.replaceChildren(
-    ...items.filter(isMenuItem).map((item) => {
+    ...items.map((item) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = `${MENU_LABELS[item]} from Dialpad's menu`;
+      // textContent, never innerHTML: the label comes from the app in the iframe.
+      button.textContent = `${item.label} from Dialpad's menu`;
       button.addEventListener('click', () => {
-        host.trigger(item);
+        host.selectMenuItem(item.id);
       });
       return button;
     }),

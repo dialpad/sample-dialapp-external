@@ -54,16 +54,6 @@ async function authorizeAndPoll(
   await expect(panel.getByTestId('connected-view')).toBeVisible();
 }
 
-/**
- * What the mock host believes: whether the iframe panel last told Dialpad it is connected.
- *
- * The SDK reports this automatically. Dialpad uses it for the panel menu of an app that doesn't set
- * its own; this app sets its own (`bootstrap.ts`).
- */
-async function hostThinksConnected(page: Page): Promise<boolean | undefined> {
-  return page.evaluate(() => window.mockHost?.received.connected);
-}
-
 /** The dev host's list of toasts, which Dialpad would show outside the panel. */
 function toastList(page: Page) {
   return page.locator('#toasts li');
@@ -194,7 +184,7 @@ test('opened outside Dialpad, the iframe panel asks to be opened from Dialpad', 
   await expect(page.getByTestId('connect-gate')).toHaveCount(0);
 });
 
-test('Connect that is never completed times out and the host stays not connected', async ({
+test('Connect that is never completed times out and the panel menu stays empty', async ({
   page,
 }) => {
   const panel = await openDevPage(page);
@@ -211,7 +201,7 @@ test('Connect that is never completed times out and the host stays not connected
   );
   await expect(panel.getByTestId('connect-button')).toHaveText('Try again');
   await expect(panel.getByRole('status')).toHaveCount(0);
-  expect(await hostThinksConnected(page)).toBe(false);
+  await expect(panelMenu(page)).toHaveText('None');
 });
 
 test("Disconnect from Dialpad's iframe panel menu shows the Connect gate", async ({
@@ -219,7 +209,7 @@ test("Disconnect from Dialpad's iframe panel menu shows the Connect gate", async
 }) => {
   const panel = await openDevPage(page);
   await authorizeAndPoll(page, panel, await startConnect(page, panel));
-  await expect.poll(() => hostThinksConnected(page)).toBe(true);
+  await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
 
   const disconnectCalled = page.waitForRequest(
     (req) =>
@@ -232,7 +222,6 @@ test("Disconnect from Dialpad's iframe panel menu shows the Connect gate", async
 
   await expect(panel.getByTestId('connect-gate')).toBeVisible();
   await expect(panel.getByTestId('connected-view')).toHaveCount(0);
-  await expect.poll(() => hostThinksConnected(page)).toBe(false);
   await expect(panelMenu(page)).toHaveText('None');
   await expect(toastList(page)).toHaveText([
     'success: Connected to Acme CRM',

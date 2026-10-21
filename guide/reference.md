@@ -45,17 +45,17 @@ The contract routes and `/api/contact` need the bearer access token ([chapter 5]
 
 ## The SDK at a glance
 
-| SDK                                                                         | What it's for                                    | Explained in                                                       |
-| --------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
-| `createRightbar({ heightRoot, fetch, onDisconnect })`, `RightbarError`      | Start the SDK                                    | [Chapter 4](04-build-the-panel.md#start-the-sdk)                   |
-| `state`, `subscribe()`, `watch()`, `rightbarPlugin`, `useRightbar()`        | Render from Dialpad's state                      | [Chapter 4](04-build-the-panel.md#render-from-the-state)           |
-| `showToast()`, `showRefreshButton()`, `on('refreshContact')`                | Use Dialpad's UI                                 | [Chapter 4](04-build-the-panel.md#use-dialpads-ui)                 |
-| `app`                                                                       | Your own data from the page                      | [Chapter 4](04-build-the-panel.md#pass-your-own-data-to-the-panel) |
-| `destroy()`                                                                 | Shut the panel down                              | [Chapter 4](04-build-the-panel.md#start-the-sdk)                   |
-| `authHeaders()`                                                             | Authenticate requests to your server             | [Chapter 5](05-authenticate-requests.md#in-the-panel)              |
-| `state.connection`, `authorize()`, `refresh()`, `disconnect()`              | Connect and disconnect                           | [Chapter 6](06-connect-to-the-crm.md)                              |
-| `linkRecord()`, `setMenu()`, `on('rematch' \| 'createTask')`, `screenPop()` | Link the CRM record, the panel menu, screen pops | [Chapter 7](07-show-the-crm-record.md#link-the-record-in-dialpad)  |
-| `/testing`, `/testing/setup`, `/vue/testing`                                | Test your panel                                  | [Chapter 10](10-test-your-app.md)                                  |
+| SDK                                                                    | What it's for                                    | Explained in                                                       |
+| ---------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------ |
+| `createRightbar({ heightRoot, fetch, onDisconnect })`, `RightbarError` | Start the SDK                                    | [Chapter 4](04-build-the-panel.md#start-the-sdk)                   |
+| `state`, `subscribe()`, `watch()`, `rightbarPlugin`, `useRightbar()`   | Render from Dialpad's state                      | [Chapter 4](04-build-the-panel.md#render-from-the-state)           |
+| `showToast()`, `showRefreshButton()`, `on('refreshContact')`           | Use Dialpad's UI                                 | [Chapter 4](04-build-the-panel.md#use-dialpads-ui)                 |
+| `app`                                                                  | Your own data from the page                      | [Chapter 4](04-build-the-panel.md#pass-your-own-data-to-the-panel) |
+| `destroy()`                                                            | Shut the panel down                              | [Chapter 4](04-build-the-panel.md#start-the-sdk)                   |
+| `authHeaders()`                                                        | Authenticate requests to your server             | [Chapter 5](05-authenticate-requests.md#in-the-panel)              |
+| `state.connection`, `authorize()`, `refresh()`, `disconnect()`         | Connect and disconnect                           | [Chapter 6](06-connect-to-the-crm.md)                              |
+| `linkRecord()`, `setMenu()`, `on('menuSelect')`, `screenPop()`         | Link the CRM record, the panel menu, screen pops | [Chapter 7](07-show-the-crm-record.md#link-the-record-in-dialpad)  |
+| `/testing`, `/testing/setup`, `/vue/testing`                           | Test your panel                                  | [Chapter 10](10-test-your-app.md)                                  |
 
 ---
 

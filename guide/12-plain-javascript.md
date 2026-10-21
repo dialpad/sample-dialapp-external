@@ -84,8 +84,13 @@ async function start() {
   rightbar.watch(
     (state) => state.connection.connected,
     (connected) =>
-      rightbar.setMenu(connected ? ["disconnect"] : []).catch(console.warn),
+      rightbar
+        .setMenu(connected ? [{ id: "disconnect", label: "Disconnect" }] : [])
+        .catch(console.warn),
   );
+  rightbar.on("menuSelect", (id) => {
+    if (id === "disconnect") rightbar.disconnect();
+  });
 
   const contact = createContactSection(rightbar); // owns its own lookups, see below
   const render = (state) =>

@@ -407,21 +407,6 @@ describe('Connect gate', () => {
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
-  it('stops waiting when the user disconnects from the host menu while Connect is polling', async () => {
-    const { wrapper, host } = await setup();
-    await wrapper.get('[data-testid="connect-button"]').trigger('click');
-    expect(wrapper.find('[role="status"]').exists()).toBe(true);
-
-    host.trigger('disconnect');
-    await host.settle();
-    await flushPromises();
-
-    expect(wrapper.find('[role="status"]').exists()).toBe(false);
-    expect(
-      wrapper.get('[data-testid="connect-button"]').attributes('disabled'),
-    ).toBeUndefined();
-  });
-
   it('restarts Connect when Try again is clicked', async () => {
     const { wrapper, host, server } = await setup();
     await wrapper.get('[data-testid="connect-button"]').trigger('click');
@@ -858,27 +843,6 @@ describe('Connected view', () => {
     ]);
   });
 
-  it("shows the same toast and unlinks the record when the user disconnects from Dialpad's menu", async () => {
-    const { wrapper, host, server } = await setup({ connected: true });
-    server.mode = 'connected';
-    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
-    await host.settle();
-    await flushPromises();
-    const linked = host.received.linkedRecord;
-
-    host.trigger('disconnect');
-    await host.settle();
-    await flushPromises();
-    await host.settle();
-
-    expect(wrapper.find('[data-testid="connect-gate"]').exists()).toBe(true);
-    expect(host.received.toasts).toEqual([
-      { text: 'Disconnected from Acme CRM', type: 'info' },
-    ]);
-    expect(linked).toEqual(recordOf('1'));
-    expect(host.received.linkedRecord).toBeNull();
-  });
-
   it('tells the user when Disconnect fails and stays connected', async () => {
     const { wrapper, host, server } = await setup({ connected: true });
     server.mode = 'server_error';
@@ -982,14 +946,14 @@ describe("Dialpad's panel menu", () => {
    * Run the real `bootstrap`, with the mock host standing in for Dialpad and `server` for Acme.
    *
    * `connected` is what the page data says at load. Returns the SDK instance `bootstrap` created,
-   * so a test can check the connection again.
+   * so a test can check the connection again, and the element the panel is mounted in.
    */
   async function start(
     host: ReturnType<typeof createMockHost>,
     server: ReturnType<typeof fakeServer>,
     connected: boolean,
     patch: (rightbar: Rightbar) => void = () => undefined,
-  ): Promise<Rightbar> {
+  ): Promise<{ rightbar: Rightbar; root: HTMLElement }> {
     const root = document.createElement('div');
     document.body.append(root);
     let created: Rightbar | undefined;
@@ -1013,17 +977,21 @@ describe("Dialpad's panel menu", () => {
     if (!created) {
       throw new Error('bootstrap never created the SDK');
     }
-    return created;
+    return { rightbar: created, root };
   }
 
-  /** The menu once connected, as Dialpad keeps it (its own values, in order). */
-  const CONNECTED_MENU = ['rematch', 'create_task', 'disconnect'];
+  /** The menu once connected, as Dialpad keeps it: the panel's own ids and English labels, in order. */
+  const CONNECTED_MENU = [
+    { id: 'rematch', label: 'Rematch' },
+    { id: 'create-task', label: 'Create Task' },
+    { id: 'disconnect', label: 'Disconnect' },
+  ];
 
   it('is empty from the start while the user is not connected, then Rematch, Create Task and Disconnect once connected', async () => {
     const host = createMockHost();
     const server = fakeServer();
 
-    const rightbar = await start(host, server, false);
+    const { rightbar } = await start(host, server, false);
     expect(host.received.menu).toEqual([]);
 
     server.mode = 'connected';
@@ -1033,39 +1001,68 @@ describe("Dialpad's panel menu", () => {
     expect(host.received.refreshButtonShown).toBe(true);
   });
 
-  it('is the full menu from the start when the panel opens connected, then empty after a disconnect', async () => {
+  it('is set again when the panel reloads, since Dialpad forgets it', async () => {
     const host = createMockHost();
     const server = fakeServer();
     server.mode = 'connected';
+    await start(host, server, true);
 
     await start(host, server, true);
+
+    expect(host.received.menu).toEqual(CONNECTED_MENU);
+  });
+
+  it('disconnects when the user picks Disconnect: the Connect gate, the toast, no record, and an empty menu', async () => {
+    const host = createMockHost();
+    const server = fakeServer();
+    const contactApi = fakeContactApi();
+    vi.stubGlobal('fetch', contactApi.fetch);
+    server.mode = 'connected';
+    const { root } = await start(host, server, true);
+    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
+    await host.settle();
+    await flushPromises();
+    const linked = host.received.linkedRecord;
     expect(host.received.menu).toEqual(CONNECTED_MENU);
     expect(host.received.refreshButtonShown).toBe(true);
 
-    host.trigger('disconnect');
+    host.selectMenuItem('disconnect');
     await host.settle();
     await flushPromises();
     await host.settle();
+
+    expect(server.calls.some((c) => c.path.endsWith('/ext-disconnect'))).toBe(
+      true,
+    );
+    expect(root.querySelector('[data-testid="connect-gate"]')).not.toBeNull();
+    expect(host.received.toasts).toEqual([
+      { text: 'Disconnected from Acme CRM', type: 'info' },
+    ]);
+    expect(linked).toEqual(recordOf('1'));
+    expect(host.received.linkedRecord).toBeNull();
     expect(host.received.menu).toEqual([]);
     expect(host.received.refreshButtonShown).toBe(false);
   });
 
   it.each([
     ['rematch', "Rematch isn't implemented in this sample app"],
-    ['create_task', "Create Task isn't implemented in this sample app"],
+    ['create-task', "Create Task isn't implemented in this sample app"],
   ] as const)(
     'says %s is not implemented when the user picks it, and stays connected',
-    async (item, text) => {
+    async (id, text) => {
       const host = createMockHost();
       const server = fakeServer();
       server.mode = 'connected';
-      const rightbar = await start(host, server, true);
+      const { rightbar } = await start(host, server, true);
 
-      host.trigger(item);
+      host.selectMenuItem(id);
       await host.settle();
 
       expect(host.received.toasts).toEqual([{ text, type: 'info' }]);
       expect(rightbar.state.connection.connected).toBe(true);
+      expect(server.calls.some((c) => c.path.endsWith('/ext-disconnect'))).toBe(
+        false,
+      );
       expect(host.received.menu).toEqual(CONNECTED_MENU);
     },
   );
@@ -1076,9 +1073,9 @@ describe("Dialpad's panel menu", () => {
     server.mode = 'connected';
 
     const unhandled = await unhandledRejectionsDuring(async () => {
-      const rightbar = await start(host, server, true);
+      const { rightbar } = await start(host, server, true);
       rejectToasts(rightbar);
-      host.trigger('rematch');
+      host.selectMenuItem('rematch');
       await host.settle();
     });
 
