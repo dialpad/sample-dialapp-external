@@ -149,9 +149,13 @@ function showLinkedRecord(): void {
     return;
   }
   const label = `View ${record.type}`;
-  const isWebUrl =
-    URL.canParse(record.url) &&
-    ['http:', 'https:'].includes(new URL(record.url).protocol);
+  // The URL constructor rather than `URL.canParse`, which Chrome added only in 120.
+  let isWebUrl = false;
+  try {
+    isWebUrl = ['http:', 'https:'].includes(new URL(record.url).protocol);
+  } catch {
+    // Not a URL; shown as text below.
+  }
   if (!isWebUrl) {
     element.textContent = `${label}: ${record.url}`;
     return;

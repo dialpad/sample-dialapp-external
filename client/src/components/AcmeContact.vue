@@ -106,6 +106,9 @@ watch(
 );
 
 onBeforeUnmount(() => {
+  // A lookup still waiting for the server is now stale, so its answer can't link a record after the
+  // section is gone.
+  lookup += 1;
   setLinkedRecord(null);
 });
 </script>
