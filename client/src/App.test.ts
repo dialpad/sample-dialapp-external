@@ -513,6 +513,30 @@ describe('Connected view', () => {
     expect(host.received.linkedRecord).toEqual(recordOf('1'));
   });
 
+  it('links the record in a browser without URL.canParse, such as Chrome before 120', async () => {
+    const canParse = Object.getOwnPropertyDescriptor(URL, 'canParse');
+    Object.defineProperty(URL, 'canParse', {
+      value: undefined,
+      configurable: true,
+    });
+    try {
+      const { wrapper, host } = await setup({ connected: true });
+
+      host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
+      await host.settle();
+      await flushPromises();
+
+      expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+        'Acme Pat Customer',
+      );
+      expect(host.received.linkedRecord).toEqual(recordOf('1'));
+    } finally {
+      if (canParse) {
+        Object.defineProperty(URL, 'canParse', canParse);
+      }
+    }
+  });
+
   it("shows the user the server fetched from Dialpad's API with the api key", async () => {
     const { wrapper } = await setup({
       connected: true,
@@ -705,6 +729,32 @@ describe('Connected view', () => {
     await flushPromises();
 
     expect(linked).toEqual(recordOf('1'));
+    expect(host.received.linkedRecord).toBeNull();
+  });
+
+  it("doesn't link the record when the lookup answers after the user disconnected", async () => {
+    const { wrapper, host, server, contactApi } = await setup({
+      connected: true,
+    });
+    server.mode = 'connected';
+    contactApi.mode = 'hold';
+    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
+    await host.settle();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="disconnect-button"]').trigger('click');
+    await wrapper.get('[data-testid="disconnect-confirm"]').trigger('click');
+    await host.settle();
+    await flushPromises();
+    const gateBeforeAnswer = wrapper
+      .find('[data-testid="connect-gate"]')
+      .exists();
+    contactApi.held[0]?.respond();
+    await host.settle();
+    await flushPromises();
+
+    expect(contactApi.held).toHaveLength(1);
+    expect(gateBeforeAnswer).toBe(true);
     expect(host.received.linkedRecord).toBeNull();
   });
 

@@ -62,6 +62,20 @@ function readFields(body: unknown): AcmeField[] {
 }
 
 /**
+ * Whether `url` is an absolute http(s) URL.
+ *
+ * Uses the `URL` constructor rather than `URL.canParse`, which Chrome added only in 120; the SDK
+ * supports Chrome 109 and later.
+ */
+function isWebUrl(url: string): boolean {
+  try {
+    return ['http:', 'https:'].includes(new URL(url).protocol);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Read the server's `record`, `{ type, url }` or `null`, or throw if it is neither.
  *
  * Dialpad opens the URL in a new tab, so only an http(s) URL is accepted.
@@ -74,8 +88,7 @@ function readRecord(record: unknown): LinkedRecord | null {
     !isRecord(record) ||
     typeof record.type !== 'string' ||
     typeof record.url !== 'string' ||
-    !URL.canParse(record.url) ||
-    !['http:', 'https:'].includes(new URL(record.url).protocol)
+    !isWebUrl(record.url)
   ) {
     throw new TypeError('The contact answer has a malformed record');
   }
