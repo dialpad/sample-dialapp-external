@@ -416,7 +416,11 @@ async def test_the_contact_route_acmes_text_and_lists_shows_other_values_as_json
   assert response.status_code == 200
   assert 'set-cookie' not in response.headers
   body = json_of(response)
-  assert list(body) == ['fields']
+  assert list(body) == ['fields', 'record']
+  assert body['record'] == {
+      'type': 'Contact',
+      'url': f'{env.settings.base_url}/records/4800000000000001',
+  }
   assert [(row['label'], row['value']) for row in body['fields']] == [
       ('id', 'Acme 4800000000000001'),
       ('displayName', 'Acme Pat Customer'),
@@ -429,6 +433,29 @@ async def test_the_contact_route_acmes_text_and_lists_shows_other_values_as_json
       ('custom', '{"tier": "gold"}'),
       ('tags', 'Acme vip, null'),
   ]
+
+
+@pytest.mark.parametrize(
+    ('contact_id', 'record_path'),
+    [
+        ('a/b?c', '/records/a%2Fb%3Fc'),
+        (None, None),
+        (42, None),
+    ],
+    ids=['an id that needs quoting', 'no id', 'an id that is not text'],
+)
+async def test_the_record_link_quotes_the_contact_id_and_is_null_without_one(
+    env: Env, contact_id: object, record_path: str | None) -> None:
+  panel = await env.open_panel()
+  await connect(env, panel)
+
+  response = await post_contact(env, panel, {'contact': {**CONTACT, 'id': contact_id}})
+
+  record = json_of(response)['record']
+  if record_path is None:
+    assert record is None
+  else:
+    assert record == {'type': 'Contact', 'url': f'{env.settings.base_url}{record_path}'}
 
 
 async def test_a_user_who_has_not_connected_gets_403_not_a_lookup(env: Env) -> None:
@@ -471,6 +498,29 @@ async def test_a_body_that_is_not_a_contact_object_gets_400(
 
   assert response.status_code == 400
   assert json_of(response)['code'] == 'invalid_request'
+
+
+# --- the fake CRM record page ------------------------------------------------------------------
+
+
+async def test_the_record_page_is_labelled_fake_shows_the_id_escaped_and_is_locked_down(
+    env: Env) -> None:
+  # The id arrives percent-encoded, as `record_url` builds it, and includes an encoded slash.
+  response = await env.get('/records/%22%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E')
+
+  assert response.status_code == 200
+  assert response.headers['content-type'].startswith('text/html')
+  assert 'fake CRM record (demo only)' in response.text
+  assert '<code>&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;</code>' in response.text
+  assert '<script>' not in response.text
+  assert 'set-cookie' not in response.headers
+  csp = response.headers['content-security-policy']
+  nonce = csp.split("style-src 'nonce-")[1].split("'")[0]
+  assert "default-src 'none'" in csp
+  assert "frame-ancestors 'none'" in csp
+  assert f'<style nonce="{nonce}">' in response.text
+  assert response.headers['referrer-policy'] == 'no-referrer'
+  assert response.headers['cache-control'] == 'no-store'
 
 
 # --- the fake OAuth round trip -----------------------------------------------------------------

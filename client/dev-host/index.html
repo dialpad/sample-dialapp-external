@@ -36,15 +36,37 @@
       <button id="change-contact" type="button">Change contact</button>
       <button id="change-call-state" type="button">Change call state</button>
       <button id="toggle-theme" type="button">Switch light / dark</button>
-      <button id="disconnect-from-menu" type="button">
-        Disconnect from Dialpad's menu
-      </button>
     </div>
+    <section aria-labelledby="refresh-button-heading">
+      <h2 id="refresh-button-heading">Refresh button</h2>
+      <p>
+        The refresh button the panel shows with
+        <code>showRefreshButton</code>
+        , which Dialpad shows in the panel's header.
+      </p>
+      <div id="refresh-button" aria-live="polite">Hidden</div>
+    </section>
+    <section aria-labelledby="panel-menu-heading">
+      <h2 id="panel-menu-heading">Panel menu</h2>
+      <p>
+        The items the panel set with
+        <code>setMenu</code>
+        , which Dialpad shows in the panel's header menu.
+      </p>
+      <div id="panel-menu" aria-live="polite">Not set</div>
+    </section>
     <div id="panel"></div>
     <section aria-labelledby="toasts-heading">
       <h2 id="toasts-heading">Toasts</h2>
       <p>Dialpad shows these over its own UI, outside the panel.</p>
       <ul id="toasts" aria-live="polite"></ul>
+    </section>
+    <section aria-labelledby="linked-record-heading">
+      <h2 id="linked-record-heading">Linked record</h2>
+      <p>
+        Dialpad shows a "View &lt;type&gt;" button for it in the panel's header.
+      </p>
+      <p id="linked-record" aria-live="polite">None</p>
     </section>
     <script type="module" src="./main.ts"></script>
   </body>

@@ -167,8 +167,8 @@ importers:
   .:
     dependencies:
       '@dialpad/dialapp-external-sdk':
-        specifier: file:vendor/dialpad-dialapp-external-sdk-0.1.0.tgz
-        version: file:vendor/dialpad-dialapp-external-sdk-0.1.0.tgz(@vue/test-utils@2.5.1(@vue/compiler-dom@3.5.43)(@vue/server-renderer@3.5.43)(vue@3.5.43(typescript@5.9.3)))(vue@3.5.43(typescript@5.9.3))
+        specifier: file:vendor/dialpad-dialapp-external-sdk-0.2.0.tgz
+        version: file:vendor/dialpad-dialapp-external-sdk-0.2.0.tgz(@vue/test-utils@2.5.1(@vue/compiler-dom@3.5.43)(@vue/server-renderer@3.5.43)(vue@3.5.43(typescript@5.9.3)))(vue@3.5.43(typescript@5.9.3))
       '@dialpad/dialtone':
         specifier: ^10.4.0
         version: 10.4.0(@types/node@24.19.1)(eslint@10.12.0(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)(vue@3.5.43(typescript@5.9.3))
@@ -301,9 +301,9 @@ packages:
     resolution: {integrity: sha512-OoKoR0f76dCY666JlcbhmVTs2drYj1GUXZTYTcbUgJjh9Nv41aFfZ21bPQTERm5+L5cBDo466NltB2lplS5GBw==}
     engines: {node: '>=20.19.0'}
 
-  '@dialpad/dialapp-external-sdk@file:vendor/dialpad-dialapp-external-sdk-0.1.0.tgz':
-    resolution: {integrity: sha512-VXhqbPC1wJb7sZwTKnNH7/oo4ITrQlu456t+NiA8KHLV8e0nbxMNHaQAhNMH3YJa4zUdO45abURyxb6ZrtlBbA==, tarball: file:vendor/dialpad-dialapp-external-sdk-0.1.0.tgz}
-    version: 0.1.0
+  '@dialpad/dialapp-external-sdk@file:vendor/dialpad-dialapp-external-sdk-0.2.0.tgz':
+    resolution: {integrity: sha512-36VPHYYr+B1m4tcE4L52LrFInq3wqEPFG2ZTi6K7szvbbcZQC1rLRrp1/J9vGxttpOY5T4XVpV4qEiqjASlN8Q==, tarball: file:vendor/dialpad-dialapp-external-sdk-0.2.0.tgz}
+    version: 0.2.0
     engines: {node: '>=24'}
     peerDependencies:
       '@vue/test-utils': ^2.4.0
@@ -2657,7 +2657,7 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.2': {}
 
-  '@dialpad/dialapp-external-sdk@file:vendor/dialpad-dialapp-external-sdk-0.1.0.tgz(@vue/test-utils@2.5.1(@vue/compiler-dom@3.5.43)(@vue/server-renderer@3.5.43)(vue@3.5.43(typescript@5.9.3)))(vue@3.5.43(typescript@5.9.3))':
+  '@dialpad/dialapp-external-sdk@file:vendor/dialpad-dialapp-external-sdk-0.2.0.tgz(@vue/test-utils@2.5.1(@vue/compiler-dom@3.5.43)(@vue/server-renderer@3.5.43)(vue@3.5.43(typescript@5.9.3)))(vue@3.5.43(typescript@5.9.3))':
     optionalDependencies:
       '@vue/test-utils': 2.5.1(@vue/compiler-dom@3.5.43)(@vue/server-renderer@3.5.43)(vue@3.5.43(typescript@5.9.3))
       vue: 3.5.43(typescript@5.9.3)

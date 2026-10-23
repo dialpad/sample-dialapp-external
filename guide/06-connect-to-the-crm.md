@@ -133,7 +133,9 @@ next check or page load.
 ## Disconnect
 
 The user disconnects from a **Disconnect** button in your panel, or from
-Dialpad's panel menu. Both take the same path; the menu skips your confirmation.
+Dialpad's panel menu when your panel puts a Disconnect item in it
+([chapter 7](07-show-the-crm-record.md#the-panel-menu)). Both call
+`disconnect()` and take the same path; the menu skips your confirmation.
 
 ```mermaid
 sequenceDiagram
@@ -151,7 +153,6 @@ sequenceDiagram
   S->>C: Revoke the token, if the CRM supports it
   S->>DB: Delete the user's CRM tokens
   S-->>P: 204, no body
-  P->>D: Tell Dialpad the panel is no longer connected
   P->>S: GET /dialpad/ext-connection
   S-->>P: connected false, a fresh authorize URL
   P->>P: Show the Connect screen

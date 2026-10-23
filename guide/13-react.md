@@ -38,6 +38,17 @@ try {
     (state) => state.theme.mode,
     (mode) => setMode(mode),
   );
+  // Set Dialpad's panel menu from the connection, now and on every change (chapter 7).
+  rightbar.watch(
+    (state) => state.connection.connected,
+    (connected) =>
+      rightbar
+        .setMenu(connected ? [{ id: "disconnect", label: "Disconnect" }] : [])
+        .catch(console.warn),
+  );
+  rightbar.on("menuSelect", (id) => {
+    if (id === "disconnect") rightbar.disconnect();
+  });
   createRoot(root).render(
     <RightbarProvider rightbar={rightbar}>
       <App />
@@ -112,6 +123,7 @@ counter in `AcmeContact.vue`:
 
 ```tsx
 function AcmeContact({ contact }: { contact: Contact | null }) {
+  const rightbar = useRightbar();
   const [view, setView] = useState<{
     status: "idle" | "loading" | "ready" | "failed";
     fields: AcmeField[];
@@ -119,15 +131,25 @@ function AcmeContact({ contact }: { contact: Contact | null }) {
   useEffect(() => {
     if (!contact) return setView({ status: "idle", fields: [] });
     let stale = false; // set by the cleanup when the contact changes or the component unmounts
+    let linked = false;
     setView({ status: "loading", fields: [] });
-    fetchAcmeFields(contact).then(
-      (fields) => !stale && setView({ status: "ready", fields }),
+    fetchAcmeContact(contact).then(
+      ({ fields, record }) => {
+        if (stale) return;
+        setView({ status: "ready", fields });
+        if (record) {
+          linked = true;
+          rightbar.linkRecord(record).catch(console.warn);
+        }
+      },
       () => !stale && setView({ status: "failed", fields: [] }),
     );
     return () => {
       stale = true;
+      // Unlink when the contact changes, or the section goes away on disconnect.
+      if (linked) rightbar.linkRecord(null).catch(console.warn);
     };
-  }, [contact]);
+  }, [contact, rightbar]);
   // ...render view.status and view.fields as AcmeContact.vue does
 }
 ```

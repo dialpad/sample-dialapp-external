@@ -54,26 +54,34 @@ async function authorizeAndPoll(
   await expect(panel.getByTestId('connected-view')).toBeVisible();
 }
 
-/**
- * What the mock host believes: whether the iframe panel last told Dialpad it is connected.
- *
- * The SDK reports this automatically so Dialpad's iframe panel menu (which has Disconnect only while
- * connected) always matches the iframe panel.
- */
-async function hostThinksConnected(page: Page): Promise<boolean | undefined> {
-  return page.evaluate(() => window.mockHost?.received.connected);
-}
-
 /** The dev host's list of toasts, which Dialpad would show outside the panel. */
 function toastList(page: Page) {
   return page.locator('#toasts li');
 }
 
+/** The dev host's view of the record the panel linked, which Dialpad shows as a header button. */
+function linkedRecord(page: Page) {
+  return page.locator('#linked-record');
+}
+
+/** The dev host's view of the panel menu the panel set: a button per item, or "None". */
+function panelMenu(page: Page) {
+  return page.locator('#panel-menu');
+}
+
+/** The dev host's menu buttons while the user is connected, in order. */
+const CONNECTED_MENU = [
+  "Rematch from Dialpad's menu",
+  "Create Task from Dialpad's menu",
+  "Disconnect from Dialpad's menu",
+];
+
 test('connect by polling, reconnect on first paint, then disconnect', async ({
   page,
 }) => {
-  // First open, not connected.
+  // First open, not connected: the panel sets an empty menu.
   const panel = await openDevPage(page);
+  await expect(panelMenu(page)).toHaveText('None');
 
   // Connect opens the fake authorize page in a popup. The dev host never replies, so the SDK's
   // polling (first check after 7 seconds) completes it once Authorize is pressed.
@@ -82,6 +90,8 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await expect(panel.getByRole('status')).toContainText('Waiting');
   await authorizeAndPoll(page, panel, authWindow);
   await expect(toastList(page)).toHaveText(['success: Connected to Acme CRM']);
+  // Connected, the panel's menu is Rematch, Create Task and Disconnect.
+  await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
   await expect(panel.getByTestId('user-card')).toContainText('Jane Agent');
   // The server's demo call to Dialpad's API is skipped in local mode, and the card says so.
   await expect(panel.getByTestId('dialpad-api-card')).toContainText(
@@ -89,11 +99,20 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   );
 
   // Data flows from the host to the iframe panel: the contact open in the dev host, shown Acme'd, is
-  // there as soon as the user is connected. Changing contact cycles through three and wraps.
+  // there as soon as the user is connected, and its record is linked back to the host. Changing
+  // contact cycles through three and wraps, and the link follows.
   const contact = panel.getByTestId('acme-contact');
   await expect(contact).toContainText('Acme Pat Customer');
+  await expect(linkedRecord(page).getByRole('link')).toHaveAttribute(
+    'href',
+    /\/records\/4800000000000001$/,
+  );
   await page.getByRole('button', { name: 'Change contact' }).click();
   await expect(contact).toContainText('Acme Sam Prospect');
+  await expect(linkedRecord(page).getByRole('link')).toHaveAttribute(
+    'href',
+    /\/records\/4800000000000002$/,
+  );
   await page.getByRole('button', { name: 'Change contact' }).click();
   await expect(contact).toContainText('Acme Robin Partner');
   await page.getByRole('button', { name: 'Change contact' }).click();
@@ -103,11 +122,15 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
   await page.reload();
   await expect(panel.getByTestId('connected-view')).toBeVisible();
   await expect(panel.getByTestId('connect-gate')).toHaveCount(0);
+  // The reloaded panel sets its menu again, since Dialpad forgets it on reload.
+  await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
 
-  // Disconnect, with inline confirmation.
+  // Disconnect, with inline confirmation: the record is unlinked and the menu is empty again.
   await panel.getByTestId('disconnect-button').click();
   await panel.getByTestId('disconnect-confirm').click();
   await expect(panel.getByTestId('connect-gate')).toBeVisible();
+  await expect(linkedRecord(page)).toHaveText('None');
+  await expect(panelMenu(page)).toHaveText('None');
 });
 
 test("calls reach the iframe panel, with the call's contact when it differs", async ({
@@ -161,7 +184,7 @@ test('opened outside Dialpad, the iframe panel asks to be opened from Dialpad', 
   await expect(page.getByTestId('connect-gate')).toHaveCount(0);
 });
 
-test('Connect that is never completed times out and the host stays not connected', async ({
+test('Connect that is never completed times out and the panel menu stays empty', async ({
   page,
 }) => {
   const panel = await openDevPage(page);
@@ -178,7 +201,7 @@ test('Connect that is never completed times out and the host stays not connected
   );
   await expect(panel.getByTestId('connect-button')).toHaveText('Try again');
   await expect(panel.getByRole('status')).toHaveCount(0);
-  expect(await hostThinksConnected(page)).toBe(false);
+  await expect(panelMenu(page)).toHaveText('None');
 });
 
 test("Disconnect from Dialpad's iframe panel menu shows the Connect gate", async ({
@@ -186,7 +209,7 @@ test("Disconnect from Dialpad's iframe panel menu shows the Connect gate", async
 }) => {
   const panel = await openDevPage(page);
   await authorizeAndPoll(page, panel, await startConnect(page, panel));
-  await expect.poll(() => hostThinksConnected(page)).toBe(true);
+  await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
 
   const disconnectCalled = page.waitForRequest(
     (req) =>
@@ -199,11 +222,64 @@ test("Disconnect from Dialpad's iframe panel menu shows the Connect gate", async
 
   await expect(panel.getByTestId('connect-gate')).toBeVisible();
   await expect(panel.getByTestId('connected-view')).toHaveCount(0);
-  await expect.poll(() => hostThinksConnected(page)).toBe(false);
+  await expect(panelMenu(page)).toHaveText('None');
   await expect(toastList(page)).toHaveText([
     'success: Connected to Acme CRM',
     'info: Disconnected from Acme CRM',
   ]);
+});
+
+test("Rematch and Create Task from Dialpad's menu say they aren't implemented", async ({
+  page,
+}) => {
+  const panel = await openDevPage(page);
+  await authorizeAndPoll(page, panel, await startConnect(page, panel));
+  await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
+
+  await panelMenu(page)
+    .getByRole('button', { name: "Rematch from Dialpad's menu" })
+    .click();
+  await panelMenu(page)
+    .getByRole('button', { name: "Create Task from Dialpad's menu" })
+    .click();
+
+  await expect(toastList(page)).toHaveText([
+    'success: Connected to Acme CRM',
+    "info: Rematch isn't implemented in this sample app",
+    "info: Create Task isn't implemented in this sample app",
+  ]);
+  await expect(panel.getByTestId('connected-view')).toBeVisible();
+  await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
+});
+
+test("Refresh Contact from Dialpad's header looks the contact up again, while connected", async ({
+  page,
+}) => {
+  const refreshButton = page.locator('#refresh-button');
+  const panel = await openDevPage(page);
+  await expect(refreshButton).toHaveText('Hidden');
+  await authorizeAndPoll(page, panel, await startConnect(page, panel));
+  await expect(panel.getByTestId('acme-contact')).toContainText(
+    'Acme Pat Customer',
+  );
+
+  const lookedUpAgain = page.waitForRequest(
+    (req) => req.method() === 'POST' && req.url().endsWith('/api/contact'),
+  );
+  await refreshButton
+    .getByRole('button', { name: "Refresh Contact from Dialpad's header" })
+    .click();
+  await lookedUpAgain;
+  await expect(panel.getByTestId('acme-contact')).toContainText(
+    'Acme Pat Customer',
+  );
+  await expect(toastList(page)).toHaveText(['success: Connected to Acme CRM']);
+
+  await page
+    .getByRole('button', { name: "Disconnect from Dialpad's menu" })
+    .click();
+  await expect(panel.getByTestId('connect-gate')).toBeVisible();
+  await expect(refreshButton).toHaveText('Hidden');
 });
 
 test('a failed contact lookup shows an error toast as well as the message in the panel', async ({

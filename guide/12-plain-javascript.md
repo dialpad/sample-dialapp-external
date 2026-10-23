@@ -14,8 +14,8 @@ without Vue; this repository doesn't build or run the sketch.
   panel only needs a `<div id="app">` and a script, which `pages.py` already
   renders.
 - **The SDK calls.** `createRightbar`, `rightbar.state`, `rightbar.subscribe`,
-  `rightbar.watch`, `authorize`, `disconnect`, `authHeaders`, `linkRecord`, and the
-  rest.
+  `rightbar.watch`, `authorize`, `disconnect`, `authHeaders`, `linkRecord`,
+  `setMenu`, and the rest.
 - **The framework-free modules**: `contactApi.ts` (the request to
   `POST /api/contact`), `customPageAppData.ts` (validates the page data's `app`
   field), and `contacts.ts` (compares two contacts) import nothing from Vue.
@@ -80,6 +80,17 @@ async function start() {
     (state) => state.theme.mode,
     (mode) => setMode(mode),
   );
+  // Set Dialpad's panel menu from the connection, now and on every change (chapter 7).
+  rightbar.watch(
+    (state) => state.connection.connected,
+    (connected) =>
+      rightbar
+        .setMenu(connected ? [{ id: "disconnect", label: "Disconnect" }] : [])
+        .catch(console.warn),
+  );
+  rightbar.on("menuSelect", (id) => {
+    if (id === "disconnect") rightbar.disconnect();
+  });
 
   const contact = createContactSection(rightbar); // owns its own lookups, see below
   const render = (state) =>
@@ -176,11 +187,12 @@ ignore a late answer for an earlier contact. Without Vue, that's a watcher and a
 counter, the same as the `watch` and `lookup` counter in the Vue file:
 
 ```js
-import { fetchAcmeFields } from "./contactApi";
+import { fetchAcmeContact } from "./contactApi";
 
 function createContactSection(rightbar) {
   const view = { status: "idle", fields: [] };
   let lookup = 0;
+  let linked = false;
   let onChange = () => {};
 
   // Runs now and whenever `state.contact` changes (a new contact object), not on other changes.
@@ -189,13 +201,22 @@ function createContactSection(rightbar) {
     async (contact) => {
       lookup += 1;
       const mine = lookup;
+      if (linked) {
+        linked = false;
+        rightbar.linkRecord(null).catch(console.warn);
+      }
       view.fields = [];
       view.status = contact ? "loading" : "idle";
       onChange();
       if (!contact) return;
       try {
-        const fields = await fetchAcmeFields(contact);
-        if (mine === lookup) Object.assign(view, { status: "ready", fields });
+        const { fields, record } = await fetchAcmeContact(contact);
+        if (mine !== lookup) return;
+        Object.assign(view, { status: "ready", fields });
+        if (record) {
+          linked = true;
+          rightbar.linkRecord(record).catch(console.warn);
+        }
       } catch {
         if (mine === lookup) view.status = "failed";
       }
@@ -213,8 +234,9 @@ function createContactSection(rightbar) {
 }
 ```
 
-A real app also calls `rightbar.linkRecord(...)` here once the server has
-returned a mapped CRM record ([chapter 7](07-show-the-crm-record.md#link-the-record-in-dialpad)).
+The section links the record once the lookup succeeds and unlinks when the
+contact changes. Also unlink when the user disconnects
+([chapter 7](07-show-the-crm-record.md#link-the-record-in-dialpad)).
 
 ## Tests and the bundle
 

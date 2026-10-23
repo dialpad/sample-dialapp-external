@@ -8,8 +8,11 @@
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.
 // The first of three contacts is open when the iframe panel starts, as when Dialpad opens the iframe panel for a
 // contact. The buttons in `dev-host/index.html` cycle to the next contact, step a call through its
-// states, switch light and dark, and disconnect the way Dialpad's panel menu does. Every toast the
-// panel shows is listed under the panel, since Dialpad would show them outside it.
+// states, and switch light and dark. Above the panel are the header's refresh button, while the
+// panel shows it with `showRefreshButton`, and the panel menu the panel set with `setMenu`, whose
+// buttons press it or pick an item the way Dialpad's header does. Every toast the panel shows is
+// listed under the panel, since Dialpad would show them outside it, and so is the record the panel
+// linked, which Dialpad would show as "View <type>" in the panel header.
 // Playwright tests drive the same host through `window.mockHost`.
 import {
   makeCall,
@@ -133,9 +136,106 @@ function showToasts(): void {
   );
 }
 
-// The mock host's own listener (added by `mountMockHostPage`) runs first and records the toast, so by
-// the time this one runs `host.received.toasts` is current.
+/**
+ * Redraw the record the panel linked, as the link Dialpad's header button would open, or "None".
+ * Only an http(s) URL becomes a link, since the URL comes from the app in the iframe.
+ */
+function showLinkedRecord(): void {
+  const element = document.getElementById('linked-record');
+  if (!element) {
+    return;
+  }
+  const record = host.received.linkedRecord;
+  if (!record) {
+    element.textContent = 'None';
+    return;
+  }
+  const label = `View ${record.type}`;
+  // The URL constructor rather than `URL.canParse`, which Chrome added only in 120.
+  let isWebUrl = false;
+  try {
+    isWebUrl = ['http:', 'https:'].includes(new URL(record.url).protocol);
+  } catch {
+    // Not a URL; shown as text below.
+  }
+  if (!isWebUrl) {
+    element.textContent = `${label}: ${record.url}`;
+    return;
+  }
+  const link = document.createElement('a');
+  link.href = record.url;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = label;
+  element.replaceChildren(link, ` (${record.url})`);
+}
+
+/**
+ * Redraw the panel menu from what the panel set: a button per item, labelled with the item's label,
+ * which picks it the way Dialpad's menu does, "None" for an empty menu, or "Not set" before the
+ * panel's first `setMenu` (Dialpad then shows no menu for a panel on this SDK).
+ */
+function showPanelMenu(): void {
+  const element = document.getElementById('panel-menu');
+  if (!element) {
+    return;
+  }
+  const items = host.received.menu;
+  if (items === null) {
+    element.textContent = 'Not set';
+    return;
+  }
+  if (items.length === 0) {
+    element.textContent = 'None';
+    return;
+  }
+  // The mock host keeps only the items Dialpad would, so each has an id and a label.
+  element.replaceChildren(
+    ...items.map((item) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      // textContent, never innerHTML: the label comes from the app in the iframe.
+      button.textContent = `${item.label} from Dialpad's menu`;
+      button.addEventListener('click', () => {
+        host.selectMenuItem(item.id);
+      });
+      return button;
+    }),
+  );
+}
+
+/**
+ * Redraw the header's refresh button: a button while the panel shows it, which presses it the way
+ * Dialpad's does (the SDK reloads the contact and the panel looks it up again), or "Hidden".
+ */
+function showRefreshButton(): void {
+  const element = document.getElementById('refresh-button');
+  if (!element) {
+    return;
+  }
+  if (!host.received.refreshButtonShown) {
+    element.textContent = 'Hidden';
+    return;
+  }
+  if (element.querySelector('button')) {
+    return;
+  }
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = "Refresh Contact from Dialpad's header";
+  button.addEventListener('click', () => {
+    host.trigger('refresh_contact');
+  });
+  element.replaceChildren(button);
+}
+
+// The mock host's own listener (added by `mountMockHostPage`) runs first and records the toast,
+// the linked record, the refresh button or the menu, so by the time these run `host.received` is
+// current.
 window.addEventListener('message', showToasts);
+window.addEventListener('message', showLinkedRecord);
+window.addEventListener('message', showRefreshButton);
+window.addEventListener('message', showPanelMenu);
 
 /** Run `handler` when the dev host's button with this id is clicked. */
 function onClick(id: string, handler: () => void): void {
@@ -155,9 +255,6 @@ onClick('change-call-state', () => {
     }
     host.sendCall(makeCall({ state, contact: callContact }));
   }
-});
-onClick('disconnect-from-menu', () => {
-  host.trigger('disconnect');
 });
 onClick('toggle-theme', () => {
   mode = mode === 'light' ? 'dark' : 'light';

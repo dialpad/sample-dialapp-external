@@ -67,14 +67,14 @@ rightbar.state;
 //   connection: { connected, pending, authorizationUrls, name, scopes, error } }
 ```
 
-| Field        | What it holds                                                                                                                                                                        |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ready`      | `true` once the handshake and the first loads are done, which is always the case after `createRightbar()` resolves                                                                   |
-| `user`       | The Dialpad user (IDs, names, emails, phone numbers, licenses, admin flags, and availability), or `null`. Dialpad sends no updates, so the status fields are as of the panel's start |
-| `contact`    | The contact open in Dialpad, or `null`. The SDK reloads it when the user presses Dialpad's refresh button or the contact's record changes                                            |
-| `call`       | The active call, updated on every call event, or `null`                                                                                                                              |
-| `theme`      | `{ mode: 'light' \| 'dark', brand }`. `brand` is `null` in this SDK version                                                                                                          |
-| `connection` | The user's connection to the CRM ([chapter 6](06-connect-to-the-crm.md#the-connection))                                                                                              |
+| Field        | What it holds                                                                                                                                                                                                                                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ready`      | `true` once the handshake and the first loads are done, which is always the case after `createRightbar()` resolves                                                                                                                                                                                         |
+| `user`       | The Dialpad user (IDs, names, emails, phone numbers, language, licenses, admin flags, and availability), or `null`. Dialpad sends no updates, so the fields are as of the panel's start. `language` is one of Dialpad's language codes, such as `en` or `ja` ([Translate the panel](#translate-the-panel)) |
+| `contact`    | The contact open in Dialpad, or `null`. The SDK reloads it when the user presses Dialpad's refresh button or the contact's record changes                                                                                                                                                                  |
+| `call`       | The active call, updated on every call event, or `null`                                                                                                                                                                                                                                                    |
+| `theme`      | `{ mode: 'light' \| 'dark', brand }`. `brand` is `null` in this SDK version                                                                                                                                                                                                                                |
+| `connection` | The user's connection to the CRM ([chapter 6](06-connect-to-the-crm.md#the-connection))                                                                                                                                                                                                                    |
 
 Every change produces a new snapshot, and the parts that didn't change keep
 their references. To follow changes:
@@ -161,9 +161,43 @@ Some things appear outside your panel, in Dialpad:
 | `showToast({ text, type })`      | Shows a short message in Dialpad, outside the panel. `type` is `info` (the default), `success`, or `error`                                                          |
 | `showRefreshButton(show)`        | Shows or hides the refresh button in the panel's header. When the user presses it, the SDK reloads `state.contact` and then emits `refreshContact`                  |
 | `on('refreshContact', callback)` | Runs `callback` after the SDK reloads `state.contact`, from the refresh button or because the contact's record changed in Dialpad. Returns a function that stops it |
+| `setMenu(items)`                 | Sets the items in Dialpad's panel menu ([chapter 7](07-show-the-crm-record.md#the-panel-menu))                                                                      |
 
 This app shows a toast when Connect finishes, when the user disconnects, and when
-a contact lookup fails.
+a contact lookup fails. It shows the refresh button while the user is connected
+([chapter 7](07-show-the-crm-record.md#refresh-the-record)).
+
+## Translate the panel
+
+Show the panel in the Dialpad user's language. `state.user.language` holds it
+when the panel starts, as one of Dialpad's two-letter language codes, such as
+`en`, `de`, `fr`, or `ja`. Translate everything the user reads:
+
+- your panel's own text;
+- the labels you pass to `setMenu`
+  ([chapter 7](07-show-the-crm-record.md#the-panel-menu));
+- the text of your toasts.
+
+Map Dialpad's code to your translations, and fall back to your default language
+when there's no user, no language, or no translation for it:
+
+```ts
+const MESSAGES = {
+  en: { disconnect: "Disconnect" },
+  de: { disconnect: "Trennen" },
+} as const;
+type Language = keyof typeof MESSAGES;
+
+const code = rightbar.state.user?.language;
+const language: Language = code && code in MESSAGES ? (code as Language) : "en";
+
+await rightbar.setMenu([
+  { id: "disconnect", label: MESSAGES[language].disconnect },
+]);
+```
+
+Any translation library works. Map the two-letter code to the locales your
+library uses, such as `fr` to `fr-FR`.
 
 ## Pass your own data to the panel
 
@@ -180,6 +214,8 @@ none. Validate it before you use it, as with any input.
   card for the user, the call, the open contact, and the demo's call to Dialpad's
   API.
 - `client/src/style.css` has the shared styles and the narrow-panel media query.
+- The demo is in English only, including its menu labels and toasts, and doesn't
+  read `user.language`.
 - The demo puts the result of its call to Dialpad's API in the page data's `app`
   field, and `customPageAppData.ts` validates it.
 

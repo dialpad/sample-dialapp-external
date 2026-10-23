@@ -56,7 +56,8 @@ test("shows the call as it connects", async () => {
 - **The mock host has its own clock.** A Connect test calls
   `await host.advance(7_000)` instead of using fake timers.
 - **`host.received`** records what the panel asked Dialpad to do: toasts, the
-  linked record, screen pops, the refresh button, and authorize requests.
+  linked record, the panel menu, screen pops, the refresh button, and authorize
+  requests.
 - **Pass `fetch` to `host.createRightbar()`** to answer the two Connect endpoints.
 
 ## Test in a real browser

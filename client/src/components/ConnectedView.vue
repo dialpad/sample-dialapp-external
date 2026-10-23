@@ -36,7 +36,7 @@ const otherCallContact = computed(() => {
       title="Call contact, Acme'd"
       test-id="call-contact"
     />
-    <AcmeContact :contact="state.contact" />
+    <AcmeContact :contact="state.contact" link />
     <p
       v-if="state.connection.scopes.length > 0"
       class="acme-muted"

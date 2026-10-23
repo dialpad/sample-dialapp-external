@@ -7,23 +7,27 @@
 //
 // What the demo does: the reference app has no CRM, so the server answers with every field "Acme'd"
 // (text prefixed with `Acme `), which proves the contact went to the server and back as the right
-// user. What a real app does: the server maps the contact to a CRM record with the user's stored
-// CRM token, fetches it and returns its fields; then this component calls the SDK's
-// `linkRecord(...)` with the record's URL so Dialpad shows a "View <type>" header button for it and
-// uses it for screen pops.
+// user, and with its fake record page as the record. What a real app does: the server maps the
+// contact to a CRM record with the user's stored CRM token, fetches it and returns its fields and
+// its URL in the CRM. Either way, this component then calls the SDK's `linkRecord(...)` with the
+// record, so Dialpad shows a "View <type>" header button for it and uses it for screen pops.
 //
 // `contact` is null until Dialpad sends one (the SDK's `state.contact`). Each new contact is looked
-// up again, and the answer to an older contact that arrives late is ignored.
+// up again, and so is the same contact when the user presses Dialpad's refresh button. The answer
+// to an older lookup that arrives late is ignored. The record is unlinked
+// as soon as the contact changes, when the lookup fails, and when the section goes away (on
+// disconnect), so Dialpad never shows a record for another contact.
 //
 // It is used twice when a call is active: for the iframe panel's contact and, if that is a different
-// person, for the call's own contact. `title` and `testId` tell the two apart.
-import type { Contact } from '@dialpad/dialapp-external-sdk';
+// person, for the call's own contact. `title` and `testId` tell the two apart, and only the panel's
+// own contact sets `link`: Dialpad keeps one linked record per panel.
+import type { Contact, LinkedRecord } from '@dialpad/dialapp-external-sdk';
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
-import { ref, useId, watch } from 'vue';
+import { onBeforeUnmount, ref, useId, watch } from 'vue';
 
-import { type AcmeField, fetchAcmeFields } from '../contactApi';
+import { type AcmeField, fetchAcmeContact } from '../contactApi';
 
-const { showToast } = useRightbar();
+const { showToast, linkRecord, on, rightbar } = useRightbar();
 
 const props = withDefaults(
   defineProps<{
@@ -32,9 +36,28 @@ const props = withDefaults(
     title?: string;
     /** The section's `data-testid`, so tests can tell the two uses apart. */
     testId?: string;
+    /** Whether to link the contact's record in Dialpad; only for the panel's own contact. */
+    link?: boolean;
   }>(),
-  { title: "This contact, Acme'd", testId: 'acme-contact' },
+  { title: "This contact, Acme'd", testId: 'acme-contact', link: false },
 );
+
+/** Whether this section has a record linked in Dialpad, so it unlinks only what it linked. */
+let linked = false;
+
+/**
+ * Link `record` in Dialpad, or unlink with `null`. Nothing happens without `link`, or when unlinking
+ * with nothing linked. Best effort: a host that rejects it must not break the panel; it is logged.
+ */
+function setLinkedRecord(record: LinkedRecord | null): void {
+  if (!props.link || (record === null && !linked)) {
+    return;
+  }
+  linked = record !== null;
+  linkRecord(record).catch((error: unknown) => {
+    console.warn("Dialpad didn't link the record", error);
+  });
+}
 
 /** An id for the heading that is unique per instance, since two sections can be on screen. */
 const headingId = useId();
@@ -43,43 +66,72 @@ const headingId = useId();
 const status = ref<'idle' | 'loading' | 'ready' | 'failed'>('idle');
 /** The rows the server answered with for the current contact. */
 const fields = ref<AcmeField[]>([]);
-/** Counts lookups, so the answer to an older contact is recognised as stale and dropped. */
+/** Counts lookups, so the answer to an older lookup is recognised as stale and dropped. */
 let lookup = 0;
+/** The contact of the latest lookup. */
+let lookedUp: Contact | null = null;
 
-watch(
-  () => props.contact,
-  async (contact) => {
-    lookup += 1;
-    const mine = lookup;
-    fields.value = [];
-    if (!contact) {
-      status.value = 'idle';
-      return;
+/** Ask the server for `contact` and show the answer, unless a newer lookup started meanwhile. */
+async function lookUp(contact: Contact | null): Promise<void> {
+  lookup += 1;
+  lookedUp = contact;
+  const mine = lookup;
+  fields.value = [];
+  setLinkedRecord(null);
+  if (!contact) {
+    status.value = 'idle';
+    return;
+  }
+  status.value = 'loading';
+  try {
+    const answer = await fetchAcmeContact(contact);
+    if (mine === lookup) {
+      fields.value = answer.fields;
+      status.value = 'ready';
+      setLinkedRecord(answer.record);
     }
-    status.value = 'loading';
-    try {
-      const rows = await fetchAcmeFields(contact);
-      if (mine === lookup) {
-        fields.value = rows;
-        status.value = 'ready';
-      }
-    } catch (error) {
-      if (mine === lookup) {
-        status.value = 'failed';
-        console.warn('The contact lookup failed', error);
-        // Besides the message in the panel, tell the user in Dialpad. Best effort: a host that
-        // rejects the toast must not break the panel; it is logged and the panel goes on.
-        showToast({
-          text: "Couldn't load the contact from Acme CRM",
-          type: 'error',
-        }).catch((toastError: unknown) => {
-          console.warn("Dialpad didn't show the toast", toastError);
-        });
-      }
+  } catch (error) {
+    if (mine === lookup) {
+      status.value = 'failed';
+      console.warn('The contact lookup failed', error);
+      // Besides the message in the panel, tell the user in Dialpad. Best effort: a host that
+      // rejects the toast must not break the panel; it is logged and the panel goes on.
+      showToast({
+        text: "Couldn't load the contact from Acme CRM",
+        type: 'error',
+      }).catch((toastError: unknown) => {
+        console.warn("Dialpad didn't show the toast", toastError);
+      });
     }
-  },
-  { immediate: true },
-);
+  }
+}
+
+watch(() => props.contact, lookUp, { immediate: true });
+
+/** The SDK's contact when `refreshContact` last fired (or at mount). */
+let refreshedContact = rightbar.state.contact;
+
+// Dialpad's refresh button: the SDK reloads the panel's contact, then emits `refreshContact`. It
+// emits it too when Dialpad changes the contact, and the watch above already looks the new one up.
+// The SDK keeps the same object for a contact that didn't change, so the contact is looked up again
+// here only when it is the one the event found last time and this section last looked it up (the
+// call's other contact isn't refreshed).
+const stopRefresh = on('refreshContact', () => {
+  const contact = rightbar.state.contact;
+  const unchanged = contact === refreshedContact;
+  refreshedContact = contact;
+  if (unchanged && contact && contact === lookedUp) {
+    void lookUp(contact);
+  }
+});
+
+onBeforeUnmount(() => {
+  stopRefresh();
+  // A lookup still waiting for the server is now stale, so its answer can't link a record after the
+  // section is gone.
+  lookup += 1;
+  setLinkedRecord(null);
+});
 </script>
 
 <template>
