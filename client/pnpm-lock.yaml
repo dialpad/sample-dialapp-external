@@ -302,7 +302,7 @@ packages:
     engines: {node: '>=20.19.0'}
 
   '@dialpad/dialapp-external-sdk@file:vendor/dialpad-dialapp-external-sdk-0.2.0.tgz':
-    resolution: {integrity: sha512-a9nn6qdYbVU0hgy0XR8mn4jMH1mtg2gjOTWOe1ry1/U5a7r2X4WD+mMNmva2N8WidACx6x2uKjpOy3p35EpHsQ==, tarball: file:vendor/dialpad-dialapp-external-sdk-0.2.0.tgz}
+    resolution: {integrity: sha512-36VPHYYr+B1m4tcE4L52LrFInq3wqEPFG2ZTi6K7szvbbcZQC1rLRrp1/J9vGxttpOY5T4XVpV4qEiqjASlN8Q==, tarball: file:vendor/dialpad-dialapp-external-sdk-0.2.0.tgz}
     version: 0.2.0
     engines: {node: '>=24'}
     peerDependencies:
