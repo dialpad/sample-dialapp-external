@@ -89,6 +89,35 @@ flowchart TD
 - **Show loading and failure.** This app also shows an error toast when a lookup
   fails.
 
+## When the user opens another contact
+
+Dialpad keeps your panel loaded when the user opens another contact. It sends
+the new contact, the SDK updates `state.contact`, and your watch on the contact
+runs the lookup again. Dialpad clears the linked record at the same moment. The
+panel keeps everything else: the user's connection, its menu, the refresh
+button, and whatever the user was doing in it.
+
+When the contact changes, your panel follows two rules:
+
+- **Unlink at once** with `linkRecord(null)`. Your panel can link the previous
+  contact's record just before the new contact reaches it, after Dialpad cleared
+  the link. Unlinking puts that right.
+- **Show a loading state, never the previous contact's record,** until the
+  lookup for the new contact answers. A reload used to clear the panel for you.
+
+Dialpad still reloads the panel at other times, so it must also work from a
+fresh start:
+
+- when the user collapses and expands the panel's section;
+- when the user opens a channel, a contact group, or a page other than a
+  conversation, then comes back;
+- when the user opens a Dialbot conversation, then leaves it;
+- when the page reloads;
+- on every contact change, in an older Dialpad that doesn't send the panel the
+  new contact.
+
+Keep what must survive a reload on your server, not only in the panel.
+
 ## Link the record in Dialpad
 
 Once the panel has the record, tell Dialpad about it with `linkRecord`:
@@ -220,21 +249,23 @@ it, the SDK reloads `state.contact` and then emits `refreshContact`.
 
 The SDK keeps the same `state.contact` object when the reloaded contact hasn't
 changed, so a watch on the contact doesn't run. Look the contact up again in the
-`refreshContact` callback instead. The SDK also emits `refreshContact` when
-Dialpad changes the contact, and your watch already looks that one up, so skip
-the lookup when the contact changed since the last `refreshContact`:
+`refreshContact` callback instead. When Dialpad changed the contact's details,
+the SDK gives a new object and your watch looks that one up, so skip it in the
+callback. Whether the watch runs before or after the callback depends on your
+framework, so look the contact up only when it's the one your last lookup was
+for and that lookup has finished:
 
 ```ts
-let lastContact = rightbar.state.contact;
 rightbar.on("refreshContact", () => {
   const contact = rightbar.state.contact;
-  const unchanged = contact === lastContact;
-  lastContact = contact;
-  if (unchanged && contact) {
+  if (contact && contact === lastLookup.contact && !lastLookup.running) {
     lookUp(contact); // the same lookup as when the contact changes
   }
 });
 ```
+
+This also covers the first press after the user opens another contact: by then,
+your last lookup was for the new contact.
 
 ### Screen pops
 
@@ -256,7 +287,8 @@ department contact.
   stands in for the CRM's page for the record and shows only the contact's ID.
 - `client/src/components/AcmeContact.vue` runs the lookup, shows loading and
   failure, and ignores late answers. Once the lookup succeeds, it links the
-  record, and it unlinks as described above.
+  record, and it unlinks as described above. When the contact changes, it
+  unlinks and shows "Loading the contact..." until the new lookup answers.
 - `client/src/bootstrap.ts` sets the panel menu from the connection: `[]` before
   the user connects, and **Rematch**, **Create Task**, and **Disconnect** once
   connected. Its labels are English only. Picking **Disconnect** disconnects.

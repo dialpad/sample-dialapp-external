@@ -43,6 +43,11 @@ file. To move to a new one, from `client/`:
 3. Run the client's checks: `pnpm types:check && pnpm test:run`, and
    `pnpm test:e2e` if you keep the browser tests.
 
+**From 0.2.0 to 0.3.0:** Dialpad no longer reloads the panel when the user opens
+another contact. `state.contact` changes instead. A panel that reads the contact
+only when it starts must now follow `state.contact`
+([chapter 7](07-show-the-crm-record.md#when-the-user-opens-another-contact)).
+
 The [contract](01-the-big-picture.md#the-contract) isn't in the tarball:
 `contract/openapi.json` is a copy, and its `info.version` names the SDK version
 it describes. Check that it still matches. The server has nothing to update,

@@ -23,7 +23,7 @@
     "guide:images": "node scripts/guide-images.mjs"
   },
   "dependencies": {
-    "@dialpad/dialapp-external-sdk": "file:vendor/dialpad-dialapp-external-sdk-0.2.0.tgz",
+    "@dialpad/dialapp-external-sdk": "file:vendor/dialpad-dialapp-external-sdk-0.3.0.tgz",
     "@dialpad/dialtone": "^10.4.0",
     "vue": "^3.5.0"
   },

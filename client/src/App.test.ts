@@ -493,24 +493,55 @@ describe('Connected view', () => {
     expect(host.received.linkedRecord).toEqual(recordOf('1'));
   });
 
-  it("looks the same contact up again when the user presses Dialpad's refresh button", async () => {
+  it("looks the open contact up again on each press of Dialpad's refresh button, the first after a contact change included, and once when Dialpad refreshes a changed record", async () => {
     const { wrapper, host, contactApi } = await setup({ connected: true });
+    /** Press the refresh button, and return the ids of the contacts looked up because of it. */
+    const refresh = async () => {
+      contactApi.requests.length = 0;
+      host.trigger('refresh_contact');
+      await host.settle();
+      await flushPromises();
+      return contactApi.requests.map(
+        (request) => (request.body as { contact: { id: string } }).contact.id,
+      );
+    };
     host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
     await host.settle();
     await flushPromises();
-    contactApi.requests.length = 0;
 
-    host.trigger('refresh_contact');
+    const first = await refresh();
+    host.sendContact(makeContact({ id: '2', displayName: 'Sam Prospect' }));
     await host.settle();
     await flushPromises();
-
-    expect(contactApi.requests).toEqual([
-      expect.objectContaining({ method: 'POST', path: '/api/contact' }),
-    ]);
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-      'Acme Pat Customer',
+    const afterChange = await refresh();
+    // The contact's record changed in Dialpad: Dialpad's own silent refresh brings a new object,
+    // which the watch looks up; the refresh handler must not look it up a second time.
+    contactApi.requests.length = 0;
+    host.updateContact(
+      makeContact({ id: '2', displayName: 'Sam Prospect', jobTitle: 'CTO' }),
     );
-    expect(host.received.linkedRecord).toEqual(recordOf('1'));
+    await host.settle();
+    await flushPromises();
+    const afterUpdate = contactApi.requests.length;
+    // A press while that contact's lookup is still running starts no second lookup.
+    contactApi.mode = 'hold';
+    host.updateContact(
+      makeContact({ id: '2', displayName: 'Sam Prospect', jobTitle: 'CTO' }),
+    );
+    await host.settle();
+    await flushPromises();
+    const whileRunning = await refresh();
+    contactApi.held[0]?.respond();
+    await flushPromises();
+
+    expect(first).toEqual(['1']);
+    expect(afterChange).toEqual(['2']);
+    expect(afterUpdate).toBe(1);
+    expect(whileRunning).toEqual([]);
+    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
+      'Acme CTO',
+    );
+    expect(host.received.linkedRecord).toEqual(recordOf('2'));
   });
 
   it('links the record in a browser without URL.canParse, such as Chrome before 120', async () => {
@@ -692,7 +723,7 @@ describe('Connected view', () => {
     );
   });
 
-  it('opens a new contact without disconnecting, and ignores a late answer for the earlier one', async () => {
+  it('opens a new contact without reloading or disconnecting, and ignores a late answer for the earlier one', async () => {
     const { wrapper, host, contactApi } = await setup({ connected: true });
     contactApi.mode = 'hold';
 
@@ -714,6 +745,10 @@ describe('Connected view', () => {
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
     expect(linkedWhilePending).toBeNull();
     expect(host.received.linkedRecord).toEqual(recordOf('2'));
+    // Dialpad kept the panel: it sent `init` once, so Dialpad didn't reload it.
+    expect(
+      host.received.messages.filter((message) => message.path === 'init'),
+    ).toHaveLength(1);
   });
 
   it('unlinks the record when the lookup for the next contact fails', async () => {
@@ -814,7 +849,7 @@ describe('Connected view', () => {
     },
   );
 
-  it("shows the call's contact as well when it is a different contact, but links only the panel's", async () => {
+  it("shows the call's contact as well when it is a different contact, but links and refreshes only the panel's", async () => {
     const { wrapper, host, contactApi } = await setup({ connected: true });
     contactApi.mode = 'hold';
 
@@ -834,8 +869,18 @@ describe('Connected view', () => {
     sam?.respond();
     await host.settle();
     await flushPromises();
+    // Dialpad's refresh button refreshes the panel's contact, not the call's other one.
+    contactApi.mode = 'ok';
+    contactApi.requests.length = 0;
+    host.trigger('refresh_contact');
+    await host.settle();
+    await flushPromises();
+    const refreshed = contactApi.requests.map(
+      (request) => (request.body as { contact: { id: string } }).contact.id,
+    );
 
     expect(sam).toBeDefined();
+    expect(refreshed).toEqual(['1']);
     expect(wrapper.get('[data-testid="call-contact"]').text()).toContain(
       'Acme Sam Prospect',
     );

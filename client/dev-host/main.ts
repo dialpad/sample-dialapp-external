@@ -7,7 +7,8 @@
 // authorize URL in a popup (a page marked as fake, with an Authorize button) and, like the desktop
 // app, never replies, so the SDK's polling completes the connection once Authorize is pressed.
 // The first of three contacts is open when the iframe panel starts, as when Dialpad opens the iframe panel for a
-// contact. The buttons in `dev-host/index.html` cycle to the next contact, step a call through its
+// contact. The buttons in `dev-host/index.html` cycle to the next contact (sent with `on/contact`,
+// without reloading the panel, as Dialpad does for a panel on SDK 0.3.0), step a call through its
 // states, and switch light and dark. Above the panel are the header's refresh button, while the
 // panel shows it with `showRefreshButton`, and the panel menu the panel set with `setMenu`, whose
 // buttons press it or pick an item the way Dialpad's header does. Every toast the panel shows is
