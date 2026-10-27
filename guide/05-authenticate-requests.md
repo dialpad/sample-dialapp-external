@@ -85,10 +85,10 @@ app, a route is a file under `server/acme_dialpad_rightbar/endpoints/app/` with 
 ```python
 @app.get('/api/notes')
 async def notes(request: Request) -> HTTPResponse:
-  state = ctx.storage.authenticate(request)  # the user's stored state, or None
-  if state is None:
+  user = ctx.storage.authenticate(request)  # the user's stored user, or None
+  if user is None:
     return unauthorized()  # from acme_dialpad_rightbar.responses
-  user = state.user_key()  # the Dialpad company and user making the request
+  key = user.user_key()  # the Dialpad company and user making the request
   ...
 ```
 

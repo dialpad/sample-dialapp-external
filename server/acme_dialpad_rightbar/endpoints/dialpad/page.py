@@ -41,7 +41,7 @@ def register(app: App, ctx: AppContext) -> None:
 
     Invoked when Dialpad (or the dev host) loads the iframe. A token that doesn't decode gets a
     ``401`` HTML page. Otherwise the page hands out or reuses this browser's access token: a valid
-    storage cookie for this same user keeps its access token and connection state, and anything
+    storage cookie for this same user keeps its access token and connection user, and anything
     else (no cookie, a forged or old one, another user's) starts a new token, not connected. The
     page embeds the token and the connection (with an authorize URL when not connected), and sets
     the storage cookie, which refreshes its 30 days. The page data's ``app`` field carries the
@@ -66,13 +66,13 @@ def register(app: App, ctx: AppContext) -> None:
         origin=settings.dialpad_origin,
         timeout=ctx.api_timeout,
     )
-    state = ctx.storage.for_page(request, key)
+    user = ctx.storage.for_page(request, key)
     page_data = PageData(
         dialpad_origin=settings.dialpad_origin,
-        access_token=state.get_access_token(),
+        access_token=user.get_access_token(),
         external_connection=ctx.external_connection(
             key,
-            connected=state.is_external_connected(),
+            connected=user.is_external_connected(),
         ),
         app=demo.as_app_data(),
     )
@@ -82,5 +82,5 @@ def register(app: App, ctx: AppContext) -> None:
     )
     reply = rendered(
         render_page(page_data, nonce=generate_nonce(), assets=ctx.assets, options=options))
-    ctx.storage.save(reply, state)
+    ctx.storage.save(reply, user)
     return reply

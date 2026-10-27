@@ -84,10 +84,10 @@ def register(app: App, ctx: AppContext) -> None:
     JSON, and empty fields (``None``, ``''``, ``[]``) are left out. The module docstring says what a
     real app does here.
     """
-    state = ctx.storage.authenticate(request)
-    if state is None:
+    user = ctx.storage.authenticate(request)
+    if user is None:
       return unauthorized()
-    if not state.is_external_connected():
+    if not user.is_external_connected():
       return error('not_connected', 'Connect your Acme account first.', 403)
     try:
       body = request.load_json()

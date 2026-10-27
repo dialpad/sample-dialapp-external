@@ -28,19 +28,18 @@ def register(app: App, ctx: AppContext) -> None:
 
     The call must carry the access token as ``Authorization: Bearer``, and it must match the stored
     token (``401`` otherwise; in the demo, the storage cookie's token). If the OAuth callback has
-    recorded a result for this user, it is consumed here: the answer is "connected" and the user's
-    state is saved with ``connected`` on, so the next page load starts connected. Otherwise the
-    stored state alone decides. The consumed result is a demo-only handoff from the popup to this
+    recorded a result for this user, it is consumed here: the answer is "connected" and the stored
+    user is saved with ``connected`` on, so the next page load starts connected. Otherwise the
+    stored user alone decides. The consumed result is a demo-only handoff from the popup to this
     iframe; a real partner answers from the CRM tokens its callback stored (see
     ``acme_dialpad_rightbar.demo.oauth_results.OAuthResults``).
     """
-    state = ctx.storage.authenticate(request)
-    if state is None:
+    user = ctx.storage.authenticate(request)
+    if user is None:
       return unauthorized()
-    key = state.user_key()
+    key = user.user_key()
     if ctx.results.consume(key):
       reply = connection_response(ctx.external_connection(key, connected=True))
-      ctx.storage.save(reply, state.with_external_connected(connected=True))
+      ctx.storage.save(reply, user.with_external_connected(connected=True))
       return reply
-    return connection_response(ctx.external_connection(key,
-                                                       connected=state.is_external_connected()))
+    return connection_response(ctx.external_connection(key, connected=user.is_external_connected()))

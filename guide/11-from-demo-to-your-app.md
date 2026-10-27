@@ -48,7 +48,7 @@ you store and deriving webhook secrets.
 The cookie code is `server/acme_dialpad_rightbar/demo/fake_storage.py`. The
 route handlers use it only as `ctx.storage`, through three methods:
 `for_page(request, key)` on a page load, `authenticate(request)` on every
-request from the panel, and `save(reply, state)` when the user's state changes.
+request from the panel, and `save(reply, user)` when the stored user changes.
 Replace its class, `FakeStorage`, with one that does the same with your
 database, and the handlers stay as they are.
 

@@ -10,7 +10,7 @@ user and company, valid for 30 days).
   page load (``for_page``), authenticates a request from the iframe panel (``authenticate``), and
   writes the cookie on a reply (``save``). A real app swaps this class for one backed by its own
   storage, and the handlers stay as they are.
-* ``CookieBackedDatabaseStorage`` plays one user's stored data. The handlers read it only through
+* ``StoredUser`` plays one user's stored data. The handlers read it only through
   its getters, ``get_access_token`` and ``is_external_connected``, and change it only by building a
   new one.
 * ``issue_cookie`` and ``read_cookie`` sign and verify the cookie's value, signed like the OAuth
@@ -57,7 +57,7 @@ if TYPE_CHECKING:
 
 # How long the storage cookie is honoured; also its ``Max-Age``.
 COOKIE_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
-# The storage cookie (access token and connection state), sent by browsers as `__Host-acme_session`.
+# The storage cookie (access token and connection user), sent by browsers as `__Host-acme_session`.
 # The name, and the `kind` below, keep their original values so cookies already set stay valid.
 COOKIE_NAME = 'acme_session'
 # Sanic prefixes the name with `__Host-` when host_prefix is set, and reports it that way back.
@@ -123,13 +123,13 @@ def read_cookie(value: str | None, secret: str, now: float) -> CookieClaims | No
   return CookieClaims(user_id=user_id, company_id=company_id, token=token, connected=connected)
 
 
-class CookieBackedDatabaseStorage:
+class StoredUser:
   """One Dialpad user's access token and connection, read from and written to a cookie value.
 
   It is bound to the user and company it was created for: a browser that switches Dialpad users
-  must not reuse the previous user's state (see ``belongs_to``). It is immutable: ``from_cookie``
-  reads one from a request, ``new`` starts one, and ``to_cookie`` serialises it for the response;
-  nothing is kept on the server.
+  must not reuse the previous user's stored data (see ``belongs_to``). It is immutable:
+  ``from_cookie`` reads one from a request, ``new`` starts one, and ``to_cookie`` serialises it for
+  the response; nothing is kept on the server.
   """
   def __init__(self, claims: CookieClaims) -> None:
     """Wrap already verified claims; use ``new`` or ``from_cookie`` instead of calling this."""
@@ -137,7 +137,7 @@ class CookieBackedDatabaseStorage:
 
   @classmethod
   def new(cls, key: UserKey) -> Self:
-    """Start a state for this user: a fresh random access token, and not connected."""
+    """Start a stored user: a fresh random access token, and not connected."""
     claims = CookieClaims(
         user_id=key.user_id,
         company_id=key.company_id,
@@ -148,7 +148,7 @@ class CookieBackedDatabaseStorage:
 
   @classmethod
   def from_cookie(cls, value: str | None, secret: str, now: float) -> Self | None:
-    """Read the state from a storage cookie value, or ``None`` if it is missing, forged or old.
+    """Read the stored user from a storage cookie value, or ``None`` if missing, forged or old.
 
     The signature, the purpose and the 30-day age are checked by ``read_cookie``.
     """
@@ -156,15 +156,15 @@ class CookieBackedDatabaseStorage:
     return None if claims is None else cls(claims)
 
   def to_cookie(self, secret: str, now: float) -> str:
-    """Sign this state as a storage cookie value, stamped with the time of issue ``now``."""
+    """Sign this stored user as a storage cookie value, stamped with the time of issue ``now``."""
     return issue_cookie(self._claims, secret, now)
 
   def user_key(self) -> UserKey:
-    """Return the Dialpad user (company and user ids) this state belongs to."""
+    """Return the Dialpad user (company and user ids) this stored user belongs to."""
     return UserKey(company_id=self._claims.company_id, user_id=self._claims.user_id)
 
   def belongs_to(self, key: UserKey) -> bool:
-    """Whether this state was created for exactly this user and company."""
+    """Whether this stored user was created for exactly this user and company."""
     return self.user_key() == key
 
   def get_access_token(self) -> str:
@@ -172,15 +172,15 @@ class CookieBackedDatabaseStorage:
     return self._claims.token
 
   def has_access_token(self, candidate: str) -> bool:
-    """Whether ``candidate`` is this state's access token, compared in constant time."""
+    """Whether ``candidate`` is this stored user's access token, compared in constant time."""
     return secrets.compare_digest(candidate, self._claims.token)
 
   def is_external_connected(self) -> bool:
-    """Whether the user is connected to the partner system (Acme CRM) in this state."""
+    """Whether the user is connected to the partner system (Acme CRM) in this user."""
     return self._claims.connected
 
   def with_external_connected(self, *, connected: bool) -> Self:
-    """Return a copy of this state with the connection turned on or off, keeping the token.
+    """Return a copy of this stored user with the connection turned on or off, keeping the token.
 
     The access token is kept because the iframe panel keeps sending it: after a disconnect its next
     ``ext-connection`` call must still authenticate.
@@ -225,45 +225,44 @@ class FakeStorage:
     self._secret = app_secret
     self._clock = clock
 
-  def from_request(self, request: Request) -> CookieBackedDatabaseStorage | None:
-    """Read this browser's state from the request's storage cookie, if it has a valid one.
+  def from_request(self, request: Request) -> StoredUser | None:
+    """Read this browser's stored user from the request's storage cookie, if it has a valid one.
 
     ``None`` when it is missing, forged or too old. Reads the cookie only; never sets it.
     """
-    return CookieBackedDatabaseStorage.from_cookie(
+    return StoredUser.from_cookie(
         request.cookies.get(COOKIE_HEADER_NAME),
         self._secret,
         self._clock(),
     )
 
-  def for_page(self, request: Request, key: UserKey) -> CookieBackedDatabaseStorage:
-    """Return the state for a page load by this user: the browser's own, or a new one.
+  def for_page(self, request: Request, key: UserKey) -> StoredUser:
+    """Return the stored user for a page load: the browser's own, or a new one.
 
     A valid storage cookie for this same user keeps its access token and connection; anything else
     (no cookie, a forged or old one, another user's) starts a new token, not connected.
     """
     existing = self.from_request(request)
-    return existing if existing and existing.belongs_to(key) else CookieBackedDatabaseStorage.new(
-        key)
+    return existing if existing and existing.belongs_to(key) else StoredUser.new(key)
 
-  def save(self, reply: HTTPResponse, state: CookieBackedDatabaseStorage) -> None:
-    """Write ``state`` to ``reply`` as the storage cookie, which lasts 30 days from now."""
-    _set_cookie(reply, state.to_cookie(self._secret, self._clock()))
+  def save(self, reply: HTTPResponse, user: StoredUser) -> None:
+    """Write ``user`` to ``reply`` as the storage cookie, which lasts 30 days from now."""
+    _set_cookie(reply, user.to_cookie(self._secret, self._clock()))
 
-  def authenticate(self, request: Request) -> CookieBackedDatabaseStorage | None:
+  def authenticate(self, request: Request) -> StoredUser | None:
     """Authenticate a request from the iframe panel: its bearer token must be the cookie's token.
 
     Every route the iframe panel calls uses this, the SDK's two contract endpoints and any the
     application adds.
 
-    Returns the state in the cookie when the header's token matches the state's access token,
+    Returns the stored user in the cookie when the header's token matches its access token,
     else ``None``: no header, no cookie, a forged or expired cookie, or a token that isn't the
     cookie's, for example an iframe panel left open after the browser's cookie changed to another
     user's or after ``APP_SECRET`` changed. Requiring both is what stops a cross-site request, which
     carries the ``SameSite=None`` cookie but can't know the token.
     """
     header = request.headers.get('Authorization', '')
-    state = self.from_request(request)
-    if state is None or not header.startswith(BEARER):
+    user = self.from_request(request)
+    if user is None or not header.startswith(BEARER):
       return None
-    return state if state.has_access_token(header.removeprefix(BEARER)) else None
+    return user if user.has_access_token(header.removeprefix(BEARER)) else None
