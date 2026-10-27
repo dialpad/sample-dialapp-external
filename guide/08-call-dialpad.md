@@ -65,18 +65,18 @@ Dialpad's
 [Event Subscriptions](https://developers.dialpad.com/docs/event-subscriptions)
 guide.
 
-Some tasks, and the events behind them
-([Call Events](https://developers.dialpad.com/docs/call-events) lists the call
-states):
+Some tasks, and the events behind them:
 
-| Your app wants to                      | Subscribe to                                                                                                                                                   |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Log a finished call on a record        | Call events, and act on the `hangup` state. Each event is one leg of the call, so skip a `hangup` with `is_transferred: true`: the call goes on in another leg |
-| Show or store a call's transcript      | Call events. The `call_transcription` state says a transcript is ready to fetch with the transcripts API                                                       |
-| Show or store a call's AI recap        | Call events. The `recap_summary` state says the recap is ready, and the event's `recap_summary` field holds it                                                 |
-| Log text messages                      | SMS events                                                                                                                                                     |
-| Keep contacts in step with your system | Contact events                                                                                                                                                 |
-| React to an agent's availability       | Agent status events                                                                                                                                            |
+| Your app wants to                             | Subscribe to        |
+| --------------------------------------------- | ------------------- |
+| Log calls on a record                         | Call events         |
+| Show or store a call's transcript or AI recap | Call events         |
+| Log text messages                             | SMS events          |
+| Keep contacts in step with your system        | Contact events      |
+| React to an agent's availability              | Agent status events |
+
+[Call Events](https://developers.dialpad.com/docs/call-events) lists a call's
+states and what each event carries.
 
 Events reach your server, not the panel. To show an event's result in the
 panel, store it, and have the panel fetch it from your server through a route of
