@@ -14,7 +14,7 @@ out of logs.
 | The idtoken leaking from its URL            | `Referrer-Policy: no-referrer`, `Cache-Control: no-store`, and no query strings in logs                   | [Chapter 3](03-load-the-panel-page.md#decode-the-idtoken), below |
 | The API key reaching the browser            | Keep it on the server, encrypted; the page data has no field for it                                       | [Chapter 3](03-load-the-panel-page.md#keep-the-api-key)          |
 | A script injected through the page data     | Escape `<`, `>`, `&`, and `'` in the JSON                                                                 | [Chapter 3](03-load-the-panel-page.md#escape-the-page-data)      |
-| A request from someone other than the panel | A bearer access token on every request, checked against a session                                         | [Chapter 5](05-authenticate-requests.md)                         |
+| A request from someone other than the panel | A bearer access token on every request, checked against the stored tokens                                 | [Chapter 5](05-authenticate-requests.md)                         |
 | The access token being stolen               | Keep it in memory, not `localStorage`, behind a strict CSP                                                | [Chapter 5](05-authenticate-requests.md#in-the-panel), below     |
 | A callback connecting the wrong user        | A random, single-use OAuth `state` tied to the Dialpad user, and PKCE                                     | [Chapter 6](06-connect-to-the-crm.md#on-your-server)             |
 | The popup talking to the wrong window       | `postMessage` to the Dialpad origin, never `'*'`                                                          | [Chapter 6](06-connect-to-the-crm.md#on-your-server)             |
@@ -72,7 +72,9 @@ Two more things protect the pages:
 
 ## In this demo
 
-- `server/acme_dialpad_rightbar/pages.py` builds each page's headers and nonce.
+- `server/acme_dialpad_rightbar/pages.py` has the shared nonce and security-header
+  helpers, and `dialpad/panel_page.py` and `connect/close_popup.py` build each
+  page's Content-Security-Policy with them.
 - The access log is off, and the error handler logs only the method, the path,
   and the exception type. A test checks that the server never logs the idtoken,
   the access token, or the cookie.

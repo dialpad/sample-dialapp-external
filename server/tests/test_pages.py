@@ -10,13 +10,13 @@ from typing import override
 import pytest
 
 from acme_dialpad_rightbar.assets import PageAssets
-from acme_dialpad_rightbar.contract import ErrorResponse
-from acme_dialpad_rightbar.contract import ExternalConnection
-from acme_dialpad_rightbar.contract import PageData
-from acme_dialpad_rightbar.pages import PageOptions
-from acme_dialpad_rightbar.pages import render_close_popup
+from acme_dialpad_rightbar.connect.close_popup import render_close_popup
+from acme_dialpad_rightbar.dialpad.contract import ErrorResponse
+from acme_dialpad_rightbar.dialpad.contract import ExternalConnection
+from acme_dialpad_rightbar.dialpad.contract import PageData
+from acme_dialpad_rightbar.dialpad.panel_page import PageOptions
+from acme_dialpad_rightbar.dialpad.panel_page import render_page
 from acme_dialpad_rightbar.pages import render_error_page
-from acme_dialpad_rightbar.pages import render_page
 
 NONCE = 'test-nonce-123'
 ASSETS = PageAssets(scripts=('/static/app.js',), styles=('/static/app.css',))

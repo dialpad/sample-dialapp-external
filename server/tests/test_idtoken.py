@@ -13,10 +13,10 @@ import pytest
 from jose import jwe as jose_jwe
 from jose import jwt as jose_jwt
 
-from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
-from acme_dialpad_rightbar.idtoken import IdTokenError
-from acme_dialpad_rightbar.idtoken import decode_idtoken
-from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.dialpad.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.dialpad.idtoken import IdTokenError
+from acme_dialpad_rightbar.dialpad.idtoken import decode_idtoken
+from acme_dialpad_rightbar.dialpad.idtoken import encode_mock_idtoken
 
 VECTORS = json.loads((Path(__file__).parent / 'vectors' / 'dialpad_idtokens.json').read_text())
 DIALPAD_SECRET = str(VECTORS['client_secret'])

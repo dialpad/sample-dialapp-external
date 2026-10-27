@@ -1,8 +1,10 @@
-# 6. Connect the user to the CRM
+# 6. Connect the user to your service
 
-Your panel can't show CRM data until the user links their CRM account to
-Dialpad. That's _Connect_: an OAuth flow in a popup, after which your server
-holds the user's CRM tokens. This chapter also covers the reverse, _Disconnect_.
+Your panel can't show data from your service until the user links their account
+there to Dialpad. That's _Connect_: an OAuth flow in a popup, after which your
+server holds the user's tokens. This chapter also covers the reverse,
+_Disconnect_. It uses the demo's CRM as the service, so "CRM tokens" means your
+service's tokens.
 
 ## What "connected" means
 
@@ -134,7 +136,7 @@ next check or page load.
 
 The user disconnects from a **Disconnect** button in your panel, or from
 Dialpad's panel menu when your panel puts a Disconnect item in it
-([chapter 7](07-show-the-crm-record.md#the-panel-menu)). Both call
+([chapter 4](04-build-the-panel.md#the-panel-menu)). Both call
 `disconnect()` and take the same path; the menu skips your confirmation.
 
 ```mermaid
@@ -162,7 +164,7 @@ sequenceDiagram
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `disconnect()` | Calls `POST /dialpad/ext-disconnect`, shows the panel as not connected, and calls `onDisconnect`. On failure, `connected` stays as it was and `connection.error` is set. Never rejects |
 
-- **The session survives.** Only the CRM tokens go, so the follow-up check still
+- **The access token survives.** Only the CRM tokens go, so the follow-up check still
   authenticates.
 - **It disconnects everywhere.** Other open panels of the same user find out at
   their next request and offer to connect again.
@@ -181,9 +183,11 @@ sequenceDiagram
   **Authorize** button, and `/oauth/callback` only records that the user
   connected. There are no CRM tokens.
 - Because the demo has no database, the callback leaves a note in server memory
-  that the panel's next check collects, and the session cookie records
+  that the panel's next check collects, and the storage cookie records
   "connected" ([chapter 11](11-from-demo-to-your-app.md#oauth-results-in-memory)).
-- `client/src/components/ConnectGate.vue` is the Connect screen, and
+- On the server, `server/acme_dialpad_rightbar/connect/` builds the authorize
+  URL and its signed `state`, and holds the callback and the close-popup page.
+- `client/src/connect/ConnectGate.vue` is the Connect screen, and
   `DisconnectButton.vue` confirms inline. Copy them and change the text.
 
 ---

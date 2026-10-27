@@ -3,10 +3,10 @@
 import pytest
 from pydantic import ValidationError
 
-from acme_dialpad_rightbar.contract import ErrorResponse
-from acme_dialpad_rightbar.contract import ExternalConnection
-from acme_dialpad_rightbar.contract import IdTokenClaims
-from acme_dialpad_rightbar.contract import PageData
+from acme_dialpad_rightbar.dialpad.contract import ErrorResponse
+from acme_dialpad_rightbar.dialpad.contract import ExternalConnection
+from acme_dialpad_rightbar.dialpad.contract import IdTokenClaims
+from acme_dialpad_rightbar.dialpad.contract import PageData
 
 IDENTITY = {
     'user_id': 5432,

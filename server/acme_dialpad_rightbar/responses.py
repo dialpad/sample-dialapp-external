@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING
 from sanic.response import html
 from sanic.response import json
 
-from acme_dialpad_rightbar.contract import ErrorResponse
+from acme_dialpad_rightbar.dialpad.contract import ErrorResponse
 
 if TYPE_CHECKING:
   from sanic import HTTPResponse
 
-  from acme_dialpad_rightbar.contract import ExternalConnection
+  from acme_dialpad_rightbar.dialpad.contract import ExternalConnection
   from acme_dialpad_rightbar.pages import RenderedPage
 
 
@@ -30,7 +30,7 @@ def error(code: str, message: str, status: int) -> HTTPResponse:
 
 
 def unauthorized() -> HTTPResponse:
-  """Answer ``401`` for a missing, unmatched or expired session.
+  """Answer ``401`` for a missing, unmatched or expired access token.
 
   This is the app's own access token being rejected (no cookie, or a token that isn't the
   cookie's); the iframe panel reacts by asking the user to reload.

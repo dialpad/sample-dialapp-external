@@ -117,7 +117,7 @@ service's plain environment variables, which anyone who can view the service
 ```sh
 # The OAuth app's client secret, from Dialpad
 printf %s "$DIALPAD_CLIENT_SECRET" | gcloud secrets create dialpad-client-secret --data-file=-
-# A random secret of your own that signs `state` and the session cookie
+# A random secret of your own that signs `state` and the storage cookie
 openssl rand -hex 32 | tr -d '\n' | gcloud secrets create acme-app-secret --data-file=-
 ```
 
@@ -203,7 +203,7 @@ gcloud run deploy acme-crm-demo --project PROJECT --region REGION \
 
 The new revision takes all traffic once it is ready. Open iframe panels keep working
 across the rollout: their access token and connection are in the browser's
-session cookie, signed with `APP_SECRET`, which the new revision accepts. Only a
+storage cookie, signed with `APP_SECRET`, which the new revision accepts. Only a
 Connect that was in flight loses its in-memory OAuth result and has to be
 retried.
 
@@ -254,8 +254,8 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
   scale-to-zero forgets results that were in flight, so that Connect has to be
   retried. Limiting the service to one instance avoids the several-instance case
   for a demo. A real partner has no such store: the callback saves the CRM tokens
-  in a shared database, as `server/acme_dialpad_rightbar/stores.py` says. The access
-  tokens and the "connected" state are not in memory: they are in the session cookie
+  in a shared database, as `server/acme_dialpad_rightbar/demo/oauth_results.py` says. The access
+  tokens and the "connected" state are not in memory: they are in the storage cookie
   (see Cookies below), so they survive restarts and work on any instance.
 - **The idtoken ends up in Cloud Run's request log.** The idtoken is in the page
   URL and never expires. The app doesn't log it (no access log, and a quiet
@@ -283,8 +283,8 @@ instance warm anyway, add `--min-instances 1`, which is billed even with no traf
 - **The OAuth is fake.** `/oauth/fake-authorize` stands in for the CRM's consent
   screen, and `/oauth/callback` only records that the user connected. A real
   partner replaces the fake page and makes the callback exchange the `code` for
-  CRM tokens and persist them in a database (see the guide's [What to keep, change, and delete](../guide/11-from-demo-to-your-app.md#what-to-keep-change-and-delete)).
-- **Cookies.** The session cookie is the app's persistent storage of the user's
+  CRM tokens and persist them in a database (see the guide's [What to keep, replace, and delete](../guide/11-from-demo-to-your-app.md#what-to-keep-replace-and-delete)).
+- **Cookies.** The storage cookie is the app's persistent storage of the user's
   access token and whether they are connected. It is signed with `APP_SECRET`
   (changing the secret signs everyone out: every open iframe panel gets `401` and
   shows "Reload the panel"), valid for 30 days, and kept in the browser, so it

@@ -6,9 +6,9 @@ import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 import { DtNotice } from '@dialpad/dialtone/vue/lib/notice';
 import { computed, watch } from 'vue';
 
-import { sessionExpired } from './api';
-import ConnectedView from './components/ConnectedView.vue';
-import ConnectGate from './components/ConnectGate.vue';
+import { accessTokenRejected } from './api';
+import ConnectedView from './ConnectedView.vue';
+import ConnectGate from './connect/ConnectGate.vue';
 
 const { state, showToast } = useRightbar();
 const connected = computed(() => state.value.connection.connected);
@@ -30,7 +30,7 @@ watch(connected, (isConnected) => {
 <template>
   <h1 class="acme-title">Acme for Dialpad (demo)</h1>
   <DtNotice
-    v-if="sessionExpired"
+    v-if="accessTokenRejected"
     kind="warning"
     :show-close="false"
     role="alert"

@@ -1,9 +1,10 @@
 """The Acme for Dialpad server: bare Sanic, built on its own copy of the DialApp contract.
 
 ``create_app`` wires it together: the shared ``AppContext`` (``acme_dialpad_rightbar.context``), the
-endpoints (``acme_dialpad_rightbar.endpoints``: ``dialpad/`` for the DialApp contract's, ``app/``
-for the application's own), and the built iframe panel's assets. Where each piece of state lives,
-and how a request from the iframe panel is authenticated, is explained in
+routes of the Dialpad contract (``acme_dialpad_rightbar.dialpad``), of Connect
+(``acme_dialpad_rightbar.connect``), of the CRM record (``acme_dialpad_rightbar.crm``) and of the
+demo (``acme_dialpad_rightbar.demo``), and the built iframe panel's assets. Where each piece
+of state lives, and how a request from the iframe panel is authenticated, is explained in
 ``acme_dialpad_rightbar.context``.
 """
 
@@ -17,13 +18,17 @@ from sanic import Request
 from sanic import Sanic
 from sanic.handlers import ErrorHandler
 
+# crm-record: the next line
+from acme_dialpad_rightbar import crm
 from acme_dialpad_rightbar.assets import build_assets
+from acme_dialpad_rightbar.connect import register_connect_endpoints
 from acme_dialpad_rightbar.context import App
 from acme_dialpad_rightbar.context import AppContext
-from acme_dialpad_rightbar.dialpad_api import DEFAULT_TIMEOUT_SECONDS
-from acme_dialpad_rightbar.endpoints.app import register_app_endpoints
-from acme_dialpad_rightbar.endpoints.dialpad import register_dialpad_endpoints
-from acme_dialpad_rightbar.stores import OAuthResults
+from acme_dialpad_rightbar.demo.dialpad_api import DEFAULT_TIMEOUT_SECONDS
+from acme_dialpad_rightbar.demo.endpoints import register_demo_endpoints
+from acme_dialpad_rightbar.demo.fake_storage import FakeStorage
+from acme_dialpad_rightbar.demo.oauth_results import OAuthResults
+from acme_dialpad_rightbar.dialpad.endpoints import register_dialpad_endpoints
 
 if TYPE_CHECKING:
   from collections.abc import Callable
@@ -57,14 +62,15 @@ def create_app(
     name: str = 'acme_dialpad_rightbar',
     api_timeout: float = DEFAULT_TIMEOUT_SECONDS,
 ) -> App:
-  """Build the Sanic app: its OAuth store, its routes, and the page's assets.
+  """Build the Sanic app: its storage and OAuth store, its routes, and the page's assets.
 
-  Called once at startup by ``python -m acme_dialpad_rightbar`` and once per test. Finished OAuth
-  results start empty and live in this app's memory; everything else the app remembers is in the
-  browsers' session cookies. ``clock`` returns the time in seconds, so tests can move time; ``name``
-  must be unique per app in one process; ``api_timeout`` is how long the page waits for the demo
-  call to Dialpad's API. Outside local mode this also needs the built iframe panel (``pnpm build``)
-  and serves it under ``/assets``.
+  Called once at startup by ``python -m acme_dialpad_rightbar`` and once per test. Both are the
+  demo's stand-ins for a database: finished OAuth results start empty and live in this app's
+  memory, and everything else the app remembers is in the browsers' storage cookies. ``clock``
+  returns the time in seconds, so tests can move time; ``name`` must be unique per app in one
+  process; ``api_timeout`` is how long the page waits for the demo call to Dialpad's API. Outside
+  local mode this also needs the built iframe panel (``pnpm build``) and serves it under
+  ``/assets``.
   """
   app = Sanic(name, error_handler=QuietErrorHandler(), configure_logging=False)
   # The access log would print each page URL, idtoken included.
@@ -72,12 +78,15 @@ def create_app(
   ctx = AppContext(
       settings=settings,
       assets=build_assets(settings),
+      storage=FakeStorage(settings.app_secret, clock),
       results=OAuthResults(clock),
       clock=clock,
       api_timeout=api_timeout,
   )
   register_dialpad_endpoints(app, ctx)
-  register_app_endpoints(app, ctx)
+  register_connect_endpoints(app, ctx)
+  crm.register_crm_endpoints(app, ctx) # crm-record
+  register_demo_endpoints(app, ctx)
   if not settings.local_mode:
     app.static('/assets', Path(settings.dist_dir) / 'assets')
   return app

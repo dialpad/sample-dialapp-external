@@ -1,4 +1,4 @@
-"""The demo call to Dialpad's API with the idtoken's api key (acme_dialpad_rightbar/dialpad_api.py).
+"""The demo call to Dialpad's API with the idtoken's api key (demo/dialpad_api.py).
 
 Each test runs the real Dialpad client against ``FakeDialpad``, a real HTTP server on a local port,
 so the request that is checked is the one the client really sends. The page must render whatever
@@ -12,8 +12,8 @@ from typing import Any
 
 import pytest
 
-from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
-from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.dialpad.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.dialpad.idtoken import encode_mock_idtoken
 from tests.conftest import Env
 from tests.conftest import page_data_of
 

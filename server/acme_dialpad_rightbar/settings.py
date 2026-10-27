@@ -8,11 +8,15 @@ on a request.
 import os
 from dataclasses import dataclass
 from dataclasses import field
-from urllib.parse import quote
 from urllib.parse import urlsplit
 
-from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.dialpad.idtoken import TEST_CLIENT_SECRET
 
+# The name the iframe panel shows and the page title.
+ACCOUNT_NAME = 'Acme for Dialpad (demo)'
+# The OAuth client's name and scopes, as the contract's `ExternalConnection` carries them.
+CLIENT_NAME = 'acme-for-dialpad'
+CONNECTED_SCOPES = ['contacts.read']
 # The idtoken's JWE is keyed with the first 48 characters of the client secret; Dialpad's secrets
 # are 50 characters.
 MIN_CLIENT_SECRET_LENGTH = 48
@@ -107,14 +111,6 @@ class Settings:
     """
     return f'{self.base_url}/oauth/callback'
 
-  def record_url(self, contact_id: str) -> str:
-    """Return the absolute URL of the fake CRM record page for this Dialpad contact id.
-
-    The iframe panel links it with the SDK's ``linkRecord``, so Dialpad's "View Contact" button
-    opens it. The id is percent-encoded, so it stays one path segment whatever it contains.
-    """
-    return f'{self.base_url}/records/{quote(contact_id, safe="")}'
-
 
 def _required(env: dict[str, str], name: str) -> str:
   """Return the environment variable ``name``, or raise ``ConfigurationError`` if unset or empty."""
@@ -144,9 +140,9 @@ def settings_from_env(env: dict[str, str] | None = None) -> Settings:
 
   Called once, at startup. ``HOST`` (default ``127.0.0.1``) is the address to listen on and
   applies in both modes. ``LOCAL_MODE=1`` fills in every value a local run needs, including the
-  test client secret from ``acme_dialpad_rightbar.idtoken``, which is also what the dev host signs
-  its mock idtoken with. Any of those can still be overridden. Outside local mode the client secret,
-  app secret, Dialpad origin and base URL are all required, and a missing one raises
+  test client secret from ``acme_dialpad_rightbar.dialpad.idtoken``, which is also what the dev host
+  signs its mock idtoken with. Any of those can still be overridden. Outside local mode the client
+  secret, app secret, Dialpad origin and base URL are all required, and a missing one raises
   ``ConfigurationError``.
   """
   env = dict(os.environ) if env is None else env

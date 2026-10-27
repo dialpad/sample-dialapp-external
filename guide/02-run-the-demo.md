@@ -79,8 +79,8 @@ buttons to:
 The links at the top show the panel at 318 pixels, the right sidebar's default
 width, or at 250 pixels, the width of Dialpad Everywhere. Under the panel, the
 dev host lists the toasts the panel asked for, which Dialpad shows outside the
-panel, and the record the panel linked, which Dialpad shows as **View Contact**
-in the panel's header.
+panel, and the record the panel linked, which Dialpad opens from a ↗
+button in the panel's header.
 
 <img src="images/dev-host.png" width="600" alt="The dev host after Connect: the buttons to change the contact, the call, and the theme, the Refresh Contact button, the panel menu holding Rematch, Create Task, and Disconnect, the connected panel at 318 pixels showing the user and the contact with its fields prefixed Acme, and the Connected to Acme CRM toast under the panel.">
 

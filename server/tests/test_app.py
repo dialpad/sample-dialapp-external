@@ -1,35 +1,38 @@
-"""The Sanic app (``acme_dialpad_rightbar``): page, tokens, connection, OAuth, contact, logs."""
+"""The Sanic app (``acme_dialpad_rightbar``): page, tokens, connection, OAuth, logs.
+
+The CRM record's routes are tested in ``test_crm.py``.
+"""
 
 import logging
 import re
 from dataclasses import replace
-from html import unescape
 from typing import TYPE_CHECKING
-from typing import Any
 from urllib.parse import parse_qs
 from urllib.parse import urlsplit
 
 import pytest
 
-from acme_dialpad_rightbar import signing
-from acme_dialpad_rightbar.context import CLIENT_NAME
-from acme_dialpad_rightbar.context import CONNECTED_SCOPES
-from acme_dialpad_rightbar.fake_oauth import FAKE_CODE
-from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
-from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.connect import state as oauth_state
+from acme_dialpad_rightbar.demo import fake_storage
+from acme_dialpad_rightbar.demo.oauth import FAKE_CODE
+from acme_dialpad_rightbar.dialpad.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.dialpad.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.settings import CLIENT_NAME
+from acme_dialpad_rightbar.settings import CONNECTED_SCOPES
 from tests.conftest import APP_SECRET
 from tests.conftest import Env
-from tests.conftest import Panel
+from tests.conftest import authorize_url_of
 from tests.conftest import bearer
+from tests.conftest import connect
 from tests.conftest import cookie_header
+from tests.conftest import finish_oauth
 from tests.conftest import idtoken_for
 from tests.conftest import json_of
 from tests.conftest import page_data_of
+from tests.conftest import press_authorize
 
 if TYPE_CHECKING:
   from collections.abc import Callable
-
-  from httpx import Response
 
 # The test client logs every URL it requests; those are not the app's logs.
 HTTP_CLIENT_LOGGERS = ('httpx', 'httpcore')
@@ -37,56 +40,9 @@ JANE = {'user_id': 5432, 'company_id': 12345}
 PAT = {'user_id': 777, 'company_id': 12345}
 
 
-def authorize_url_of(page_data: dict[str, Any]) -> str:
-  """Return the authorize URL from page data, as the Connect button would use it."""
-  return str(page_data['external_connection']['authorization_urls'][CLIENT_NAME])
-
-
 def state_from(authorize_url: str) -> str:
   """Return the signed ``state`` query parameter of an authorize URL."""
   return parse_qs(urlsplit(authorize_url).query)['state'][0]
-
-
-async def press_authorize(env: Env, authorize_page: Response) -> Response:
-  """Click the Authorize button on the fake authorize page and return the callback's response.
-
-  A browser submits the page's GET form: the callback URL from ``action`` with the hidden ``state``
-  and ``code`` as query parameters. This reads them from the HTML the same way.
-  """
-  form = re.search(r'<form method="get" action="([^"]*)">', authorize_page.text)
-  assert form
-  action = unescape(form[1])
-  fields = {
-      name: unescape(value) for name, value in re.findall(
-          r'<input type="hidden" name="(\w+)" value="([^"]*)">', authorize_page.text)
-  }
-  return await env.get(action, params=fields)
-
-
-async def finish_oauth(env: Env, authorize_url: str) -> None:
-  """Play the OAuth popup: open the authorize URL, click Authorize, land on the callback.
-
-  Afterwards the callback has recorded "this user connected" in the app's memory, but nothing is
-  connected yet: the next ``ext-connection`` call has to collect it.
-  """
-  authorize = await env.get(authorize_url)
-  assert authorize.status_code == 200
-  callback = await press_authorize(env, authorize)
-  assert callback.status_code == 200
-
-
-async def connect(env: Env, panel: Panel) -> Response:
-  """Connect an iframe panel's user end to end and return the confirming ``ext-connection`` reply.
-
-  Runs the OAuth popup (``finish_oauth``), then makes the SDK's follow-up connection check with the
-  iframe panel's access token and cookie. That response is "connected" and rewrites the session
-  cookie; like a browser, this stores the new cookie in ``panel``.
-  """
-  await finish_oauth(env, authorize_url_of(panel.data))
-  response = await env.get('/dialpad/ext-connection', headers=panel.headers)
-  if 'set-cookie' in response.headers:
-    panel.cookie = cookie_header(response)
-  return response
 
 
 # --- token decoding with mock tokens ---------------------------------------------------------
@@ -207,10 +163,10 @@ async def test_the_dev_route_exists_only_in_local_mode(env: Env, local_env: Env)
   assert framed.status_code == 200
 
 
-# --- the session cookie and the access token ------------------------------------------------------
+# --- the storage cookie and the access token ------------------------------------------------------
 
 
-async def test_the_page_sets_the_session_cookie_that_holds_the_access_token(env: Env) -> None:
+async def test_the_page_sets_the_storage_cookie_that_holds_the_access_token(env: Env) -> None:
   response = await env.load_page()
 
   cookie = response.headers['set-cookie']
@@ -218,14 +174,14 @@ async def test_the_page_sets_the_session_cookie_that_holds_the_access_token(env:
   for attribute in ('Path=/', 'Secure', 'HttpOnly', 'SameSite=None', 'Partitioned',
                     'Max-Age=2592000'):
     assert attribute in cookie
-  session = signing.read_session(
+  claims = fake_storage.read_cookie(
       cookie_header(response).split('=', 1)[1],
       APP_SECRET,
       env.clock(),
   )
-  assert session is not None
-  assert session.token == page_data_of(response)['access_token']
-  assert (session.user_id, session.company_id, session.connected) == (5432, 12345, False)
+  assert claims is not None
+  assert claims.token == page_data_of(response)['access_token']
+  assert (claims.user_id, claims.company_id, claims.connected) == (5432, 12345, False)
 
 
 async def test_a_cookie_for_another_user_is_replaced_not_reused(env: Env) -> None:
@@ -245,7 +201,7 @@ async def test_a_cookie_for_another_user_is_replaced_not_reused(env: Env) -> Non
 # --- the connection endpoint: every branch -----------------------------------------------------
 
 
-async def test_a_new_session_is_not_connected_and_gets_a_fresh_authorize_url(env: Env) -> None:
+async def test_a_first_page_load_is_not_connected_and_gets_a_fresh_authorize_url(env: Env) -> None:
   panel = await env.open_panel()
 
   response = await env.get('/dialpad/ext-connection', headers=panel.headers)
@@ -264,7 +220,7 @@ async def test_a_new_session_is_not_connected_and_gets_a_fresh_authorize_url(env
 PANEL_ROUTES = [
     ('GET', '/dialpad/ext-connection'),
     ('POST', '/dialpad/ext-disconnect'),
-    ('POST', '/api/contact'),
+    ('POST', '/api/contact'), # crm-record
 ]
 
 
@@ -282,19 +238,20 @@ async def test_every_panel_route_needs_the_bearer_token_and_the_cookie_to_match(
       } | cookie, # not a bearer token
       bearer(panel.token) | {
           'Cookie': 'x=y'
-      }, # a cookie that isn't the session's
+      }, # a cookie that isn't the app's storage cookie
   ]
 
   for method, path in PANEL_ROUTES:
     for headers in rejected:
-      kwargs = {'json': {'contact': CONTACT}} if method == 'POST' else {}
+      # The token is checked before the body is read, so any JSON body works.
+      kwargs = {'json': {}} if method == 'POST' else {}
       response = await (env.get if method == 'GET' else env.post)(path, headers=headers, **kwargs)
       assert response.status_code == 401, (method, path, headers)
       assert json_of(response)['code'] == 'invalid_access_token'
   assert (await env.get('/dialpad/ext-connection', headers=panel.headers)).status_code == 200
 
 
-async def test_a_stored_result_is_consumed_and_rewrites_the_session_cookie(env: Env) -> None:
+async def test_a_stored_result_is_consumed_and_rewrites_the_storage_cookie(env: Env) -> None:
   panel = await env.open_panel()
   old_cookie = panel.cookie
 
@@ -307,9 +264,9 @@ async def test_a_stored_result_is_consumed_and_rewrites_the_session_cookie(env: 
   # Even when connected there is a fresh authorize URL, which the contract's shape allows.
   assert list(body['authorization_urls']) == [CLIENT_NAME]
   # The same access token, now with the connection on; the old cookie still says not connected.
-  session = signing.read_session(panel.cookie.split('=', 1)[1], APP_SECRET, env.clock())
-  assert session is not None
-  assert (session.token, session.connected) == (panel.token, True)
+  claims = fake_storage.read_cookie(panel.cookie.split('=', 1)[1], APP_SECRET, env.clock())
+  assert claims is not None
+  assert (claims.token, claims.connected) == (panel.token, True)
   # Consumed once: with the cookie from before, the next check is not connected.
   again = await env.get('/dialpad/ext-connection',
                         headers=bearer(panel.token) | {'Cookie': old_cookie})
@@ -337,7 +294,7 @@ def _rotate_the_app_secret(env: Env) -> Env:
 
 
 def _age_past_thirty_days(env: Env) -> Env:
-  env.clock.advance(signing.COOKIE_MAX_AGE_SECONDS + 1)
+  env.clock.advance(fake_storage.COOKIE_MAX_AGE_SECONDS + 1)
   return env
 
 
@@ -371,156 +328,6 @@ async def test_a_result_recorded_for_another_user_is_not_consumed(env: Env) -> N
   assert json_of(pat_check)['connected'] is False
   assert 'set-cookie' not in pat_check.headers
   assert json_of(jane_check)['connected'] is True
-
-
-# --- the example route the iframe panel adds for itself ------------------------------------------
-
-CONTACT = {
-    'id': '4800000000000001',
-    'displayName': 'Pat Customer',
-    'firstName': None,
-    'phones': ['+1 555 0199'],
-    'emails': [],
-}
-
-
-async def post_contact(env: Env, panel: Panel, body: object) -> Response:
-  """POST ``body`` as JSON to the contact route, as the panel does."""
-  return await env.post('/api/contact', headers=panel.headers, json=body)
-
-
-async def test_the_contact_route_acmes_text_and_lists_shows_other_values_as_json_and_drops_empties(
-    env: Env,) -> None:
-  panel = await env.open_panel()
-  await connect(env, panel)
-  contact = {
-      'id': '4800000000000001',
-      'displayName': 'Pat Customer',
-      'phones': ['+1 555 0199', '+1 555 0100'],
-      'extension': 42,
-      'recorded': True,
-      'ratio': 1.5,
-      'zero': 0,
-      'no': False,
-      'custom': {
-          'tier': 'gold'
-      },
-      'tags': ['vip', None],
-      'firstName': None,
-      'jobTitle': '',
-      'emails': [],
-  }
-
-  response = await post_contact(env, panel, {'contact': contact})
-
-  assert response.status_code == 200
-  assert 'set-cookie' not in response.headers
-  body = json_of(response)
-  assert list(body) == ['fields', 'record']
-  assert body['record'] == {
-      'type': 'Contact',
-      'url': f'{env.settings.base_url}/records/4800000000000001',
-  }
-  assert [(row['label'], row['value']) for row in body['fields']] == [
-      ('id', 'Acme 4800000000000001'),
-      ('displayName', 'Acme Pat Customer'),
-      ('phones', 'Acme +1 555 0199, Acme +1 555 0100'),
-      ('extension', '42'),
-      ('recorded', 'true'),
-      ('ratio', '1.5'),
-      ('zero', '0'),
-      ('no', 'false'),
-      ('custom', '{"tier": "gold"}'),
-      ('tags', 'Acme vip, null'),
-  ]
-
-
-@pytest.mark.parametrize(
-    ('contact_id', 'record_path'),
-    [
-        ('a/b?c', '/records/a%2Fb%3Fc'),
-        (None, None),
-        (42, None),
-    ],
-    ids=['an id that needs quoting', 'no id', 'an id that is not text'],
-)
-async def test_the_record_link_quotes_the_contact_id_and_is_null_without_one(
-    env: Env, contact_id: object, record_path: str | None) -> None:
-  panel = await env.open_panel()
-  await connect(env, panel)
-
-  response = await post_contact(env, panel, {'contact': {**CONTACT, 'id': contact_id}})
-
-  record = json_of(response)['record']
-  if record_path is None:
-    assert record is None
-  else:
-    assert record == {'type': 'Contact', 'url': f'{env.settings.base_url}{record_path}'}
-
-
-async def test_a_user_who_has_not_connected_gets_403_not_a_lookup(env: Env) -> None:
-  panel = await env.open_panel()
-
-  response = await post_contact(env, panel, {'contact': CONTACT})
-
-  assert response.status_code == 403
-  assert json_of(response)['code'] == 'not_connected'
-  assert 'Acme' not in response.text.replace('Acme account', '')
-
-
-@pytest.mark.parametrize(
-    'request_kwargs',
-    [
-        {
-            'json': []
-        },
-        {
-            'json': {}
-        },
-        {
-            'json': {
-                'contact': 'Pat'
-            }
-        },
-        {},
-        {
-            'content': b'{not json'
-        },
-    ],
-    ids=['array', 'no contact key', 'contact is not an object', 'empty body', 'not json'],
-)
-async def test_a_body_that_is_not_a_contact_object_gets_400(
-    env: Env, request_kwargs: dict[str, object]) -> None:
-  panel = await env.open_panel()
-  await connect(env, panel)
-
-  response = await env.post('/api/contact', headers=panel.headers, **request_kwargs)
-
-  assert response.status_code == 400
-  assert json_of(response)['code'] == 'invalid_request'
-
-
-# --- the fake CRM record page ------------------------------------------------------------------
-
-
-async def test_the_record_page_is_labelled_fake_shows_the_id_escaped_and_is_locked_down(
-    env: Env) -> None:
-  # The id arrives percent-encoded, as `record_url` builds it, and includes an encoded slash.
-  response = await env.get('/records/%22%3E%3Cscript%3Ealert(1)%3C%2Fscript%3E')
-
-  assert response.status_code == 200
-  assert response.headers['content-type'].startswith('text/html')
-  assert 'fake CRM record (demo only)' in response.text
-  assert '<code>&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;</code>' in response.text
-  assert '<script>' not in response.text
-  assert 'set-cookie' not in response.headers
-  csp = response.headers['content-security-policy']
-  nonce = csp.split("style-src 'nonce-")[1].split("'")[0]
-  assert "default-src 'none'" in csp
-  assert "frame-ancestors 'none'" in csp
-  assert f'<style nonce="{nonce}">' in response.text
-  assert response.headers['referrer-policy'] == 'no-referrer'
-  assert response.headers['cache-control'] == 'no-store'
 
 
 # --- the fake OAuth round trip -----------------------------------------------------------------
@@ -582,7 +389,7 @@ async def test_the_callback_returns_the_close_popup_page_for_the_dialpad_origin(
 @pytest.mark.parametrize(
     ('state_secret', 'code', 'wait_seconds'),
     [
-        (APP_SECRET, FAKE_CODE, signing.STATE_TTL_SECONDS + 1),
+        (APP_SECRET, FAKE_CODE, oauth_state.STATE_TTL_SECONDS + 1),
         ('not-the-app-secret', FAKE_CODE, 0),
         (APP_SECRET, 'other', 0),
     ],
@@ -592,7 +399,7 @@ async def test_a_callback_with_a_bad_state_or_code_records_nothing(env: Env, sta
                                                                    code: str,
                                                                    wait_seconds: int) -> None:
   panel = await env.open_panel()
-  state = signing.issue_state(5432, 12345, state_secret, env.clock())
+  state = oauth_state.issue_state(5432, 12345, state_secret, env.clock())
   env.clock.advance(wait_seconds)
 
   callback = await env.get('/oauth/callback', params={'state': state, 'code': code})
@@ -614,13 +421,13 @@ async def test_disconnect_turns_the_connection_off_but_the_same_token_still_work
   assert response.status_code == 204
   assert response.text == ''
   assert 'Max-Age=0' not in response.headers['set-cookie']
-  session = signing.read_session(
+  claims = fake_storage.read_cookie(
       cookie_header(response).split('=', 1)[1],
       APP_SECRET,
       env.clock(),
   )
-  assert session is not None
-  assert (session.token, session.connected) == (panel.token, False)
+  assert claims is not None
+  assert (claims.token, claims.connected) == (panel.token, False)
   # The SDK's follow-up check carries the same token and the cookie the disconnect set.
   panel.cookie = cookie_header(response)
   check = await env.get('/dialpad/ext-connection', headers=panel.headers)
