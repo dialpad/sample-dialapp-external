@@ -206,7 +206,8 @@ rightbar.on("menuSelect", (id) => {
 - **Set `[]` while the user isn't connected.** Dialpad doesn't check the
   connection.
 - **Set the menu every time the panel starts.** Dialpad forgets it when the panel
-  reloads. A panel that never calls `setMenu` has no menu.
+  reloads. A panel that never calls `setMenu` may get an older default menu from
+  Dialpad, such as a lone Disconnect, so call it with `[]` if you want no menu.
 - **Translate the labels** ([Translate the panel](#translate-the-panel)). Dialpad
   shows them as plain text, never HTML, and cuts a long one with an ellipsis.
 - **Show a form inside the panel** when an item needs input, such as a task's

@@ -1,6 +1,9 @@
 // Checks every relative link in the repository's Markdown: the file it points to exists, and so
 // does the heading its #anchor names.
 //
+// This repository's own tooling, for the people who maintain this guide. A partner's app doesn't
+// need it.
+//
 //   pnpm links:ci
 //
 // It reads the same Markdown that `pnpm format:ci` checks, finds Markdown links and images, and
