@@ -8,7 +8,6 @@ on a request.
 import os
 from dataclasses import dataclass
 from dataclasses import field
-from urllib.parse import quote
 from urllib.parse import urlsplit
 
 from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
@@ -106,14 +105,6 @@ class Settings:
     A real CRM would redirect to the callback URL registered with it, which is built the same way.
     """
     return f'{self.base_url}/oauth/callback'
-
-  def record_url(self, contact_id: str) -> str:
-    """Return the absolute URL of the fake CRM record page for this Dialpad contact id.
-
-    The iframe panel links it with the SDK's ``linkRecord``, so Dialpad's "View Contact" button
-    opens it. The id is percent-encoded, so it stays one path segment whatever it contains.
-    """
-    return f'{self.base_url}/records/{quote(contact_id, safe="")}'
 
 
 def _required(env: dict[str, str], name: str) -> str:

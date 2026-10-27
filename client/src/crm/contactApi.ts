@@ -14,7 +14,7 @@
 // `server/acme_dialpad_rightbar/endpoints/app/contact.py`.
 import type { Contact, LinkedRecord } from '@dialpad/dialapp-external-sdk';
 
-import { api } from './api';
+import { api } from '../api';
 
 /** One row of the contact the server answered with: a field name and the text to show for it. */
 export interface AcmeField {

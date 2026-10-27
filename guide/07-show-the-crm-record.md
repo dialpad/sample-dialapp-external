@@ -167,22 +167,27 @@ not for an office or department contact.
 
 ## In this demo
 
+- The CRM record's code is in `server/acme_dialpad_rightbar/crm/` and
+  `client/src/crm/`. An app without a CRM record deletes both
+  ([chapter 11](11-from-demo-to-your-app.md#delete-the-crm-record)).
 - There's no CRM, so there's no mapping. `POST /api/contact`
-  (`server/acme_dialpad_rightbar/endpoints/app/contact.py`) returns every
-  non-empty field of the Dialpad contact with an `Acme ` prefix. That proves the
-  contact reached the server and came back, for the right user. The route's
-  docstring describes what a real one does.
+  (`server/acme_dialpad_rightbar/crm/contact.py`) returns every non-empty field
+  of the Dialpad contact with an `Acme ` prefix. That proves the contact reached
+  the server and came back, for the right user. The route's docstring describes
+  what a real one does.
 - The route also returns a record to link: a page labelled fake at
-  `/records/<contact id>` (`server/acme_dialpad_rightbar/fake_record.py`), which
-  stands in for the CRM's page for the record and shows only the contact's ID.
-- `client/src/components/AcmeContact.vue` runs the lookup, shows loading and
-  failure, and ignores late answers. Once the lookup succeeds, it links the
+  `/records/<contact id>` (`server/acme_dialpad_rightbar/crm/fake_record.py`),
+  which stands in for the CRM's page for the record and shows only the
+  contact's ID.
+- `client/src/crm/CrmRecord.vue` shows the panel's contact, and the call's own
+  contact when it's someone else. `client/src/crm/AcmeContact.vue` runs the
+  lookup, shows loading and failure, and ignores late answers. Once the lookup succeeds, it links the
   record in `setLinkedRecord()`, and it unlinks as described above. Its
   `refreshContact` callback looks the contact up again, as described in
   [Refresh the record](#refresh-the-record).
-- `client/src/bootstrap.ts` sets the menu and the refresh button. The demo's
-  **Rematch** and **Create Task** only show a toast
-  ([chapter 4](04-build-the-panel.md#in-this-demo)).
+- `client/src/bootstrap.ts` sets the menu and the refresh button, with Rematch
+  from `client/src/crm/menu.ts`. The demo's **Rematch** and **Create Task** only
+  show a toast ([chapter 4](04-build-the-panel.md#in-this-demo)).
 
 ---
 

@@ -3,7 +3,7 @@
 After the page loads, the panel calls your server many times: the SDK's own two
 requests, `ext-connection` and `ext-disconnect`, and every route you add, such as
 a contact lookup. The iframe has no idtoken, so each request proves who it's from
-with the access token the page handed out ([chapter 3](03-load-the-panel-page.md#start-a-session)):
+with the access token the page handed out ([chapter 3](03-load-the-panel-page.md#hand-out-an-access-token)):
 
 ```http
 GET /dialpad/ext-connection
@@ -16,7 +16,7 @@ Authorization: Bearer <the access token from the page data>
 flowchart TD
   R["Request from the panel"] --> A{"Authorization: Bearer …<br/>present?"}
   A -- no --> X["401"]
-  A -- yes --> L{"Session found for the token's hash,<br/>and not expired?"}
+  A -- yes --> L{"Token's hash found,<br/>and not expired?"}
   L -- no --> X
   L -- yes --> OK["Authenticated: the route knows the<br/>Dialpad company and user"]
   X --> N["Your fetch wrapper shows<br/>'Reload the panel to keep going.'"]
@@ -29,7 +29,7 @@ Send every request through one wrapper around `fetch` that:
 - Adds the SDK's `authHeaders()`, which returns
   `{ Authorization: 'Bearer <access token>' }`.
 - Shows "Reload the panel to keep going." when the server answers `401`. Nothing
-  else fixes a rejected token; a reload gets a new page and a new session.
+  else fixes a rejected token; a reload gets a new page and a new token.
 
 Pass the same wrapper to `createRightbar({ fetch })`, so the SDK's own requests
 go through it too:
@@ -58,21 +58,21 @@ page's CSP to keep injected scripts out
 ## On the server
 
 Check the token in one place, such as a middleware or a dependency, that turns
-the bearer token into the session's user:
+the bearer token into the token's user:
 
 1. Read the `Authorization: Bearer` header. Without one, answer `401`.
-2. Hash the token and look the session up. If there's no session, or it has
-   expired, answer `401`.
-3. Hand the route the Dialpad company and user from the session.
+2. Hash the token and look it up. If it isn't stored, or it has expired, answer
+   `401`.
+3. Hand the route the Dialpad company and user stored with the token.
 
-A route learns who's asking only from the session, never from the idtoken or the
-request body. To revoke a session, delete it; the next request gets `401`.
+A route learns who's asking only from the stored token, never from the idtoken
+or the request body. To revoke a token, delete it; the next request gets `401`.
 
 Don't enable cross-origin access (CORS) on these routes. The panel's page and
 its requests come from the same server.
 
-A short-lived signed token, such as a JWT, works too, if you'd rather not look
-sessions up. You give up revoking a session early. The contract only needs _some_
+A short-lived signed token, such as a JWT, works too, if you'd rather not store
+tokens. You give up revoking a token early. The contract only needs _some_
 token the panel can send.
 
 ## Add your own routes
@@ -85,24 +85,26 @@ app, a route is a file under `server/acme_dialpad_rightbar/endpoints/app/` with 
 ```python
 @app.get('/api/notes')
 async def notes(request: Request) -> HTTPResponse:
-  state = ctx.state_for(request)  # the user's state, or None
+  state = ctx.storage.authenticate(request)  # the user's stored state, or None
   if state is None:
     return unauthorized()  # from acme_dialpad_rightbar.responses
   user = state.user_key()  # the Dialpad company and user making the request
   ...
 ```
 
-Copy `contact.py` to start one. In the panel, call it through the same `api()`
-wrapper.
+Copy `crm/contact.py` to start one. In the panel, call it through the same
+`api()` wrapper.
 
 ## In this demo
 
-The demo has no session table. It keeps the access token in a signed session
+The demo has no database. It keeps the access token in its one signed storage
 cookie, and a request must carry both the bearer token and the cookie, holding
-the same token. `ctx.state_for(request)` makes that check. Because the cookie
+the same token. `ctx.storage.authenticate(request)` makes that check, in
+`server/acme_dialpad_rightbar/demo/fake_storage.py`. Because the cookie
 travels with every request, requiring the header too also guards against
-cross-site request forgery. A real app with a session table needs only the
-header. [Chapter 11](11-from-demo-to-your-app.md#the-session-cookie) explains the
+cross-site request forgery. A real app that keeps its access tokens in its
+database needs only the header.
+[Chapter 11](11-from-demo-to-your-app.md#the-storage-cookie) explains the
 cookie.
 
 `client/src/api.ts` is the panel's wrapper, and `App.vue` shows the reload

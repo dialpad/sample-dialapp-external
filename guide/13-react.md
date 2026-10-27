@@ -5,7 +5,7 @@ repository doesn't build or run these snippets; they're sketches.
 
 Everything in [What stays the same](12-plain-javascript.md#what-stays-the-same)
 in chapter 12 applies: the server, the SDK calls, the framework-free modules (with
-`sessionExpired` as a plain flag), and the BEM CSS. Dialtone's Vue components
+`accessTokenRejected` as a plain flag), and the BEM CSS. Dialtone's Vue components
 don't, so use Dialtone's CSS and design tokens on your own React components.
 
 ## Start the SDK
@@ -119,7 +119,7 @@ component re-renders on every change.
 
 The one component with state of its own is the contact section. With hooks,
 it's an effect with an "ignore" flag, which is the React form of the `lookup`
-counter in `AcmeContact.vue`:
+counter in `crm/AcmeContact.vue`:
 
 ```tsx
 function AcmeContact({ contact }: { contact: Contact | null }) {
@@ -158,7 +158,7 @@ function AcmeContact({ contact }: { contact: Contact | null }) {
 
 Everything else maps one to one: `App.vue` to `App`, `ConnectGate.vue` to
 `ConnectGate` (reading `useRightbarState((s) => s.connection)` and calling
-`useRightbar().authorize()`), the cards to components, and `sessionExpired` (a Vue
+`useRightbar().authorize()`), the cards to components, and `accessTokenRejected` (a Vue
 `ref`) to a small store or context read through `useSyncExternalStore`. Tests use
 React Testing Library with the SDK's mock host, and the Playwright tests do not
 change. Build with `@vitejs/plugin-react`, and point the server's `ENTRY`

@@ -43,7 +43,7 @@ flowchart LR
 | The iframe panel     | Your frontend, running in an iframe inside Dialpad                                                                                               |
 | The SDK              | `@dialpad/dialapp-external-sdk`, inside your panel. It does everything on the Dialpad side, so your code never deals with Dialpad's protocol     |
 | Your server          | Serves the panel page, checks every request from the panel, and calls the CRM and Dialpad's API. Any language works                              |
-| Your database        | Holds sessions, the user's CRM tokens, their Dialpad API key, and which CRM record matches which Dialpad contact                                 |
+| Your database        | Holds access tokens, the user's CRM tokens, their Dialpad API key, and which CRM record matches which Dialpad contact                            |
 | Your service         | Your system, with its own OAuth and API. Here, the fictional Acme CRM                                                                            |
 | Dialpad's public API | What your server calls, with the user's Dialpad API key                                                                                          |
 
@@ -52,8 +52,8 @@ flowchart LR
 1. **Dialpad loads your page.** It opens your app's sidebar URI in an iframe and
    adds `?idtoken=…`, a token that says who the user is and carries their Dialpad
    API key. See [chapter 3](03-load-the-panel-page.md).
-2. **Your server returns the panel page.** It decodes the idtoken, starts a
-   session, and puts an access token and the user's CRM connection status in the
+2. **Your server returns the panel page.** It decodes the idtoken, hands out
+   an access token, and puts it and the user's CRM connection status in the
    page ([chapter 3](03-load-the-panel-page.md)).
 3. **The SDK starts.** It checks that Dialpad frames the page, completes a
    handshake with Dialpad, and loads the user, the open contact, the call, and the
@@ -113,7 +113,7 @@ Four different secrets appear in this guide. They aren't interchangeable.
 | What                                                             | Keyed by                    | Used for                                                                              |
 | ---------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------- |
 | The user's API key (encrypted)                                   | Dialpad company and user ID | Calling Dialpad's API at any time ([chapter 8](08-call-dialpad.md))                   |
-| Sessions: a hash of the access token, user, expiry               | The access token's hash     | Checking the panel's requests ([chapter 5](05-authenticate-requests.md))              |
+| Access tokens: a hash of each, the user, an expiry               | The access token's hash     | Checking the panel's requests ([chapter 5](05-authenticate-requests.md))              |
 | OAuth `state` records: user, PKCE verifier, expiry               | The random `state`          | Finishing a Connect ([chapter 6](06-connect-to-the-crm.md))                           |
 | CRM tokens, access and refresh (encrypted)                       | Dialpad company and user ID | "Connected" means these exist; every CRM call ([chapter 6](06-connect-to-the-crm.md)) |
 | Contact mappings (CRM apps): Dialpad contact ID to CRM record ID | Dialpad company and user ID | Finding the CRM record of a contact ([chapter 7](07-show-the-crm-record.md))          |

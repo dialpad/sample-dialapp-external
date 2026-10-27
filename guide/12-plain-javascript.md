@@ -9,18 +9,19 @@ without Vue; this repository doesn't build or run the sketch.
 ## What stays the same
 
 - **The whole server.** The page, the contract endpoints, `POST /api/contact`, the
-  OAuth screens, the session cookie, the CSP, and everything in
+  OAuth screens, the storage cookie, the CSP, and everything in
   [chapter 9](09-security-checklist.md) stay exactly as they are. The iframe
   panel only needs a `<div id="app">` and a script, which `pages.py` already
   renders.
 - **The SDK calls.** `createRightbar`, `rightbar.state`, `rightbar.subscribe`,
   `rightbar.watch`, `authorize`, `disconnect`, `authHeaders`, `linkRecord`,
   `setMenu`, and the rest.
-- **The framework-free modules**: `contactApi.ts` (the request to
-  `POST /api/contact`), `customPageAppData.ts` (validates the page data's `app`
-  field), and `contacts.ts` (compares two contacts) import nothing from Vue.
+- **The framework-free modules**: `crm/contactApi.ts` (the request to
+  `POST /api/contact`), `demo/customPageAppData.ts` (validates the page data's
+  `app` field), and `crm/contacts.ts` (compares two contacts) import nothing
+  from Vue.
   `client/src/api.ts` (adds the bearer header and turns a `401` into the "reload"
-  notice) needs one small change: its `sessionExpired` flag is a Vue `ref`, so it
+  notice) needs one small change: its `accessTokenRejected` flag is a Vue `ref`, so it
   becomes a plain variable plus a callback that re-renders (shown below).
 - **The CSS.** `style.css` and the BEM classes (such as `acme-contact__label`)
   carry over; each component's `<style>` block becomes a plain `.css` file.
@@ -30,16 +31,16 @@ without Vue; this repository doesn't build or run the sketch.
 
 ## What changes
 
-| In the Vue app                                                                                    | In plain JavaScript                                                                   |
-| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `main.ts`, `bootstrap.ts`                                                                         | One `main.js`: create the SDK instance, then render and subscribe                     |
-| `App.vue`                                                                                         | `renderApp(state)`: the title, the reload notice, then the gate or the connected view |
-| `ConnectGate.vue`                                                                                 | `renderConnectGate(connection)`                                                       |
-| `ConnectedView.vue`, `UserCard.vue`, `CallCard.vue`, `DialpadApiCard.vue`, `DisconnectButton.vue` | One render function each, returning DOM nodes                                         |
-| `AcmeContact.vue`                                                                                 | A small object that owns its own lookup state (see below)                             |
-| `useRightbar()` and `rightbarPlugin`                                                              | `rightbar.state` and `rightbar.subscribe(...)` directly                               |
-| Dialtone's Vue components (`DtButton`, `DtNotice`, `DtAvatar`)                                    | Dialtone's CSS (`@dialpad/dialtone/css`) and tokens on your own markup                |
-| Vue's reactivity                                                                                  | You decide when to re-render: on every snapshot, or only for the part that changed    |
+| In the Vue app                                                                                                              | In plain JavaScript                                                                   |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `main.ts`, `bootstrap.ts`                                                                                                   | One `main.js`: create the SDK instance, then render and subscribe                     |
+| `App.vue`                                                                                                                   | `renderApp(state)`: the title, the reload notice, then the gate or the connected view |
+| `ConnectGate.vue`                                                                                                           | `renderConnectGate(connection)`                                                       |
+| `ConnectedView.vue`, `UserCard.vue`, `CallCard.vue`, `demo/DialpadApiCard.vue`, `DisconnectButton.vue`, `crm/CrmRecord.vue` | One render function each, returning DOM nodes                                         |
+| `crm/AcmeContact.vue`                                                                                                       | A small object that owns its own lookup state (see below)                             |
+| `useRightbar()` and `rightbarPlugin`                                                                                        | `rightbar.state` and `rightbar.subscribe(...)` directly                               |
+| Dialtone's Vue components (`DtButton`, `DtNotice`, `DtAvatar`)                                                              | Dialtone's CSS (`@dialpad/dialtone/css`) and tokens on your own markup                |
+| Vue's reactivity                                                                                                            | You decide when to re-render: on every snapshot, or only for the part that changed    |
 
 ## The shape of it
 
@@ -55,10 +56,15 @@ import dp from "@dialpad/dialtone/themes/dp";
 import "@dialpad/dialtone/css";
 import "./style.css";
 
-// api.ts, with `sessionExpired` as a plain flag and a hook the 401 handler calls:
-//   export let sessionExpired = false;
-//   export function onSessionExpired(callback) { ... call it when a 401 sets the flag ... }
-import { api, onSessionExpired, sessionExpired, useAuthHeaders } from "./api";
+// api.ts, with `accessTokenRejected` as a plain flag and a hook the 401 handler calls:
+//   export let accessTokenRejected = false;
+//   export function onAccessTokenRejected(callback) { ... call it when a 401 sets the flag ... }
+import {
+  api,
+  onAccessTokenRejected,
+  accessTokenRejected,
+  useAuthHeaders,
+} from "./api";
 
 const root = document.getElementById("app");
 
@@ -98,7 +104,7 @@ async function start() {
   render(rightbar.state);
   rightbar.subscribe((next) => render(next)); // every new snapshot from the SDK
   contact.subscribe(() => render(rightbar.state)); // a contact lookup finished
-  onSessionExpired(() => render(rightbar.state)); // a request got a 401
+  onAccessTokenRejected(() => render(rightbar.state)); // a request got a 401
 }
 
 await start();
@@ -127,7 +133,7 @@ function h(tag, props = {}, ...children) {
 function renderApp(state, rightbar, contact) {
   return [
     h("h1", { class: "acme-title" }, "Acme for Dialpad (demo)"),
-    sessionExpired &&
+    accessTokenRejected &&
       h(
         "div",
         { role: "alert", class: "acme-notice" },
@@ -181,7 +187,7 @@ their references) or use a tiny DOM-diffing library such as `lit-html` or
 
 ## The contact section
 
-`AcmeContact.vue` is the one component with state of its own: it asks the server for
+`crm/AcmeContact.vue` is the one component with state of its own: it asks the server for
 the CRM's view of whichever contact is open, shows loading and failure, and must
 ignore a late answer for an earlier contact. Without Vue, that's a watcher and a
 counter, the same as the `watch` and `lookup` counter in the Vue file:

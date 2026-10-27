@@ -71,6 +71,8 @@ ignore = [
 # Sanic reads a handler's annotations when the route is registered, so `Request` and `HTTPResponse`
 # must be real imports there, not `if TYPE_CHECKING:` ones.
 "acme_dialpad_rightbar/endpoints/**" = ["TC002"]
+"acme_dialpad_rightbar/crm/**" = ["TC002"]
+"acme_dialpad_rightbar/demo/endpoints/**" = ["TC002"]
 
 [tool.ruff.lint.flake8-quotes]
 inline-quotes = "single"

@@ -25,7 +25,7 @@ import type { Contact, LinkedRecord } from '@dialpad/dialapp-external-sdk';
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 import { onBeforeUnmount, ref, useId, watch } from 'vue';
 
-import { type AcmeField, fetchAcmeContact } from '../contactApi';
+import { type AcmeField, fetchAcmeContact } from './contactApi';
 
 const { showToast, linkRecord, on, rightbar } = useRightbar();
 

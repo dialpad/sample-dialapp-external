@@ -335,18 +335,18 @@ none. Validate it before you use it, as with any input.
 - `setUpPanelMenu()` in `bootstrap.ts` sets the panel menu and the refresh
   button from the connection, and answers `menuSelect`. Before the user
   connects, there's no menu and no button. Once connected, the menu is
-  `CONNECTED_MENU`: **Rematch**, **Create Task**, and **Disconnect**. Picking
-  **Disconnect** disconnects. The demo has no mapping and no tasks, so
-  **Rematch** and **Create Task** show a toast from `MENU_NOT_IMPLEMENTED`
-  instead. A real app offers an item only when it can act on it.
-- `client/src/components/AcmeContact.vue` sets the View button in
-  `setLinkedRecord()`, to the contact's
-  fake record page, and looks the contact up again on `refreshContact`
-  ([chapter 7](07-show-the-crm-record.md#in-this-demo)).
+  `CONNECTED_MENU`: **Rematch** (from `client/src/crm/menu.ts`), **Create
+  Task**, and **Disconnect**. Picking **Disconnect** disconnects. The demo has
+  no mapping and no tasks, so **Rematch** and **Create Task** show a toast from
+  `MENU_NOT_IMPLEMENTED` instead. A real app offers an item only when it can act
+  on it.
+- `client/src/crm/AcmeContact.vue` sets the View button in `setLinkedRecord()`,
+  to the contact's fake record page, and looks the contact up again on
+  `refreshContact` ([chapter 7](07-show-the-crm-record.md#in-this-demo)).
 - The demo is in English only, including its menu labels and toasts, and doesn't
   read `user.language`.
 - The demo puts the result of its call to Dialpad's API in the page data's `app`
-  field, and `customPageAppData.ts` validates it.
+  field, and `client/src/demo/customPageAppData.ts` validates it.
 
 ---
 

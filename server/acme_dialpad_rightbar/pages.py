@@ -3,7 +3,7 @@
 Each render function returns a ``RenderedPage``; the route sends its HTML with its status and all of
 its headers, which carry the Content-Security-Policy that lets only the Dialpad origin frame the
 iframe panel, and only this app's scripts run. The pages are string templates, like
-``fake_oauth.py``'s, and every value put into one is escaped for the place it lands: ``html.escape``
+``demo/oauth.py``'s, and every value put into one is escaped for the place it lands: ``html.escape``
 for HTML text and attributes, and a ``<script>``-safe JSON encoding for the page data and the
 close-popup's origin. Nothing here keeps state between calls.
 """

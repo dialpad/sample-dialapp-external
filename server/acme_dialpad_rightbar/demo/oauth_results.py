@@ -2,31 +2,21 @@
 
 SHORTCUT: ``OAuthResults`` lives in one process's memory. A real partner has no use for it at all:
 see that class for why this demo needs it and what replaces it. Everything that must last (the
-user's access token and whether they are connected) lives in the signed session cookie, see
-``acme_dialpad_rightbar.database.CookieBackedDatabaseStorage`` and
-``acme_dialpad_rightbar.signing``. Upgrade trigger: the app runs on more than one instance or
-connects to a real CRM.
+user's access token and whether they are connected) lives in the signed storage cookie, see
+``acme_dialpad_rightbar.demo.fake_storage``. Upgrade trigger: the app runs on more than one
+instance or connects to a real CRM.
 """
 
 from typing import TYPE_CHECKING
-from typing import NamedTuple
 
 if TYPE_CHECKING:
   from collections.abc import Callable
 
+  from acme_dialpad_rightbar.context import UserKey
+
 # How long a finished OAuth round trip waits to be collected by the SDK's next connection check.
 # Covers a user who signs in slowly, or a desktop-app Connect where polling already gave up.
 OAUTH_RESULT_TTL_SECONDS = 5 * 60
-
-
-class UserKey(NamedTuple):
-  """A Dialpad user, identified by the company and user ids the idtoken carries.
-
-  It is the key of the ``OAuthResults`` store below, and is hashable so it can index a dict.
-  """
-
-  company_id: int
-  user_id: int
 
 
 class OAuthResults:
@@ -47,15 +37,16 @@ class OAuthResults:
      stores them durably, keyed by the Dialpad user. This demo has no CRM and so no tokens; the
      only fact it has is "this user pressed Authorize", and it records that here.**
   5. The iframe panel's next ``ext-connection`` check collects the record (``consume``), answers
-     "connected", and rewrites the session cookie with the connection on. The cookie, not this
+     "connected", and rewrites the storage cookie with the connection on. The cookie, not this
      store, is the demo's persistent record of the connection (see
-     ``acme_dialpad_rightbar.signing``): it is signed, lasts 30 days, and later page loads see it
+     ``acme_dialpad_rightbar.demo.fake_storage``): it is signed, lasts 30 days, and later page
+     loads see it
      and start connected, even after a server restart.
 
   **Why the result is kept in memory**
 
   The callback and the iframe panel are in different places. The callback runs in the popup, a
-  separate window with its own cookies, while the session cookie is ``Partitioned`` and belongs to
+  separate window with its own cookies, while the storage cookie is ``Partitioned`` and belongs to
   the iframe panel, so a cookie set by the callback would never reach the iframe. The two only share
   one thing, the Dialpad user, which the callback learns from the ``state`` and the iframe panel's
   check learns from its access token. So the callback leaves a note for that user, and the iframe
@@ -66,7 +57,7 @@ class OAuthResults:
 
   In a real app the note is the CRM tokens themselves. The callback stores them, and
   ``ext-connection`` answers "connected" when tokens exist for the user, from the database, on any
-  instance, after any restart. There is then no handoff to make, and the signed session cookie that
+  instance, after any restart. There is then no handoff to make, and the signed storage cookie that
   this demo uses as its persistent storage (the access token and the connection) is not needed
   either.
 

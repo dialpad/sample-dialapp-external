@@ -1,7 +1,7 @@
-"""The per-user state kept in the session cookie (acme_dialpad_rightbar/database.py)."""
+"""The per-user state kept in the storage cookie (acme_dialpad_rightbar/demo/fake_storage.py)."""
 
-from acme_dialpad_rightbar.database import CookieBackedDatabaseStorage
-from acme_dialpad_rightbar.stores import UserKey
+from acme_dialpad_rightbar.context import UserKey
+from acme_dialpad_rightbar.demo.fake_storage import CookieBackedDatabaseStorage
 
 SECRET = 'app-secret'
 NOW = 1_000_000.0

@@ -7,13 +7,13 @@ import { ref } from 'vue';
 /**
  * True once the server has answered `401` to a request carrying the access token.
  *
- * The server accepts the token only while it matches the one in the browser's session cookie, so a
- * 401 means the cookie is gone or expired, or now belongs to another session (another Dialpad user
- * opened an iframe panel in this browser, or the server's secret changed). Nothing can fix that from here;
- * `App.vue` shows "reload the panel" while this is set, and a reload gets a new page with a new
- * token and cookie.
+ * The server accepts the token only while it has it stored (in the demo, while it matches the one
+ * in the browser's storage cookie), so a 401 means the token expired or is gone: in the demo, the
+ * cookie is gone or expired, or now holds another token (another Dialpad user opened an iframe panel
+ * in this browser, or the server's secret changed). Nothing can fix that from here; `App.vue` shows
+ * "reload the panel" while this is set, and a reload gets a new page with a new token.
  */
-export const sessionExpired = ref(false);
+export const accessTokenRejected = ref(false);
 
 /** The source of the `Authorization` header. Empty until the SDK has started and handed it over. */
 let authHeaders: () => Record<string, string> = () => ({});
@@ -33,7 +33,7 @@ export function useAuthHeaders(source: () => Record<string, string>): void {
  * `fetch`, plus the access token and the app's 401 policy.
  *
  * Adds the bearer header unless the caller already set one, sends the request, and, if the server
- * answers `401`, sets `sessionExpired` so the iframe panel asks the user to reload. The response is
+ * answers `401`, sets `accessTokenRejected` so the iframe panel asks the user to reload. The response is
  * returned untouched either way, so the SDK still sees the status and can report `request_failed`.
  */
 export async function api(
@@ -48,7 +48,7 @@ export async function api(
   }
   const response = await fetch(input, { ...init, headers });
   if (response.status === 401) {
-    sessionExpired.value = true;
+    accessTokenRejected.value = true;
   }
   return response;
 }

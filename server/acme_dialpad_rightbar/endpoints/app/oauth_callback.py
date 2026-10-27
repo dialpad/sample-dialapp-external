@@ -10,13 +10,13 @@ from sanic import HTTPResponse
 from sanic import Request
 
 from acme_dialpad_rightbar import signing
+from acme_dialpad_rightbar.context import UserKey
 from acme_dialpad_rightbar.contract import ErrorResponse
-from acme_dialpad_rightbar.fake_oauth import FAKE_CODE
+from acme_dialpad_rightbar.demo.oauth import FAKE_CODE
 from acme_dialpad_rightbar.pages import generate_nonce
 from acme_dialpad_rightbar.pages import render_close_popup
 from acme_dialpad_rightbar.pages import render_error_page
 from acme_dialpad_rightbar.responses import rendered
-from acme_dialpad_rightbar.stores import UserKey
 
 if TYPE_CHECKING:
   from acme_dialpad_rightbar.context import App
@@ -35,7 +35,7 @@ def register(app: App, ctx: AppContext) -> None:
     ``code`` for CRM tokens and persist them in a database here, and ``ext-connection`` would then
     answer from them. This demo has no CRM tokens, so it only verifies the signed ``state`` and
     leaves a short-lived in-memory note that this user connected, which the iframe panel's next
-    ``ext-connection`` check consumes (see ``acme_dialpad_rightbar.stores.OAuthResults`` for the
+    ``ext-connection`` check consumes (see ``acme_dialpad_rightbar.demo.oauth_results`` for the
     whole flow and why). An expired, forged or mismatched ``state`` renders an error page and
     records nothing. The reply is the close-popup page, which tells Dialpad and closes the window.
     No cookie is set: the popup is a separate window from the iframe panel.

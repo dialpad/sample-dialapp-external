@@ -1,8 +1,8 @@
 # 3. Load the panel page
 
 Every panel starts with one request: Dialpad loads your sidebar URI with
-`?idtoken=<token>` added. Your server decodes the token, starts a session, and
-returns the page. This is the only request the idtoken authenticates.
+`?idtoken=<token>` added. Your server decodes the token, hands out an access
+token, and returns the page. This is the only request the idtoken authenticates.
 
 ## The flow
 
@@ -11,9 +11,9 @@ On the server:
 ```mermaid
 flowchart TD
   A["GET /?idtoken=…"] --> B{"Does the idtoken decode<br/>with the OAuth app's client secret?"}
-  B -- no --> E["401 error page<br/>(no page data, no session)"]
+  B -- no --> E["401 error page<br/>(no page data, no access token)"]
   B -- yes --> C["Save the Dialpad user<br/>and their API key (encrypted),<br/>replacing an older key"]
-  C --> D["Create a session:<br/>a random access token, stored as a hash<br/>with the user and an expiry"]
+  C --> D["Hand out an access token:<br/>random, stored as a hash<br/>with the user and an expiry"]
   D --> F{"CRM tokens stored<br/>for this user?"}
   F -- yes --> G["connected = true"]
   F -- no --> H["connected = false,<br/>with an authorize URL"]
@@ -34,7 +34,7 @@ sequenceDiagram
   D->>B: Open the sidebar URI in an iframe, with ?idtoken=
   B->>S: GET /?idtoken=…
   S->>S: Decode the idtoken with the client secret
-  S->>DB: Save the user and API key, create the session, read the CRM connection
+  S->>DB: Save the user, API key and access token hash, read the CRM connection
   DB-->>S: Whether CRM tokens exist
   S-->>B: HTML with the page data, a CSP and a nonce
   B->>S: GET the scripts
@@ -95,28 +95,28 @@ replace the stored one. Never send the key to the browser or log it.
 [developers.dialpad.com](https://developers.dialpad.com/) documents what it can
 call.
 
-## Start a session
+## Hand out an access token
 
 The panel's later requests come from the iframe, which has no idtoken. So the
-page request starts a session:
+page request hands the panel an access token:
 
 1. Create a random, opaque access token, such as 32 random bytes encoded as
    URL-safe base64.
-2. Save a session row in your database:
+2. Store it in your database, in whatever table suits your app, with:
 
-   | Column                  | What it holds                                                                                |
-   | ----------------------- | -------------------------------------------------------------------------------------------- |
-   | `token_hash`            | A hash of the access token, such as SHA-256. Look sessions up by it                          |
-   | `company_id`, `user_id` | The Dialpad user the session belongs to                                                      |
-   | `expires_at`            | When the session stops working. Choose a lifetime that covers a user's working day, at least |
+   | What                         | Why                                                                                        |
+   | ---------------------------- | ------------------------------------------------------------------------------------------ |
+   | A hash of the access token   | To look the token up, such as by SHA-256                                                   |
+   | The Dialpad company and user | Who the token belongs to                                                                   |
+   | An expiry                    | When the token stops working. Choose a lifetime that covers a user's working day, at least |
 
-   Store only the hash, so someone who reads the table can't use the tokens.
+   Store only the hash, so someone who reads your database can't use the tokens.
 
 3. Put the token itself in the page data.
 
-Every page load creates a new session, so delete expired rows from time to time.
-The API key and the CRM connection belong to the user, not to a session, so they
-outlive it. [Chapter 5](05-authenticate-requests.md) shows how the panel sends
+Every page load hands out a new token, so delete expired ones from time to time.
+The API key and the CRM connection belong to the user, not to a token, so they
+outlive it, and each lives in its own table. [Chapter 5](05-authenticate-requests.md) shows how the panel sends
 the token and how your server checks it.
 
 ## Render the page
@@ -135,7 +135,7 @@ element that the SDK reads:
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `version`             | The page data format, `1`. The SDK checks it                                                                                  |
 | `dialpad_origin`      | The Dialpad origin for this environment, such as `https://dialpad.com`. The SDK talks only to it                              |
-| `access_token`        | The session's access token                                                                                                    |
+| `access_token`        | The access token for this page load                                                                                           |
 | `external_connection` | The user's CRM connection when the page rendered, so the first paint needs no request ([chapter 6](06-connect-to-the-crm.md)) |
 | `app`                 | Optional JSON of your own for the panel, or `null` ([chapter 4](04-build-the-panel.md#pass-your-own-data-to-the-panel))       |
 
@@ -171,16 +171,18 @@ in Python and Gson's `new Gson().toJson(value)` on the JVM do this for you.
 
 When the idtoken doesn't decode, answer `401` with a small HTML error page. When
 your app refuses the user, answer `403` the same way. Neither page has page data,
-a script, or a session.
+a script, or an access token.
 
 ## In this demo
 
 - `server/acme_dialpad_rightbar/idtoken.py` decodes the idtoken (`decode_idtoken`).
   `pages.py` renders the page, the error page, and their security headers, and
   `endpoints/dialpad/page.py` is the route.
-- The demo has no database. It keeps the access token in a signed session cookie
-  instead of a session table, and it uses the API key once, for a demo call to
-  Dialpad's API, then drops it ([chapter 11](11-from-demo-to-your-app.md)).
+- The demo has no database. It keeps everything it must remember, the access
+  token included, in one signed cookie instead
+  (`server/acme_dialpad_rightbar/demo/fake_storage.py`), and it uses the API key
+  once, for a demo call to Dialpad's API, then drops it
+  ([chapter 11](11-from-demo-to-your-app.md#the-storage-cookie)).
 
 ---
 

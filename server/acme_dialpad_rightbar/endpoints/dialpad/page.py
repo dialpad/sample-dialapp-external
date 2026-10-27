@@ -13,11 +13,11 @@ from sanic import HTTPResponse
 from sanic import Request
 
 from acme_dialpad_rightbar.context import ACCOUNT_NAME
+from acme_dialpad_rightbar.context import UserKey
 from acme_dialpad_rightbar.contract import ErrorResponse
 from acme_dialpad_rightbar.contract import PageData
-from acme_dialpad_rightbar.database import CookieBackedDatabaseStorage
-from acme_dialpad_rightbar.dialpad_api import fetch_dialpad_user
-from acme_dialpad_rightbar.dialpad_api import skipped
+from acme_dialpad_rightbar.demo.dialpad_api import fetch_dialpad_user
+from acme_dialpad_rightbar.demo.dialpad_api import skipped
 from acme_dialpad_rightbar.idtoken import IdTokenError
 from acme_dialpad_rightbar.idtoken import decode_idtoken
 from acme_dialpad_rightbar.pages import PageOptions
@@ -25,7 +25,6 @@ from acme_dialpad_rightbar.pages import generate_nonce
 from acme_dialpad_rightbar.pages import render_error_page
 from acme_dialpad_rightbar.pages import render_page
 from acme_dialpad_rightbar.responses import rendered
-from acme_dialpad_rightbar.stores import UserKey
 
 if TYPE_CHECKING:
   from acme_dialpad_rightbar.context import App
@@ -41,11 +40,11 @@ def register(app: App, ctx: AppContext) -> None:
     """Render the iframe panel page for the user in the ``idtoken`` query parameter.
 
     Invoked when Dialpad (or the dev host) loads the iframe. A token that doesn't decode gets a
-    ``401`` HTML page. Otherwise the page starts or continues this browser's session: a valid
-    session cookie for this same user keeps its access token and connection state, and anything
+    ``401`` HTML page. Otherwise the page hands out or reuses this browser's access token: a valid
+    storage cookie for this same user keeps its access token and connection state, and anything
     else (no cookie, a forged or old one, another user's) starts a new token, not connected. The
     page embeds the token and the connection (with an authorize URL when not connected), and sets
-    the session cookie, which refreshes its 30 days. The page data's ``app`` field carries the
+    the storage cookie, which refreshes its 30 days. The page data's ``app`` field carries the
     result of the demo call to Dialpad's API (never the api key itself). The server stores nothing.
     """
     try:
@@ -67,9 +66,7 @@ def register(app: App, ctx: AppContext) -> None:
         origin=settings.dialpad_origin,
         timeout=ctx.api_timeout,
     )
-    existing = ctx.state_from_cookie(request)
-    state = existing if existing and existing.belongs_to(key) else CookieBackedDatabaseStorage.new(
-        key)
+    state = ctx.storage.for_page(request, key)
     page_data = PageData(
         dialpad_origin=settings.dialpad_origin,
         access_token=state.get_access_token(),
@@ -85,5 +82,5 @@ def register(app: App, ctx: AppContext) -> None:
     )
     reply = rendered(
         render_page(page_data, nonce=generate_nonce(), assets=ctx.assets, options=options))
-    ctx.save_state(reply, state)
+    ctx.storage.save(reply, state)
     return reply

@@ -13,6 +13,7 @@ import { createApp } from 'vue';
 import { api, useAuthHeaders } from './api';
 import App from './App.vue';
 import BootstrapError from './BootstrapError.vue';
+import { CRM_MENU, CRM_MENU_NOT_IMPLEMENTED } from './crm/menu'; // crm-record
 
 /** The shape of the SDK's `createRightbar`, so tests can swap in the mock host's. */
 export type CreateRightbar = (options: RightbarOptions) => Promise<Rightbar>;
@@ -66,18 +67,17 @@ export async function bootstrap(
  * `state.user.language` (chapter 4 of the guide).
  */
 export const CONNECTED_MENU = [
-  { id: 'rematch', label: 'Rematch' },
+  ...CRM_MENU, // crm-record
   { id: 'create-task', label: 'Create Task' },
   { id: 'disconnect', label: 'Disconnect' },
 ] as const satisfies readonly MenuItem[];
 
 /**
- * What the panel menu's Rematch and Create Task tell the user here, by item id. The demo has no
- * contact mapping and no CRM tasks, so it offers both to show the round trip and says they aren't
- * built.
+ * What the panel menu's items other than Disconnect tell the user here, by item id. The demo has no
+ * tasks, so it offers Create Task to show the round trip and says it isn't built.
  */
 export const MENU_NOT_IMPLEMENTED: Readonly<Record<string, string>> = {
-  rematch: "Rematch isn't implemented in this sample app",
+  ...CRM_MENU_NOT_IMPLEMENTED, // crm-record
   'create-task': "Create Task isn't implemented in this sample app",
 };
 
@@ -86,8 +86,8 @@ export const MENU_NOT_IMPLEMENTED: Readonly<Record<string, string>> = {
  *
  * Runs at every start, because Dialpad forgets the menu when the panel reloads. Disconnect calls the
  * SDK's `disconnect()`; the other items only show a toast. The refresh button needs nothing here:
- * `AcmeContact.vue` handles `refreshContact`. If Dialpad rejects a menu, button or toast, the panel
- * logs it and goes on. Chapter 4 of the guide explains both controls.
+ * `crm/AcmeContact.vue` handles `refreshContact`. If Dialpad rejects a menu, button or toast, the
+ * panel logs it and goes on. Chapter 4 of the guide explains both controls.
  */
 function setUpPanelMenu(rightbar: Rightbar): void {
   rightbar.watch(

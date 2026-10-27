@@ -26,22 +26,21 @@ def register(app: App, ctx: AppContext) -> None:
   async def ext_connection(request: Request) -> HTTPResponse:
     """Answer whether the calling user is connected to Acme.
 
-    The call must carry the access token as ``Authorization: Bearer`` and the session cookie, and
-    the two tokens must match (``401`` otherwise). If the OAuth callback has recorded a result for
-    this user, it is consumed here: the answer is "connected" and the session cookie is rewritten
-    with ``connected`` on, so the next page load starts connected. Otherwise the cookie alone
-    decides: it is this app's persistent storage of the connection, signed with ``APP_SECRET`` so it
-    can't be forged. The consumed result is a demo-only handoff from the popup to this iframe; a
-    real partner answers from the CRM tokens its callback stored (see
-    ``acme_dialpad_rightbar.stores.OAuthResults``).
+    The call must carry the access token as ``Authorization: Bearer``, and it must match the stored
+    token (``401`` otherwise; in the demo, the storage cookie's token). If the OAuth callback has
+    recorded a result for this user, it is consumed here: the answer is "connected" and the user's
+    state is saved with ``connected`` on, so the next page load starts connected. Otherwise the
+    stored state alone decides. The consumed result is a demo-only handoff from the popup to this
+    iframe; a real partner answers from the CRM tokens its callback stored (see
+    ``acme_dialpad_rightbar.demo.oauth_results.OAuthResults``).
     """
-    state = ctx.state_for(request)
+    state = ctx.storage.authenticate(request)
     if state is None:
       return unauthorized()
     key = state.user_key()
     if ctx.results.consume(key):
       reply = connection_response(ctx.external_connection(key, connected=True))
-      ctx.save_state(reply, state.with_external_connected(connected=True))
+      ctx.storage.save(reply, state.with_external_connected(connected=True))
       return reply
     return connection_response(ctx.external_connection(key,
                                                        connected=state.is_external_connected()))
