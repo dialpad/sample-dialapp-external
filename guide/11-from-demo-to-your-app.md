@@ -136,8 +136,9 @@ deletes three things:
 
 ### Every file
 
-These two tables cover every source file. A fake that isn't in `demo/`, or a
-file they don't list, is a bug in the code or the tables.
+These two tables cover every source file you work with, leaving out the
+`__init__.py` files and this repository's own tooling. A fake that isn't in
+`demo/`, or a file of yours they don't list, is a bug in the code or the tables.
 
 The server's files are in `server/acme_dialpad_rightbar/`:
 
