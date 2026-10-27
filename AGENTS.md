@@ -13,7 +13,11 @@ section for your task.
 
 1. **Ask first.** Before you write code, ask the person for what the repository
    can't tell you:
-   - their CRM, and its OAuth authorize and token URLs and scopes;
+   - what the panel shows: the open contact's CRM record, or something else,
+     such as a call's AI transcript or summary
+     ([which chapters you need](guide/01-the-big-picture.md#which-chapters-you-need));
+   - the service users connect to, and its OAuth authorize and token URLs and
+     scopes;
    - the stack for the server and the panel;
    - their database;
    - where the app runs.
@@ -22,8 +26,8 @@ section for your task.
    say which files to keep, change, and delete. Everything the demo fakes is in
    them.
 3. **Build in chapter order**, 3 to 8: the page, the panel, authentication,
-   Connect, the CRM record, and Dialpad's API. For a panel that isn't Vue, use
-   [12. Plain JavaScript](guide/12-plain-javascript.md) or
+   Connect, the CRM record (CRM apps only), and Dialpad's API. For a panel that
+   isn't Vue, use [12. Plain JavaScript](guide/12-plain-javascript.md) or
    [13. React](guide/13-react.md). For a server that isn't Python, follow the
    chapters and [`contract/openapi.json`](contract/openapi.json).
 4. **Don't ship the demo's shortcuts:** the session cookie, the in-memory OAuth
@@ -43,7 +47,7 @@ holds for the app, and its tests pass ([chapter 10](guide/10-test-your-app.md)).
   [tables in chapter 11](guide/11-from-demo-to-your-app.md#what-to-keep-change-and-delete)
   when you add, rename, or delete a file.
 - **Write docs in the Dialpad writing style guide.** `pnpm format:ci` in
-  `client/` checks the Markdown formatting.
+  `client/` checks the Markdown formatting, and `pnpm links:ci` its links.
 - **Regenerate the guide's images** after a change to the panel's look
   ([`guide/images/`](guide/images/README.md)). Images show fake data only.
 - **Vendor a new SDK build** with `pnpm run vendor <dir>` in `client/`. Each

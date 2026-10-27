@@ -1,8 +1,10 @@
 # 8. Call Dialpad's API and receive events
 
 Your server can work with Dialpad directly: call Dialpad's public API, and have
-Dialpad send it events, such as a finished call to log on the CRM record. Both
-work when no panel is open.
+Dialpad send it events, such as a finished call to log on the CRM record, or a
+call's AI transcript to show in the panel. Both work when no panel is open.
+[developers.dialpad.com](https://developers.dialpad.com/) documents every API
+endpoint and every event you can subscribe to.
 
 ## Call Dialpad's API
 
@@ -56,7 +58,11 @@ and its rate limit.
 ## Receive Dialpad's events
 
 Dialpad can send events to a URL on your server, a _webhook_: calls, SMS,
-contacts, agent status, and change logs. Because Dialpad calls you, you must
+contacts, agent status, and change logs. A call's AI transcript and AI recap
+arrive as call events too: the `call_transcription` state says a transcript is
+ready to fetch with the transcripts API, and `recap_summary` carries the recap.
+See [Call Events](https://developers.dialpad.com/docs/call-events). Because
+Dialpad calls you, you must
 check that each request really came from Dialpad. See Dialpad's
 [Event Subscriptions](https://developers.dialpad.com/docs/event-subscriptions)
 guide.

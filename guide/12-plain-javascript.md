@@ -236,7 +236,7 @@ function createContactSection(rightbar) {
 
 The section links the record once the lookup succeeds and unlinks when the
 contact changes. Also unlink when the user disconnects
-([chapter 4](04-build-the-panel.md#the-view-link)).
+([chapter 4](04-build-the-panel.md#the-view-button)).
 
 ## Tests and the bundle
 

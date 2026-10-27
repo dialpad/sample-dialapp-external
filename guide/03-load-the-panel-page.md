@@ -91,7 +91,9 @@ and your app. It never expires. Store it in your database the first time you see
 it for a Dialpad user: one row per user, keyed by Dialpad company ID and user ID,
 with the key encrypted at rest. When a later idtoken carries a different key,
 replace the stored one. Never send the key to the browser or log it.
-[Chapter 8](08-call-dialpad.md) shows how to use it.
+[Chapter 8](08-call-dialpad.md) shows how to use it, and
+[developers.dialpad.com](https://developers.dialpad.com/) documents what it can
+call.
 
 ## Start a session
 

@@ -1,8 +1,10 @@
-# 6. Connect the user to the CRM
+# 6. Connect the user to your service
 
-Your panel can't show CRM data until the user links their CRM account to
-Dialpad. That's _Connect_: an OAuth flow in a popup, after which your server
-holds the user's CRM tokens. This chapter also covers the reverse, _Disconnect_.
+Your panel can't show data from your service until the user links their account
+there to Dialpad. That's _Connect_: an OAuth flow in a popup, after which your
+server holds the user's tokens. This chapter also covers the reverse,
+_Disconnect_. It uses the demo's CRM as the service, so "CRM tokens" means your
+service's tokens.
 
 ## What "connected" means
 

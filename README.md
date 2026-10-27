@@ -7,6 +7,8 @@ the guide to see how each part works, and copy it to start your own.
 
 - **What it is.** "Acme for Dialpad" is a working rightbar app: a panel that
   Dialpad shows beside a contact or call, connected to a fictional CRM, Acme CRM.
+  The same shape works for other integrations, such as a panel that shows a
+  call's AI transcript or summary.
 - **The panel** uses Dialpad's SDK, `@dialpad/dialapp-external-sdk`, for
   everything on the Dialpad side: the handshake, one state snapshot of the user,
   contact, call, theme, and CRM connection, OAuth Connect and Disconnect, linking
@@ -18,8 +20,11 @@ the guide to see how each part works, and copy it to start your own.
   bearer access token on every request from the panel.
   [`contract/openapi.json`](contract/openapi.json) describes all of it, and the
   Python server here is one implementation.
-- **The idtoken's API key** lets your server call Dialpad's public API. It stays
-  on your server, and a real app stores it.
+- **The idtoken's API key** lets your server call Dialpad's public API and set
+  up webhooks for Dialpad's events, such as a call's AI transcript. It stays on
+  your server, and a real app stores it.
+  [developers.dialpad.com](https://developers.dialpad.com/) documents the API
+  and the events.
 - **The demo has no database or real CRM**, so it fakes those parts. The guide
   says what to replace.
 - **Security** comes from a content security policy that lets only Dialpad frame
@@ -51,6 +56,8 @@ you see.
 ## The guide
 
 Read chapter 1 for the whole picture, then the chapters for the parts you build.
+A panel that doesn't show a CRM record skips chapter 7
+([which chapters you need](guide/01-the-big-picture.md#which-chapters-you-need)).
 
 | Chapter                                                                   | What you learn                                                                          |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
@@ -59,7 +66,7 @@ Read chapter 1 for the whole picture, then the chapters for the parts you build.
 | [3. Load the panel page](guide/03-load-the-panel-page.md)                 | Decode the idtoken, start a session, and render the page and its page data              |
 | [4. Build the panel with the SDK](guide/04-build-the-panel.md)            | Start the SDK, render from its state, design for the panel's size, and use Dialpad's UI |
 | [5. Authenticate the panel's requests](guide/05-authenticate-requests.md) | The bearer access token, the panel's fetch wrapper, and your own routes                 |
-| [6. Connect the user to the CRM](guide/06-connect-to-the-crm.md)          | Connect through OAuth, the callback, and Disconnect                                     |
+| [6. Connect the user to your service](guide/06-connect-to-the-crm.md)     | Connect through OAuth, the callback, and Disconnect                                     |
 | [7. Show the CRM record](guide/07-show-the-crm-record.md)                 | Map a Dialpad contact to a CRM record, link it in Dialpad, and the panel menu           |
 | [8. Call Dialpad's API and receive events](guide/08-call-dialpad.md)      | Use the API key, and verify Dialpad's webhook events                                    |
 | [9. Security checklist](guide/09-security-checklist.md)                   | Every defense in one place, the content security policy, and keeping logs clean         |

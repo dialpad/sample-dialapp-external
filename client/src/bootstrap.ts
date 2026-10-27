@@ -82,16 +82,12 @@ export const MENU_NOT_IMPLEMENTED: Readonly<Record<string, string>> = {
 };
 
 /**
- * Set Dialpad's panel menu and header refresh button from the connection, now and on every change,
- * and answer the menu's items.
+ * Show the panel menu and the refresh button while the user is connected, and answer the menu.
  *
- * Dialpad shows exactly these items and forgets them when the panel reloads, so this runs at every
- * start. Disconnect calls the SDK's `disconnect()`, as the panel's own button does. Refresh needs
- * nothing here: the SDK reloads the contact and `AcmeContact.vue` looks it up again (chapter 4 of
- * the guide covers the menu and the button). A real app offers Rematch once its server has matched
- * the contact to a record, and makes it forget that match and look the contact up again; it offers
- * Create Task when the CRM has tasks, and shows a form for one (chapter 7). A menu, button or toast
- * Dialpad rejects is logged and the panel goes on.
+ * Runs at every start, because Dialpad forgets the menu when the panel reloads. Disconnect calls the
+ * SDK's `disconnect()`; the other items only show a toast. The refresh button needs nothing here:
+ * `AcmeContact.vue` handles `refreshContact`. If Dialpad rejects a menu, button or toast, the panel
+ * logs it and goes on. Chapter 4 of the guide explains both controls.
  */
 function setUpPanelMenu(rightbar: Rightbar): void {
   rightbar.watch(

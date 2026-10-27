@@ -157,14 +157,16 @@ A few more things about the space you have:
 Your panel can show four things outside the iframe, in Dialpad: toasts, and
 three controls in the panel's header. They work for any panel, CRM or not.
 
-| Control            | Your panel sets                       | Dialpad shows                                        | Use it for                                     |
-| ------------------ | ------------------------------------- | ---------------------------------------------------- | ---------------------------------------------- |
-| A toast            | A short text and a type               | The text, over Dialpad's UI                          | Telling the user that something happened       |
-| The panel menu     | Its items, each an `id` and a `label` | Your labels, in your order                           | Your panel's actions, such as Disconnect       |
-| The View link      | A `type` and a `url`                  | A **View &lt;type&gt;** link and a ↗ button to `url` | Your page about the open contact               |
-| The refresh button | Whether it shows                      | A button with Dialpad's tooltip, **Refresh record**  | Reloading what the panel shows for the contact |
+<img src="images/panel-header.png" width="297" alt="The panel's header in Dialpad: the app's name, Sample DialApp External, cut short, then the View button (an arrow pointing up and to the right), the refresh button, the panel menu (three dots), and the collapse arrow.">
 
-The menu belongs to the panel. The View link and the refresh button belong to
+| Control            | Your panel sets                       | Dialpad shows                                               | Use it for                                     |
+| ------------------ | ------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------- |
+| A toast            | A short text and a type               | The text, over Dialpad's UI                                 | Telling the user that something happened       |
+| The panel menu     | Its items, each an `id` and a `label` | Your labels, in your order                                  | Your panel's actions, such as Disconnect       |
+| The View button    | A `type` and a `url`                  | A ↗ button to `url`, with the tooltip **View &lt;type&gt;** | Your page about the open contact               |
+| The refresh button | Whether it shows                      | A refresh button                                            | Reloading what the panel shows for the contact |
+
+The menu belongs to the panel. The View button and the refresh button belong to
 the open contact, so a panel about the call might use neither.
 
 | Call                             | What it does                                                                                                                            |
@@ -172,7 +174,7 @@ the open contact, so a panel about the call might use neither.
 | `showToast({ text, type })`      | Shows a toast. `type` is `info` (the default), `success`, or `error`                                                                    |
 | `setMenu(items)`                 | Sets the panel menu to `items`, each `{ id, label }`, in order. Resolves once Dialpad answers                                           |
 | `on('menuSelect', callback)`     | Runs `callback(id)` when the user picks a menu item. Returns a function that stops it                                                   |
-| `linkRecord({ type, url })`      | Sets the View link for the open contact. `linkRecord(null)` removes it                                                                  |
+| `linkRecord({ type, url })`      | Sets the View button for the open contact. `linkRecord(null)` removes it                                                                |
 | `showRefreshButton(show)`        | Shows or hides the refresh button                                                                                                       |
 | `on('refreshContact', callback)` | Runs `callback` after the SDK reloads `state.contact`, from the refresh button or a change in Dialpad. Returns a function that stops it |
 
@@ -227,10 +229,10 @@ What to offer depends on your app. For example:
 | Create Task | Any app that creates tasks        | The user is connected, and the panel has a contact or call for it | Shows a form, and posts it to your route                                                            |
 | Rematch     | Apps that map contacts to records | A record is linked                                                | Forgets the mapping and looks the contact up again ([chapter 7](07-show-the-crm-record.md#rematch)) |
 
-### The View link
+### The View button
 
-When your service has a page about the open contact, link it in the panel's
-header with `linkRecord`:
+When your service has a page about the open contact, add a ↗ button to the
+panel's header with `linkRecord`:
 
 ```ts
 await rightbar.linkRecord({
@@ -240,17 +242,17 @@ await rightbar.linkRecord({
 await rightbar.linkRecord(null); // remove it
 ```
 
-- **Dialpad shows a View &lt;type&gt; link**, a ↗ button when the pointer is over
-  the header, or both; Dialpad decides which. Both open `url` in a new tab.
-  `type` is your name for the page, such as `Contact`, `Lead`, or `Profile`. The
-  SDK calls the link a _linked record_, whatever it points to.
+- **The button opens `url` in a new tab.** Its tooltip is **View &lt;type&gt;**,
+  where `type` is your name for the page, such as `Contact`, `Lead`, or
+  `Profile`. The SDK calls what it links a _linked record_, whatever it points
+  to.
 - **Link only the open contact** (`state.contact`), not a call's other contact.
   Dialpad keeps one link per panel.
 - **Remove the link** when the contact changes, when you find no page for it, and
-  when the user disconnects. Then Dialpad never shows a link for another contact.
+  when the user disconnects. Then the button never opens another contact's page.
 - **The link is the default URL for screen pops**
   ([chapter 7](07-show-the-crm-record.md#screen-pops)).
-- **The menu doesn't affect it.** The link shows whenever one is set.
+- **The menu doesn't affect it.** The button shows whenever a link is set.
 
 A panel about the call, such as a live transcript, usually sets no link: the
 link follows the contact, not the call.
@@ -262,7 +264,6 @@ The refresh button lets the user ask for fresh data. Show it with
 `showRefreshButton(false)` when they disconnect. When the user presses it, the
 SDK reloads `state.contact` and then emits `refreshContact`.
 
-Its tooltip, **Refresh record**, is Dialpad's, and your panel can't change it.
 Show the button when the panel shows data about the contact that can go stale.
 Keep it hidden in a panel that updates itself, or one about the call: the button
 reloads the contact, not the call.
@@ -338,7 +339,7 @@ none. Validate it before you use it, as with any input.
   **Disconnect** disconnects. The demo has no mapping and no tasks, so
   **Rematch** and **Create Task** show a toast from `MENU_NOT_IMPLEMENTED`
   instead. A real app offers an item only when it can act on it.
-- `client/src/components/AcmeContact.vue` sets the View link in
+- `client/src/components/AcmeContact.vue` sets the View button in
   `setLinkedRecord()`, to the contact's
   fake record page, and looks the contact up again on `refreshContact`
   ([chapter 7](07-show-the-crm-record.md#in-this-demo)).

@@ -29,33 +29,33 @@ Each endpoint is one file under `server/acme_dialpad_rightbar/endpoints/`: the
 contract's in `dialpad/`, and the app's own in `app/`. Each folder's
 `__init__.py` lists them.
 
-| Endpoint                       | File                          | What it does                                                                                                                                                              |
-| ------------------------------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /`                        | `dialpad/page.py`             | The panel page ([chapter 3](03-load-the-panel-page.md)). `401` HTML when the idtoken doesn't decode                                                                       |
-| `GET /dialpad/ext-connection`  | `dialpad/ext_connection.py`   | The user's connection to the CRM ([chapter 6](06-connect-to-the-crm.md)). Collects a finished Connect, and builds a fresh authorize URL                                   |
-| `POST /dialpad/ext-disconnect` | `dialpad/ext_disconnect.py`   | Turns the connection off and answers `204` with no body                                                                                                                   |
-| `POST /api/contact`            | `app/contact.py`              | The app's own route: the CRM's view of a Dialpad contact and the record to link ([chapter 7](07-show-the-crm-record.md)). Needs a connected user                          |
-| `GET /records/<contact id>`    | `app/fake_record.py`          | Demo only. A page labelled fake that stands in for the CRM's page for a record, showing the contact ID. The panel links it, so Dialpad's **View Contact** button opens it |
-| `GET /oauth/fake-authorize`    | `app/oauth_fake_authorize.py` | Demo only. A page labelled fake, with an **Authorize** button that goes to the callback                                                                                   |
-| `GET /oauth/callback`          | `app/oauth_callback.py`       | The OAuth redirect URI. Checks `state` and closes the popup                                                                                                               |
-| `GET /healthz`                 | `app/healthz.py`              | Answers `ok`. Used by the browser tests                                                                                                                                   |
-| `GET /dev/frame-url`           | `app/dev_frame_url.py`        | Local mode only. A page URL with a mock idtoken, for the dev host                                                                                                         |
+| Endpoint                       | File                          | What it does                                                                                                                                               |
+| ------------------------------ | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /`                        | `dialpad/page.py`             | The panel page ([chapter 3](03-load-the-panel-page.md)). `401` HTML when the idtoken doesn't decode                                                        |
+| `GET /dialpad/ext-connection`  | `dialpad/ext_connection.py`   | The user's connection to the CRM ([chapter 6](06-connect-to-the-crm.md)). Collects a finished Connect, and builds a fresh authorize URL                    |
+| `POST /dialpad/ext-disconnect` | `dialpad/ext_disconnect.py`   | Turns the connection off and answers `204` with no body                                                                                                    |
+| `POST /api/contact`            | `app/contact.py`              | The app's own route: the CRM's view of a Dialpad contact and the record to link ([chapter 7](07-show-the-crm-record.md)). Needs a connected user           |
+| `GET /records/<contact id>`    | `app/fake_record.py`          | Demo only. A page labelled fake that stands in for the CRM's page for a record, showing the contact ID. The panel links it, so Dialpad's ↗ button opens it |
+| `GET /oauth/fake-authorize`    | `app/oauth_fake_authorize.py` | Demo only. A page labelled fake, with an **Authorize** button that goes to the callback                                                                    |
+| `GET /oauth/callback`          | `app/oauth_callback.py`       | The OAuth redirect URI. Checks `state` and closes the popup                                                                                                |
+| `GET /healthz`                 | `app/healthz.py`              | Answers `ok`. Used by the browser tests                                                                                                                    |
+| `GET /dev/frame-url`           | `app/dev_frame_url.py`        | Local mode only. A page URL with a mock idtoken, for the dev host                                                                                          |
 
 The contract routes and `/api/contact` need the bearer access token ([chapter 5](05-authenticate-requests.md)).
 
 ## The SDK at a glance
 
-| SDK                                                                                                           | What it's for                                                      | Explained in                                                       |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `createRightbar({ heightRoot, fetch, onDisconnect })`, `RightbarError`                                        | Start the SDK                                                      | [Chapter 4](04-build-the-panel.md#start-the-sdk)                   |
-| `state`, `subscribe()`, `watch()`, `rightbarPlugin`, `useRightbar()`                                          | Render from Dialpad's state                                        | [Chapter 4](04-build-the-panel.md#render-from-the-state)           |
-| `showToast()`, `setMenu()`, `on('menuSelect')`, `linkRecord()`, `showRefreshButton()`, `on('refreshContact')` | Toasts, and the panel header's menu, View link, and refresh button | [Chapter 4](04-build-the-panel.md#use-dialpads-ui)                 |
-| `app`                                                                                                         | Your own data from the page                                        | [Chapter 4](04-build-the-panel.md#pass-your-own-data-to-the-panel) |
-| `destroy()`                                                                                                   | Shut the panel down                                                | [Chapter 4](04-build-the-panel.md#start-the-sdk)                   |
-| `authHeaders()`                                                                                               | Authenticate requests to your server                               | [Chapter 5](05-authenticate-requests.md#in-the-panel)              |
-| `state.connection`, `authorize()`, `refresh()`, `disconnect()`                                                | Connect and disconnect                                             | [Chapter 6](06-connect-to-the-crm.md)                              |
-| `linkRecord()` with a CRM record, `screenPop()`                                                               | Link the CRM record, Rematch, screen pops                          | [Chapter 7](07-show-the-crm-record.md#link-the-record-in-dialpad)  |
-| `/testing`, `/testing/setup`, `/vue/testing`                                                                  | Test your panel                                                    | [Chapter 10](10-test-your-app.md)                                  |
+| SDK                                                                                                           | What it's for                                                        | Explained in                                                       |
+| ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `createRightbar({ heightRoot, fetch, onDisconnect })`, `RightbarError`                                        | Start the SDK                                                        | [Chapter 4](04-build-the-panel.md#start-the-sdk)                   |
+| `state`, `subscribe()`, `watch()`, `rightbarPlugin`, `useRightbar()`                                          | Render from Dialpad's state                                          | [Chapter 4](04-build-the-panel.md#render-from-the-state)           |
+| `showToast()`, `setMenu()`, `on('menuSelect')`, `linkRecord()`, `showRefreshButton()`, `on('refreshContact')` | Toasts, and the panel header's menu, View button, and refresh button | [Chapter 4](04-build-the-panel.md#use-dialpads-ui)                 |
+| `app`                                                                                                         | Your own data from the page                                          | [Chapter 4](04-build-the-panel.md#pass-your-own-data-to-the-panel) |
+| `destroy()`                                                                                                   | Shut the panel down                                                  | [Chapter 4](04-build-the-panel.md#start-the-sdk)                   |
+| `authHeaders()`                                                                                               | Authenticate requests to your server                                 | [Chapter 5](05-authenticate-requests.md#in-the-panel)              |
+| `state.connection`, `authorize()`, `refresh()`, `disconnect()`                                                | Connect and disconnect                                               | [Chapter 6](06-connect-to-the-crm.md)                              |
+| `linkRecord()` with a CRM record, `screenPop()`                                                               | Link the CRM record, Rematch, screen pops                            | [Chapter 7](07-show-the-crm-record.md#link-the-record-in-dialpad)  |
+| `/testing`, `/testing/setup`, `/vue/testing`                                                                  | Test your panel                                                      | [Chapter 10](10-test-your-app.md)                                  |
 
 ---
 

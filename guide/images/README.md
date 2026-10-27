@@ -9,13 +9,7 @@ Dialpad's own UI.
 | `dev-host.png`        | [Chapter 2](../02-run-the-demo.md#run-it-locally)                | `pnpm run guide:images` in `client/`                                          |
 | `panel-318.png`       | [Chapter 4](../04-build-the-panel.md#design-for-the-panels-size) | `pnpm run guide:images` in `client/`                                          |
 | `panel-250.png`       | [Chapter 4](../04-build-the-panel.md#design-for-the-panels-size) | `pnpm run guide:images` in `client/`                                          |
-
-To add:
-
-- **The panel header with its three controls**: the View Contact link and ↗
-  button, the refresh button with its **Refresh record** tooltip, and the open
-  panel menu. For [chapter 4](../04-build-the-panel.md#use-dialpads-ui).
-  Captured by hand in dialpadbeta, once Dialpad's `set/menu` is live there.
+| `panel-header.png`    | [Chapter 4](../04-build-the-panel.md#use-dialpads-ui)            | Captured by hand in Dialpad, with a record linked and the user connected      |
 
 ## Conventions
 

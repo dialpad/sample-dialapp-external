@@ -101,7 +101,7 @@ Dialpad's panel header has three controls
 ([chapter 4](04-build-the-panel.md#use-dialpads-ui)). This section shows how a CRM
 panel uses them.
 
-Once the panel has the record, set it as the View link, with the type and URL
+Once the panel has the record, set it as the View button, with the type and URL
 your server returned:
 
 ```ts
@@ -111,7 +111,8 @@ await rightbar.linkRecord({
 });
 ```
 
-Dialpad shows a **View Contact** link that opens the record in the CRM. Unlink
+Dialpad shows a ↗ button, with the tooltip **View Contact**, that opens the
+record in the CRM. Unlink
 with `linkRecord(null)` as soon as the contact changes, when the lookup fails,
 and when the user disconnects.
 
@@ -185,6 +186,6 @@ not for an office or department contact.
 
 ---
 
-**Previous:** [6. Connect the user to the CRM](06-connect-to-the-crm.md) ·
+**Previous:** [6. Connect the user to your service](06-connect-to-the-crm.md) ·
 **Next:** [8. Call Dialpad's API and receive events](08-call-dialpad.md) ·
 [Contents](../README.md#the-guide)

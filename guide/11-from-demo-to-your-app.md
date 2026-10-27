@@ -85,6 +85,13 @@ A real app stores the key and calls Dialpad whenever it needs to
 These two tables cover every source file, and they're the complete list of what
 the demo fakes. A fake they don't list is a bug in the tables.
 
+A panel that doesn't show a CRM record ([chapter 7](07-show-the-crm-record.md))
+deletes the files the tables tie to it: `endpoints/app/contact.py`, both
+`fake_record.py` files, `AcmeContact.vue`, and `contactApi.ts`. It also removes
+their routes from `endpoints/app/__init__.py`, `record_url` from `settings.py`,
+their use in `ConnectedView.vue`, their tests in `server/tests/test_app.py` and
+`client/src/App.test.ts`, and Rematch from `CONNECTED_MENU` in `bootstrap.ts`.
+
 The server's files are in `server/acme_dialpad_rightbar/`:
 
 | File                                                       | Do     | What                                                                                                                                        |
@@ -124,7 +131,7 @@ The client's files are in `client/`:
 | `src/App.test.ts`, `src/contacts.test.ts`                                                | Change | Adapt them to your panel ([chapter 10](10-test-your-app.md))                                                                                                                                 |
 | `dev-host/`                                                                              | Keep   | Only if you keep local mode                                                                                                                                                                  |
 | `e2e/sdk/`, `playwright.config.ts`                                                       | Delete | They test this repository. Also remove the `test:e2e` script and `@playwright/test`, or adapt the tests                                                                                      |
-| `scripts/vendor.mjs`, `scripts/guide-images.mjs`                                         | Delete | Dialpad's tooling for this repository. Also remove their scripts in `package.json`                                                                                                           |
+| `scripts/vendor.mjs`, `scripts/guide-images.mjs`, `scripts/check-links.mjs`              | Delete | Dialpad's tooling for this repository. Also remove their scripts in `package.json`                                                                                                           |
 | `vendor/`                                                                                | Keep   | The SDK tarball ([chapter 2](02-run-the-demo.md#upgrade-the-sdk))                                                                                                                            |
 
 To run your app as a container, see

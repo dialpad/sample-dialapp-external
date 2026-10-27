@@ -111,5 +111,5 @@ notice.
 ---
 
 **Previous:** [4. Build the panel with the SDK](04-build-the-panel.md) ·
-**Next:** [6. Connect the user to the CRM](06-connect-to-the-crm.md) ·
+**Next:** [6. Connect the user to your service](06-connect-to-the-crm.md) ·
 [Contents](../README.md#the-guide)
