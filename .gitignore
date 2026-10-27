@@ -11,3 +11,5 @@ playwright-report/
 test-results/
 # Local planning files of whoever builds this repository; not part of the app.
 docs/
+# A local code index, built by the CodeGraph tool.
+.codegraph/
