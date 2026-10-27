@@ -151,8 +151,10 @@ to the server and back.
   Any framework works; [chapter 12](12-plain-javascript.md) and
   [chapter 13](13-react.md) show the panel without Vue.
 - **The server** (`server/`) is Python and Sanic. It's a reference, not a
-  requirement. Its contract code is in `idtoken.py`, `pages.py`, and
-  `contract.py`; port those to your language and keep the rest of your server.
+  requirement. Its contract code is in `dialpad/` (the idtoken, the page data,
+  the panel page, and the `/dialpad` routes) and Connect's OAuth round trip is
+  in `connect/`; port those and `pages.py` (the security headers) to your
+  language and keep the rest of your server.
 - **The demo has no database and no real CRM**, so it takes some shortcuts. Each
   chapter ends with what the demo does differently, and
   [chapter 11](11-from-demo-to-your-app.md) lists what to replace.

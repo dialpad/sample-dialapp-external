@@ -6,11 +6,11 @@
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 
 // crm-record: the next line
-import CrmRecord from '../crm/CrmRecord.vue';
-import DialpadApiCard from '../demo/DialpadApiCard.vue';
-import CallCard from './CallCard.vue';
-import DisconnectButton from './DisconnectButton.vue';
-import UserCard from './UserCard.vue';
+import CrmRecord from './crm/CrmRecord.vue';
+import DialpadApiCard from './demo/DialpadApiCard.vue';
+import CallCard from './examples/CallCard.vue';
+import DisconnectButton from './connect/DisconnectButton.vue';
+import UserCard from './examples/UserCard.vue';
 
 const { state } = useRightbar();
 </script>

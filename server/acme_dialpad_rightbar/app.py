@@ -1,9 +1,9 @@
 """The Acme for Dialpad server: bare Sanic, built on its own copy of the DialApp contract.
 
 ``create_app`` wires it together: the shared ``AppContext`` (``acme_dialpad_rightbar.context``), the
-endpoints (``acme_dialpad_rightbar.endpoints``: ``dialpad/`` for the DialApp contract's, ``app/``
-for the application's own), the CRM record's (``acme_dialpad_rightbar.crm``), the demo's stand-ins
-and routes (``acme_dialpad_rightbar.demo``), and the built iframe panel's assets. Where each piece
+routes of the Dialpad contract (``acme_dialpad_rightbar.dialpad``), of Connect
+(``acme_dialpad_rightbar.connect``), of the CRM record (``acme_dialpad_rightbar.crm``) and of the
+demo (``acme_dialpad_rightbar.demo``), and the built iframe panel's assets. Where each piece
 of state lives, and how a request from the iframe panel is authenticated, is explained in
 ``acme_dialpad_rightbar.context``.
 """
@@ -21,14 +21,14 @@ from sanic.handlers import ErrorHandler
 # crm-record: the next line
 from acme_dialpad_rightbar import crm
 from acme_dialpad_rightbar.assets import build_assets
+from acme_dialpad_rightbar.connect import register_connect_endpoints
 from acme_dialpad_rightbar.context import App
 from acme_dialpad_rightbar.context import AppContext
 from acme_dialpad_rightbar.demo.dialpad_api import DEFAULT_TIMEOUT_SECONDS
 from acme_dialpad_rightbar.demo.endpoints import register_demo_endpoints
 from acme_dialpad_rightbar.demo.fake_storage import FakeStorage
 from acme_dialpad_rightbar.demo.oauth_results import OAuthResults
-from acme_dialpad_rightbar.endpoints.app import register_app_endpoints
-from acme_dialpad_rightbar.endpoints.dialpad import register_dialpad_endpoints
+from acme_dialpad_rightbar.dialpad.endpoints import register_dialpad_endpoints
 
 if TYPE_CHECKING:
   from collections.abc import Callable
@@ -84,7 +84,7 @@ def create_app(
       api_timeout=api_timeout,
   )
   register_dialpad_endpoints(app, ctx)
-  register_app_endpoints(app, ctx)
+  register_connect_endpoints(app, ctx)
   crm.register_crm_endpoints(app, ctx) # crm-record
   register_demo_endpoints(app, ctx)
   if not settings.local_mode:

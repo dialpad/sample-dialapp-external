@@ -10,7 +10,7 @@ from sanic import HTTPResponse
 from sanic import Request
 from sanic.response import empty
 
-from acme_dialpad_rightbar.contract import CONTRACT_PATH_PREFIX
+from acme_dialpad_rightbar.dialpad.contract import CONTRACT_PATH_PREFIX
 from acme_dialpad_rightbar.responses import unauthorized
 
 if TYPE_CHECKING:

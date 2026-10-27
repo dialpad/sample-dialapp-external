@@ -185,7 +185,9 @@ sequenceDiagram
 - Because the demo has no database, the callback leaves a note in server memory
   that the panel's next check collects, and the storage cookie records
   "connected" ([chapter 11](11-from-demo-to-your-app.md#oauth-results-in-memory)).
-- `client/src/components/ConnectGate.vue` is the Connect screen, and
+- On the server, `server/acme_dialpad_rightbar/connect/` builds the authorize
+  URL and its signed `state`, and holds the callback and the close-popup page.
+- `client/src/connect/ConnectGate.vue` is the Connect screen, and
   `DisconnectButton.vue` confirms inline. Copy them and change the text.
 
 ---

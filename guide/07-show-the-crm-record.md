@@ -185,7 +185,7 @@ not for an office or department contact.
   record in `setLinkedRecord()`, and it unlinks as described above. Its
   `refreshContact` callback looks the contact up again, as described in
   [Refresh the record](#refresh-the-record).
-- `client/src/bootstrap.ts` sets the menu and the refresh button, with Rematch
+- `client/src/panelMenu.ts` sets the menu and the refresh button, with Rematch
   from `client/src/crm/menu.ts`. The demo's **Rematch** and **Create Task** only
   show a toast ([chapter 4](04-build-the-panel.md#in-this-demo)).
 

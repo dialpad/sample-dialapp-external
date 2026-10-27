@@ -332,7 +332,7 @@ none. Validate it before you use it, as with any input.
   card for the user, the call, the open contact, and the demo's call to Dialpad's
   API.
 - `client/src/style.css` has the shared styles and the narrow-panel media query.
-- `setUpPanelMenu()` in `bootstrap.ts` sets the panel menu and the refresh
+- `setUpPanelMenu()` in `client/src/panelMenu.ts` sets the panel menu and the refresh
   button from the connection, and answers `menuSelect`. Before the user
   connects, there's no menu and no button. Once connected, the menu is
   `CONNECTED_MENU`: **Rematch** (from `client/src/crm/menu.ts`), **Create

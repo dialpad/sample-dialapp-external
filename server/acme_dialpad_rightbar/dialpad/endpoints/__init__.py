@@ -6,14 +6,14 @@
 * ``POST /dialpad/ext-disconnect``: end that connection (``ext_disconnect.py``).
 
 The SDK makes the last two itself, with the app's own access token. Everything else the iframe panel
-calls is the application's own: see ``acme_dialpad_rightbar.endpoints.app``.
+calls is the application's own, such as the CRM record's routes in ``acme_dialpad_rightbar.crm``.
 """
 
 from typing import TYPE_CHECKING
 
-from acme_dialpad_rightbar.endpoints.dialpad import ext_connection
-from acme_dialpad_rightbar.endpoints.dialpad import ext_disconnect
-from acme_dialpad_rightbar.endpoints.dialpad import page
+from acme_dialpad_rightbar.dialpad.endpoints import ext_connection
+from acme_dialpad_rightbar.dialpad.endpoints import ext_disconnect
+from acme_dialpad_rightbar.dialpad.endpoints import page
 
 if TYPE_CHECKING:
   from acme_dialpad_rightbar.context import App

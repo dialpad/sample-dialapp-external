@@ -1,7 +1,7 @@
 """The page's script and style tags: Vite's dev server in local mode, the built bundle otherwise.
 
-``PageAssets`` is what ``pages.render_page`` links, and the origins its Content-Security-Policy must
-allow them from; ``build_assets`` decides which assets those are.
+``PageAssets`` is what ``dialpad.panel_page.render_page`` links, and the origins its
+Content-Security-Policy must allow them from; ``build_assets`` decides which assets those are.
 """
 
 import json

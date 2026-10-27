@@ -2,7 +2,7 @@
 
 import pytest
 
-from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.dialpad.idtoken import TEST_CLIENT_SECRET
 from acme_dialpad_rightbar.settings import ConfigurationError
 from acme_dialpad_rightbar.settings import Settings
 from acme_dialpad_rightbar.settings import listen_port

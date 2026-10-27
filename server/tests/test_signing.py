@@ -7,26 +7,27 @@ connection checks rely on to trust a ``state`` or a storage cookie.
 from dataclasses import replace
 
 from acme_dialpad_rightbar import signing
+from acme_dialpad_rightbar.connect import state as oauth_state
+from acme_dialpad_rightbar.connect.state import STATE_TTL_SECONDS
 from acme_dialpad_rightbar.demo import fake_storage
 from acme_dialpad_rightbar.demo.fake_storage import COOKIE_MAX_AGE_SECONDS
-from acme_dialpad_rightbar.signing import STATE_TTL_SECONDS
 
 SECRET = 'app-secret'
 NOW = 1_000_000.0
 
 
 def test_a_state_is_valid_for_the_user_it_was_issued_for_until_ten_minutes_pass() -> None:
-  state = signing.issue_state(5432, 12345, SECRET, NOW)
+  state = oauth_state.issue_state(5432, 12345, SECRET, NOW)
 
-  claims = signing.verify_state(state, SECRET, NOW + STATE_TTL_SECONDS - 1)
+  claims = oauth_state.verify_state(state, SECRET, NOW + STATE_TTL_SECONDS - 1)
 
   assert claims is not None
   assert (claims.user_id, claims.company_id) == (5432, 12345)
-  assert signing.verify_state(state, SECRET, NOW + STATE_TTL_SECONDS) is None
+  assert oauth_state.verify_state(state, SECRET, NOW + STATE_TTL_SECONDS) is None
 
 
 def test_a_forged_or_malformed_state_is_rejected() -> None:
-  state = signing.issue_state(5432, 12345, SECRET, NOW)
+  state = oauth_state.issue_state(5432, 12345, SECRET, NOW)
   tampered = signing.sign({
       'kind': 'state',
       'user_id': 1,
@@ -36,12 +37,12 @@ def test_a_forged_or_malformed_state_is_rejected() -> None:
   body, _, mac = state.partition('.')
   tampered_body, _, _ = tampered.partition('.')
 
-  assert signing.verify_state(signing.issue_state(5432, 12345, 'other-secret', NOW), SECRET,
-                              NOW) is None
-  assert signing.verify_state(f'{tampered_body}.{mac}', SECRET, NOW) is None
-  assert signing.verify_state(f'{body}.', SECRET, NOW) is None
-  assert signing.verify_state('not-a-signed-value', SECRET, NOW) is None
-  assert signing.verify_state('', SECRET, NOW) is None
+  assert oauth_state.verify_state(oauth_state.issue_state(5432, 12345, 'other-secret', NOW), SECRET,
+                                  NOW) is None
+  assert oauth_state.verify_state(f'{tampered_body}.{mac}', SECRET, NOW) is None
+  assert oauth_state.verify_state(f'{body}.', SECRET, NOW) is None
+  assert oauth_state.verify_state('not-a-signed-value', SECRET, NOW) is None
+  assert oauth_state.verify_state('', SECRET, NOW) is None
 
 
 def some_claims(**overrides: object) -> fake_storage.CookieClaims:
@@ -56,9 +57,9 @@ def some_claims(**overrides: object) -> fake_storage.CookieClaims:
 def test_a_storage_cookie_is_not_accepted_as_state_and_a_state_is_not_accepted_as_a_cookie(
 ) -> None:
   cookie = fake_storage.issue_cookie(some_claims(), SECRET, NOW)
-  state = signing.issue_state(5432, 12345, SECRET, NOW)
+  state = oauth_state.issue_state(5432, 12345, SECRET, NOW)
 
-  assert signing.verify_state(cookie, SECRET, NOW) is None
+  assert oauth_state.verify_state(cookie, SECRET, NOW) is None
   assert fake_storage.read_cookie(state, SECRET, NOW) is None
 
 

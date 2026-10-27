@@ -11,7 +11,7 @@ without Vue; this repository doesn't build or run the sketch.
 - **The whole server.** The page, the contract endpoints, `POST /api/contact`, the
   OAuth screens, the storage cookie, the CSP, and everything in
   [chapter 9](09-security-checklist.md) stay exactly as they are. The iframe
-  panel only needs a `<div id="app">` and a script, which `pages.py` already
+  panel only needs a `<div id="app">` and a script, which `dialpad/panel_page.py` already
   renders.
 - **The SDK calls.** `createRightbar`, `rightbar.state`, `rightbar.subscribe`,
   `rightbar.watch`, `authorize`, `disconnect`, `authHeaders`, `linkRecord`,
@@ -33,7 +33,7 @@ without Vue; this repository doesn't build or run the sketch.
 
 | In the Vue app                                                                                                              | In plain JavaScript                                                                   |
 | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `main.ts`, `bootstrap.ts`                                                                                                   | One `main.js`: create the SDK instance, then render and subscribe                     |
+| `main.ts`, `bootstrap.ts`, `panelMenu.ts`                                                                                   | One `main.js`: create the SDK instance, then render and subscribe                     |
 | `App.vue`                                                                                                                   | `renderApp(state)`: the title, the reload notice, then the gate or the connected view |
 | `ConnectGate.vue`                                                                                                           | `renderConnectGate(connection)`                                                       |
 | `ConnectedView.vue`, `UserCard.vue`, `CallCard.vue`, `demo/DialpadApiCard.vue`, `DisconnectButton.vue`, `crm/CrmRecord.vue` | One render function each, returning DOM nodes                                         |

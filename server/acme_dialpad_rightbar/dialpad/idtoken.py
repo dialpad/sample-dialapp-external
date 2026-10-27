@@ -15,7 +15,7 @@ from joserfc.errors import JoseError
 from joserfc.jwk import OctKey
 from pydantic import ValidationError
 
-from acme_dialpad_rightbar.contract import IdTokenClaims
+from acme_dialpad_rightbar.dialpad.contract import IdTokenClaims
 
 JWE_ALGORITHM = 'dir'
 JWE_ENCRYPTION = 'A192CBC-HS384'

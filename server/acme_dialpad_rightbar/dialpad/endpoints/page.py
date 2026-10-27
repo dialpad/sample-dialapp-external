@@ -3,8 +3,8 @@
 Dialpad opens the URL registered as the OAuth app's conversation sidebar URI and appends
 ``?idtoken=<token>``. This is the one request authenticated by the idtoken (decoded with the OAuth
 app's client secret); every later request from the iframe panel uses the access token this page
-hands out instead. See ``acme_dialpad_rightbar.idtoken`` for the token, and chapters 3 and 5 of the
-guide (``guide/``) for why.
+hands out instead. See ``acme_dialpad_rightbar.dialpad.idtoken`` for the token, and chapters 3 and
+5 of the guide (``guide/``) for why.
 """
 
 from typing import TYPE_CHECKING
@@ -12,19 +12,20 @@ from typing import TYPE_CHECKING
 from sanic import HTTPResponse
 from sanic import Request
 
-from acme_dialpad_rightbar.context import ACCOUNT_NAME
+from acme_dialpad_rightbar.connect.authorize import external_connection
 from acme_dialpad_rightbar.context import UserKey
-from acme_dialpad_rightbar.contract import ErrorResponse
-from acme_dialpad_rightbar.contract import PageData
 from acme_dialpad_rightbar.demo.dialpad_api import fetch_dialpad_user
 from acme_dialpad_rightbar.demo.dialpad_api import skipped
-from acme_dialpad_rightbar.idtoken import IdTokenError
-from acme_dialpad_rightbar.idtoken import decode_idtoken
-from acme_dialpad_rightbar.pages import PageOptions
+from acme_dialpad_rightbar.dialpad.contract import ErrorResponse
+from acme_dialpad_rightbar.dialpad.contract import PageData
+from acme_dialpad_rightbar.dialpad.idtoken import IdTokenError
+from acme_dialpad_rightbar.dialpad.idtoken import decode_idtoken
+from acme_dialpad_rightbar.dialpad.panel_page import PageOptions
+from acme_dialpad_rightbar.dialpad.panel_page import render_page
 from acme_dialpad_rightbar.pages import generate_nonce
 from acme_dialpad_rightbar.pages import render_error_page
-from acme_dialpad_rightbar.pages import render_page
 from acme_dialpad_rightbar.responses import rendered
+from acme_dialpad_rightbar.settings import ACCOUNT_NAME
 
 if TYPE_CHECKING:
   from acme_dialpad_rightbar.context import App
@@ -70,7 +71,8 @@ def register(app: App, ctx: AppContext) -> None:
     page_data = PageData(
         dialpad_origin=settings.dialpad_origin,
         access_token=user.get_access_token(),
-        external_connection=ctx.external_connection(
+        external_connection=external_connection(
+            ctx,
             key,
             connected=user.is_external_connected(),
         ),

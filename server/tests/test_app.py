@@ -12,13 +12,13 @@ from urllib.parse import urlsplit
 
 import pytest
 
-from acme_dialpad_rightbar import signing
-from acme_dialpad_rightbar.context import CLIENT_NAME
-from acme_dialpad_rightbar.context import CONNECTED_SCOPES
+from acme_dialpad_rightbar.connect import state as oauth_state
 from acme_dialpad_rightbar.demo import fake_storage
 from acme_dialpad_rightbar.demo.oauth import FAKE_CODE
-from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
-from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.dialpad.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.dialpad.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.settings import CLIENT_NAME
+from acme_dialpad_rightbar.settings import CONNECTED_SCOPES
 from tests.conftest import APP_SECRET
 from tests.conftest import Env
 from tests.conftest import authorize_url_of
@@ -389,7 +389,7 @@ async def test_the_callback_returns_the_close_popup_page_for_the_dialpad_origin(
 @pytest.mark.parametrize(
     ('state_secret', 'code', 'wait_seconds'),
     [
-        (APP_SECRET, FAKE_CODE, signing.STATE_TTL_SECONDS + 1),
+        (APP_SECRET, FAKE_CODE, oauth_state.STATE_TTL_SECONDS + 1),
         ('not-the-app-secret', FAKE_CODE, 0),
         (APP_SECRET, 'other', 0),
     ],
@@ -399,7 +399,7 @@ async def test_a_callback_with_a_bad_state_or_code_records_nothing(env: Env, sta
                                                                    code: str,
                                                                    wait_seconds: int) -> None:
   panel = await env.open_panel()
-  state = signing.issue_state(5432, 12345, state_secret, env.clock())
+  state = oauth_state.issue_state(5432, 12345, state_secret, env.clock())
   env.clock.advance(wait_seconds)
 
   callback = await env.get('/oauth/callback', params={'state': state, 'code': code})

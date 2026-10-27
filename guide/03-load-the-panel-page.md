@@ -175,9 +175,10 @@ a script, or an access token.
 
 ## In this demo
 
-- `server/acme_dialpad_rightbar/idtoken.py` decodes the idtoken (`decode_idtoken`).
-  `pages.py` renders the page, the error page, and their security headers, and
-  `endpoints/dialpad/page.py` is the route.
+- `server/acme_dialpad_rightbar/dialpad/idtoken.py` decodes the idtoken
+  (`decode_idtoken`). `dialpad/panel_page.py` renders the page,
+  `pages.py` the error page and every page's security headers, and
+  `dialpad/endpoints/page.py` is the route.
 - The demo has no database. It keeps everything it must remember, the access
   token included, in one signed cookie instead
   (`server/acme_dialpad_rightbar/demo/fake_storage.py`), and it uses the API key

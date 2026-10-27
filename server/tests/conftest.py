@@ -25,11 +25,10 @@ import pytest
 from sanic import Sanic
 
 from acme_dialpad_rightbar.app import create_app
-from acme_dialpad_rightbar.context import CLIENT_NAME
-from acme_dialpad_rightbar.context import App
 from acme_dialpad_rightbar.demo.fake_storage import COOKIE_HEADER_NAME
-from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
-from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.dialpad.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.dialpad.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.settings import CLIENT_NAME
 from acme_dialpad_rightbar.settings import Settings
 
 if TYPE_CHECKING:
@@ -37,6 +36,8 @@ if TYPE_CHECKING:
   from pathlib import Path
 
   from httpx import Response
+
+  from acme_dialpad_rightbar.context import App
 
 # Fixed values the apps under test are configured with; tests compare against them.
 APP_SECRET = 'test-app-secret'

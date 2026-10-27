@@ -86,7 +86,11 @@ A panel that doesn't show a CRM record skips chapter 7
 | `deployment/` | The Dockerfile, and how to run the app on Cloud Run                                                      |
 | `guide/`      | This guide                                                                                               |
 
-In both `client/src/` and `server/acme_dialpad_rightbar/`, `demo/` holds what
-only the demo needs, which you replace or delete, and `crm/` holds the CRM
-record, which you change or delete
+The code is organised by feature. On the server, `dialpad/` is the contract
+with Dialpad (the idtoken, the panel page, and the `/dialpad` routes) and
+`connect/` is the OAuth round trip behind Connect; in the panel, `connect/`
+holds the Connect screen. In both `client/src/` and
+`server/acme_dialpad_rightbar/`, `demo/` holds what only the demo needs, which
+you replace or delete, and `crm/` holds the CRM record, which you change or
+delete
 ([chapter 11](guide/11-from-demo-to-your-app.md#what-to-keep-replace-and-delete)).

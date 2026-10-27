@@ -11,7 +11,7 @@
 // record's URL in the CRM. Either way the panel then calls the SDK's `linkRecord(...)`, so Dialpad
 // shows a "View <type>" button in the panel header that opens the record's URL, and uses that URL
 // for screen pops. The server side is described in
-// `server/acme_dialpad_rightbar/endpoints/app/contact.py`.
+// `server/acme_dialpad_rightbar/crm/contact.py`.
 import type { Contact, LinkedRecord } from '@dialpad/dialapp-external-sdk';
 
 import { api } from '../api';

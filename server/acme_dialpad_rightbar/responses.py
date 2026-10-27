@@ -5,12 +5,12 @@ from typing import TYPE_CHECKING
 from sanic.response import html
 from sanic.response import json
 
-from acme_dialpad_rightbar.contract import ErrorResponse
+from acme_dialpad_rightbar.dialpad.contract import ErrorResponse
 
 if TYPE_CHECKING:
   from sanic import HTTPResponse
 
-  from acme_dialpad_rightbar.contract import ExternalConnection
+  from acme_dialpad_rightbar.dialpad.contract import ExternalConnection
   from acme_dialpad_rightbar.pages import RenderedPage
 
 

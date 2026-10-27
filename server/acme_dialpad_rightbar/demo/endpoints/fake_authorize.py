@@ -11,11 +11,11 @@ from sanic import HTTPResponse
 from sanic import Request
 from sanic.response import text
 
-from acme_dialpad_rightbar.context import CONNECTED_SCOPES
 from acme_dialpad_rightbar.demo.oauth import FAKE_CODE
 from acme_dialpad_rightbar.demo.oauth import render_fake_authorize_page
 from acme_dialpad_rightbar.pages import generate_nonce
 from acme_dialpad_rightbar.responses import rendered
+from acme_dialpad_rightbar.settings import CONNECTED_SCOPES
 
 if TYPE_CHECKING:
   from acme_dialpad_rightbar.context import App

@@ -9,12 +9,12 @@ from typing import TYPE_CHECKING
 from sanic import HTTPResponse
 from sanic import Request
 
-from acme_dialpad_rightbar import signing
+from acme_dialpad_rightbar.connect import state as oauth_state
+from acme_dialpad_rightbar.connect.close_popup import render_close_popup
 from acme_dialpad_rightbar.context import UserKey
-from acme_dialpad_rightbar.contract import ErrorResponse
 from acme_dialpad_rightbar.demo.oauth import FAKE_CODE
+from acme_dialpad_rightbar.dialpad.contract import ErrorResponse
 from acme_dialpad_rightbar.pages import generate_nonce
-from acme_dialpad_rightbar.pages import render_close_popup
 from acme_dialpad_rightbar.pages import render_error_page
 from acme_dialpad_rightbar.responses import rendered
 
@@ -41,7 +41,7 @@ def register(app: App, ctx: AppContext) -> None:
     No cookie is set: the popup is a separate window from the iframe panel.
     """
     state = str(request.args.get('state', ''))
-    claims = signing.verify_state(state, settings.app_secret, ctx.clock())
+    claims = oauth_state.verify_state(state, settings.app_secret, ctx.clock())
     if claims is None or request.args.get('code') != FAKE_CODE:
       error = ErrorResponse(code='invalid_state', message='This connection link has expired.')
       return rendered(render_error_page(error, status=400, dialpad_origin=settings.dialpad_origin))

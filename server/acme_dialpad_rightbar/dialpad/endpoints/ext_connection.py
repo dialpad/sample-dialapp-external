@@ -11,7 +11,8 @@ from typing import TYPE_CHECKING
 from sanic import HTTPResponse
 from sanic import Request
 
-from acme_dialpad_rightbar.contract import CONTRACT_PATH_PREFIX
+from acme_dialpad_rightbar.connect.authorize import external_connection
+from acme_dialpad_rightbar.dialpad.contract import CONTRACT_PATH_PREFIX
 from acme_dialpad_rightbar.responses import connection_response
 from acme_dialpad_rightbar.responses import unauthorized
 
@@ -39,7 +40,8 @@ def register(app: App, ctx: AppContext) -> None:
       return unauthorized()
     key = user.user_key()
     if ctx.results.consume(key):
-      reply = connection_response(ctx.external_connection(key, connected=True))
+      reply = connection_response(external_connection(ctx, key, connected=True))
       ctx.storage.save(reply, user.with_external_connected(connected=True))
       return reply
-    return connection_response(ctx.external_connection(key, connected=user.is_external_connected()))
+    return connection_response(external_connection(ctx, key,
+                                                   connected=user.is_external_connected()))

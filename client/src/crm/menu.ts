@@ -1,4 +1,4 @@
-// The CRM record's items in Dialpad's panel menu. `bootstrap.ts` adds them to the connected menu.
+// The CRM record's items in Dialpad's panel menu. `panelMenu.ts` adds them to the connected menu.
 import type { MenuItem } from '@dialpad/dialapp-external-sdk';
 
 /**

@@ -5,7 +5,7 @@
 // Clicking Disconnect only asks "Disconnect Acme?"; Cancel goes back. Confirming calls the SDK's
 // `disconnect()`, which calls `/dialpad/ext-disconnect`, after which `App.vue` swaps this whole view
 // for the Connect gate. If the call fails the user stays connected and sees an error here. The
-// Disconnect item in Dialpad's iframe panel menu calls the same `disconnect()` (`bootstrap.ts`),
+// Disconnect item in Dialpad's iframe panel menu calls the same `disconnect()` (`panelMenu.ts`),
 // without this confirmation.
 import { useRightbar } from '@dialpad/dialapp-external-sdk/vue';
 import { DtButton } from '@dialpad/dialtone/vue/lib/button';

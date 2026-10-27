@@ -12,8 +12,8 @@ from typing import Any
 
 import pytest
 
-from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
-from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.dialpad.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.dialpad.idtoken import encode_mock_idtoken
 from tests.conftest import Env
 from tests.conftest import page_data_of
 

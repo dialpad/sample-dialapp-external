@@ -70,7 +70,8 @@ ignore = [
 "tests/**" = ["S101", "PLR2004", "ARG001", "S105", "S106", "D102", "D103", "D107"]
 # Sanic reads a handler's annotations when the route is registered, so `Request` and `HTTPResponse`
 # must be real imports there, not `if TYPE_CHECKING:` ones.
-"acme_dialpad_rightbar/endpoints/**" = ["TC002"]
+"acme_dialpad_rightbar/dialpad/endpoints/**" = ["TC002"]
+"acme_dialpad_rightbar/connect/callback.py" = ["TC002"]
 "acme_dialpad_rightbar/crm/**" = ["TC002"]
 "acme_dialpad_rightbar/demo/endpoints/**" = ["TC002"]
 

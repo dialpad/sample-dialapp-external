@@ -11,7 +11,7 @@ from sanic import HTTPResponse
 from sanic import Request
 from sanic.response import json
 
-from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.dialpad.idtoken import encode_mock_idtoken
 
 if TYPE_CHECKING:
   from acme_dialpad_rightbar.context import App

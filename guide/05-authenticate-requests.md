@@ -79,8 +79,9 @@ token the panel can send.
 
 Your panel needs more than the contract: contact lookups, notes, search, and so
 on. Each is an ordinary route on your server, authenticated the same way. In this
-app, a route is a file under `server/acme_dialpad_rightbar/endpoints/app/` with a
-`register(app, ctx)` function, listed in that folder's `__init__.py`:
+app, a route is a file with a `register(app, ctx)` function in its feature's
+folder, such as `server/acme_dialpad_rightbar/crm/contact.py`, listed in that
+folder's `__init__.py`:
 
 ```python
 @app.get('/api/notes')
