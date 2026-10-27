@@ -80,7 +80,7 @@ async function start() {
     (state) => state.theme.mode,
     (mode) => setMode(mode),
   );
-  // Set Dialpad's panel menu from the connection, now and on every change (chapter 7).
+  // Set Dialpad's panel menu from the connection, now and on every change (chapter 4).
   rightbar.watch(
     (state) => state.connection.connected,
     (connected) =>
@@ -236,7 +236,7 @@ function createContactSection(rightbar) {
 
 The section links the record once the lookup succeeds and unlinks when the
 contact changes. Also unlink when the user disconnects
-([chapter 7](07-show-the-crm-record.md#link-the-record-in-dialpad)).
+([chapter 4](04-build-the-panel.md#the-view-link)).
 
 ## Tests and the bundle
 

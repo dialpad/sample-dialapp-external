@@ -1,5 +1,11 @@
 # 7. Show the CRM record
 
+> **For CRM apps.** This chapter is for a panel that shows the open contact's
+> record in a CRM, or in another system that keeps its own records of people. A
+> panel that doesn't, such as one about the call, can skip it. Dialpad's header
+> controls, which every panel can use, are in
+> [chapter 4](04-build-the-panel.md#use-dialpads-ui).
+
 Dialpad tells the panel which contact is open, but that's _Dialpad's_ contact: a
 name, phone numbers, and emails from Dialpad's directory. Your panel exists to
 show _your_ record for that person. Finding one from the other is the _contact
@@ -91,89 +97,30 @@ flowchart TD
 
 ## Link the record in Dialpad
 
-Once the panel has the record, tell Dialpad about it with `linkRecord`:
+Dialpad's panel header has three controls
+([chapter 4](04-build-the-panel.md#use-dialpads-ui)). This section shows how a CRM
+panel uses them.
+
+Once the panel has the record, set it as the View link, with the type and URL
+your server returned:
 
 ```ts
 await rightbar.linkRecord({
   type: "Contact",
   url: "https://crm.example/contacts/42",
 });
-await rightbar.linkRecord(null); // unlink, for example when another contact opens
 ```
 
-Dialpad then:
-
-- Shows the record in the panel's header, which opens `url` in a new tab: a
-  **View Contact** link (with your `type`), a ↗ button that appears when the
-  pointer is over the header, or both; Dialpad decides which a user sees. They
-  show whenever a record is linked, whatever the panel menu holds.
-- Uses `url` as the default for screen pops (below).
-
-Unlink with `linkRecord(null)` as soon as the contact changes, when the lookup
-fails, and when the user disconnects, so Dialpad never shows a record for another
-contact. Link only the panel's own contact, not a call's other contact: Dialpad
-keeps one linked record per panel.
-
-### The panel menu
-
-The panel menu is Dialpad's menu in your panel's header. Your panel decides what
-it holds with `setMenu`: each item is an `id` of your choice and the `label`
-Dialpad shows. When the user picks an item, the SDK emits `menuSelect` with its
-`id`:
-
-```ts
-await rightbar.setMenu([]); // no menu, before the user connects
-await rightbar.setMenu([
-  { id: "rematch", label: "Rematch" },
-  { id: "disconnect", label: "Disconnect" },
-]); // once the user connects
-
-rightbar.on("menuSelect", (id) => {
-  if (id === "disconnect") rightbar.disconnect();
-  if (id === "rematch") rematch(); // yours: see Rematch below
-});
-```
-
-- **Dialpad shows exactly your items**, in your order, and adds nothing. List a
-  Disconnect item yourself whenever the user should be able to disconnect from
-  the menu, and call `disconnect()` when they pick it
-  ([chapter 6](06-connect-to-the-crm.md#disconnect)).
-- **Dialpad doesn't check the connection.** Set `[]` while the user isn't
-  connected.
-- **Set it every time the panel starts.** Dialpad forgets the menu when the panel
-  reloads, so set it from the connection state, as this app does. A panel that
-  never calls `setMenu` has no menu.
-- **The labels are yours to translate**
-  ([chapter 4](04-build-the-panel.md#translate-the-panel)). Dialpad shows them
-  as plain text, never as HTML, and cuts one that doesn't fit with an ellipsis.
-
-Dialpad holds the menu to these limits:
-
-| What            | Limit                                                   | When it's broken                                                         |
-| --------------- | ------------------------------------------------------- | ------------------------------------------------------------------------ |
-| The items       | A list of at most 5                                     | Dialpad refuses the menu: `setMenu` rejects and the menu stays as it was |
-| An item's `id`  | 1 to 64 characters, and not the `id` of an earlier item | Dialpad leaves the item out, and the SDK logs a warning naming its `id`  |
-| An item's label | 1 to 40 characters, not only spaces                     | The same                                                                 |
-
-What to offer depends on your CRM. For example:
-
-| Item        | Offer it when                                         | What your panel does when it's picked                                             |
-| ----------- | ----------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Disconnect  | The user is connected                                 | Calls `disconnect()` ([chapter 6](06-connect-to-the-crm.md#disconnect))           |
-| Rematch     | A record is linked, and your server maps contacts     | Forgets the saved mapping and looks the contact up again ([Rematch](#rematch))    |
-| Create Task | A record is linked, and the CRM has tasks or activity | Creates a task in the CRM against the linked record ([Create Task](#create-task)) |
-
-| Call                                             | What it does                                                                                        |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `linkRecord({ type, url })` / `linkRecord(null)` | Tells Dialpad which of your records matches the open contact, or unlinks it                         |
-| `setMenu(items)`                                 | Sets the panel menu to `items`, each `{ id, label }`, in order. Resolves once Dialpad answers       |
-| `on('menuSelect', callback)`                     | Runs `callback(id)` when the user picks an item in the panel menu. Returns a function that stops it |
-| `screenPop({ url?, force? })`                    | Asks Dialpad to open a record for the active call, by default the linked record's URL               |
+Dialpad shows a **View Contact** link that opens the record in the CRM. Unlink
+with `linkRecord(null)` as soon as the contact changes, when the lookup fails,
+and when the user disconnects.
 
 ### Rematch
 
 The contact mapping can pick the wrong record, for example when two records
-share a phone number. **Rematch** lets the user ask for the match again:
+share a phone number. **Rematch**, an item in the panel menu
+([chapter 4](04-build-the-panel.md#the-panel-menu)), lets the user ask for the
+match again:
 
 1. When the user picks Rematch, your panel asks a route of your own to delete
    the saved mapping for the open contact.
@@ -198,51 +145,24 @@ redo.
 
 ### Create Task
 
-**Create Task** creates a task in the CRM against the linked record, such as a
-call back. The menu item only tells your panel that the user asked. Show a
-short form inline in the panel (a dialog can't leave the iframe), then post it
-to a route of your own, which creates the task with the user's CRM token:
-
-```ts
-rightbar.on("menuSelect", (id) => {
-  if (id === "create-task") {
-    showTaskForm.value = true; // your form posts to your route, such as POST /api/tasks
-  }
-});
-```
+**Create Task** in the panel menu creates a task, such as a call back, against
+the linked record. Your route creates it with the user's CRM token. Offer it
+once a record is linked and the CRM has tasks or activity.
 
 ### Refresh the record
 
-Dialpad's refresh button, in the panel's header, lets the user ask for the CRM's
-latest. Show it with `showRefreshButton(true)` once the user connects, and hide
-it with `showRefreshButton(false)` when they disconnect. When the user presses
-it, the SDK reloads `state.contact` and then emits `refreshContact`.
-
-The SDK keeps the same `state.contact` object when the reloaded contact hasn't
-changed, so a watch on the contact doesn't run. Look the contact up again in the
-`refreshContact` callback instead. The SDK also emits `refreshContact` when
-Dialpad changes the contact, and your watch already looks that one up, so skip
-the lookup when the contact changed since the last `refreshContact`:
-
-```ts
-let lastContact = rightbar.state.contact;
-rightbar.on("refreshContact", () => {
-  const contact = rightbar.state.contact;
-  const unchanged = contact === lastContact;
-  lastContact = contact;
-  if (unchanged && contact) {
-    lookUp(contact); // the same lookup as when the contact changes
-  }
-});
-```
+The refresh button lets the user ask for the CRM's latest record. Show it once
+the user connects. In the `refreshContact` callback, run the same lookup as when
+the contact changes, following
+[chapter 4](04-build-the-panel.md#the-refresh-button).
 
 ### Screen pops
 
 A _screen pop_ opens the caller's record when a call comes in.
-`rightbar.screenPop()` asks Dialpad to open the linked record's URL, or the `url`
-you pass. Without `force`, Dialpad pops only when the user has screen pops turned
-on, during a live inbound call, at most once per call, and not for an office or
-department contact.
+`rightbar.screenPop({ url?, force? })` asks Dialpad to open the linked record's
+URL, or the `url` you pass. Without `force`, Dialpad pops only when the user has
+screen pops turned on, during a live inbound call, at most once per call, and
+not for an office or department contact.
 
 ## In this demo
 
@@ -256,16 +176,12 @@ department contact.
   stands in for the CRM's page for the record and shows only the contact's ID.
 - `client/src/components/AcmeContact.vue` runs the lookup, shows loading and
   failure, and ignores late answers. Once the lookup succeeds, it links the
-  record, and it unlinks as described above.
-- `client/src/bootstrap.ts` sets the panel menu from the connection: `[]` before
-  the user connects, and **Rematch**, **Create Task**, and **Disconnect** once
-  connected. Its labels are English only. Picking **Disconnect** disconnects.
-  The demo has no mapping and no tasks, so picking **Rematch** or **Create
-  Task** only shows a toast saying the sample app doesn't implement it. A real
-  app offers each only when it can act on it, as in the table above.
-- `bootstrap.ts` also shows the refresh button while the user is connected.
-  When the user presses it, `AcmeContact.vue` looks the contact up again, as
-  described in [Refresh the record](#refresh-the-record).
+  record in `setLinkedRecord()`, and it unlinks as described above. Its
+  `refreshContact` callback looks the contact up again, as described in
+  [Refresh the record](#refresh-the-record).
+- `client/src/bootstrap.ts` sets the menu and the refresh button. The demo's
+  **Rematch** and **Create Task** only show a toast
+  ([chapter 4](04-build-the-panel.md#in-this-demo)).
 
 ---
 

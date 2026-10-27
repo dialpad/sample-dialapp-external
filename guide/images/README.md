@@ -12,9 +12,10 @@ Dialpad's own UI.
 
 To add:
 
-- **The panel header's View Contact link and button, and the panel menu**, for
-  [chapter 7](../07-show-the-crm-record.md#link-the-record-in-dialpad). Captured
-  by hand in dialpadbeta, once Dialpad's `set/menu` is live there.
+- **The panel header with its three controls**: the View Contact link and ↗
+  button, the refresh button with its **Refresh record** tooltip, and the open
+  panel menu. For [chapter 4](../04-build-the-panel.md#use-dialpads-ui).
+  Captured by hand in dialpadbeta, once Dialpad's `set/menu` is live there.
 
 ## Conventions
 

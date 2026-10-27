@@ -38,7 +38,7 @@ try {
     (state) => state.theme.mode,
     (mode) => setMode(mode),
   );
-  // Set Dialpad's panel menu from the connection, now and on every change (chapter 7).
+  // Set Dialpad's panel menu from the connection, now and on every change (chapter 4).
   rightbar.watch(
     (state) => state.connection.connected,
     (connected) =>
