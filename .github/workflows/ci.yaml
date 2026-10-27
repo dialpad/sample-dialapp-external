@@ -98,7 +98,8 @@ jobs:
         working-directory: client
         run: pnpm format:ci
 
-      # Every relative link in the Markdown resolves, anchors included.
+      # Every relative link in the Markdown resolves, anchors included. This checks the guide, so
+      # it's this repository's own step; a partner's app doesn't need it.
       - name: Links (Markdown)
         id: links
         continue-on-error: true
