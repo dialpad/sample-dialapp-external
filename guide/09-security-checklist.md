@@ -72,7 +72,9 @@ Two more things protect the pages:
 
 ## In this demo
 
-- `server/acme_dialpad_rightbar/pages.py` builds each page's headers and nonce.
+- `server/acme_dialpad_rightbar/pages.py` has the shared nonce and security-header
+  helpers, and `dialpad/panel_page.py` and `connect/close_popup.py` build each
+  page's Content-Security-Policy with them.
 - The access log is off, and the error handler logs only the method, the path,
   and the exception type. A test checks that the server never logs the idtoken,
   the access token, or the cookie.
