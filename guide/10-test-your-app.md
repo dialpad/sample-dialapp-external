@@ -86,7 +86,7 @@ Each folder has its own checks:
 
 ```sh
 # client/
-pnpm lint:ci && pnpm format:ci && pnpm links:ci && pnpm types:check && pnpm test:run
+pnpm lint:ci && pnpm format:ci && pnpm types:check && pnpm test:run
 pnpm test:e2e                                   # browser tests
 
 # server/
@@ -103,8 +103,6 @@ run directly: `.venv/bin/pytest`, `.venv/bin/ruff check acme_dialpad_rightbar te
 `.venv/bin/yapf --style .style.yapf --diff -r acme_dialpad_rightbar tests`.
 
 `pnpm format:ci` also checks the Markdown files, including this guide.
-`pnpm links:ci` checks that every relative link in them resolves, anchors
-included (`client/scripts/check-links.mjs`).
 
 GitHub Actions (`.github/workflows/ci.yaml`) runs all of these on every pull
 request and every push to `main`, plus a Docker build with a start-up check. The

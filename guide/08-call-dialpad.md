@@ -57,15 +57,30 @@ and its rate limit.
 
 ## Receive Dialpad's events
 
-Dialpad can send events to a URL on your server, a _webhook_: calls, SMS,
-contacts, agent status, and change logs. A call's AI transcript and AI recap
-arrive as call events too: the `call_transcription` state says a transcript is
-ready to fetch with the transcripts API, and `recap_summary` carries the recap.
-See [Call Events](https://developers.dialpad.com/docs/call-events). Because
-Dialpad calls you, you must
-check that each request really came from Dialpad. See Dialpad's
+Dialpad can send events to a URL on your server, a _webhook_, so your app
+learns what happens in Dialpad without asking. You subscribe to the kinds of
+event your app needs, and Dialpad sends each one as it happens. Because Dialpad
+calls you, you must check that each request really came from Dialpad. See
+Dialpad's
 [Event Subscriptions](https://developers.dialpad.com/docs/event-subscriptions)
 guide.
+
+Some tasks, and the events behind them
+([Call Events](https://developers.dialpad.com/docs/call-events) lists the call
+states):
+
+| Your app wants to                      | Subscribe to                                                                                             |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Log a finished call on a record        | Call events, and act on the `hangup` state                                                               |
+| Show or store a call's transcript      | Call events. The `call_transcription` state says a transcript is ready to fetch with the transcripts API |
+| Show or store a call's AI recap        | Call events. The `recap_summary` state carries the recap                                                 |
+| Log text messages                      | SMS events                                                                                               |
+| Keep contacts in step with your system | Contact events                                                                                           |
+| React to an agent's availability       | Agent status events                                                                                      |
+
+Events reach your server, not the panel. To show an event's result in the
+panel, store it, and have the panel fetch it from your server through a route of
+its own ([chapter 5](05-authenticate-requests.md#add-your-own-routes)).
 
 ### Set up a webhook
 
@@ -108,7 +123,7 @@ sequenceDiagram
   participant S as Your server
   participant DB as Database
   participant Q as Job queue
-  participant C as Acme CRM
+  participant Y as Your service
 
   D->>S: POST /webhooks/dialpad/<your-webhook-id>, the event as a JWT
   S->>DB: Load the secret for this webhook
@@ -119,7 +134,7 @@ sequenceDiagram
     S->>Q: Queue the event, unless it's a duplicate
     S-->>D: 2xx, quickly
     Q->>S: A worker takes the event
-    S->>C: Act on it, for example log the call on the contact's record
+    S->>Y: Act on it, for example store the transcript or log the call
   end
 ```
 
@@ -131,7 +146,7 @@ sequenceDiagram
 4. **Make processing safe to repeat**, so a repeated delivery does no harm. Key it
    on the event's identity, such as a call's ID and state.
 5. **Answer fast and work later.** Return `2xx` once the event is queued, and do
-   the CRM work in a background worker.
+   the work in a background worker.
 6. **Don't log the body or the secret.** Log the webhook ID and the outcome.
 7. **Rotate a secret by replacing the webhook:** create a new one with a new
    secret, point the subscriptions at it, then delete the old one.
