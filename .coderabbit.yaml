@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Configuration reference: https://docs.coderabbit.ai/reference/configuration
+#
+# This repository's own rules are in AGENTS.md, which CodeRabbit reads as review guidelines. This
+# file holds only what is specific to CodeRabbit: how much to comment on the guide's prose, and
+# which context reviews may use. That context is limited to this repository, so reviews and chat
+# stay safe if the repository becomes public.
+
+# Merge onto the organization's configuration instead of replacing it.
+inheritance: true
+
+reviews:
+  path_instructions:
+    - path: "guide/**"
+      instructions: |
+        - Flag a departure from the writing rules in AGENTS.md only when it
+          misleads the reader, such as a time-relative claim or an ambiguous
+          pronoun. Leave wording preferences alone.
+        - Flag a claim about the SDK that contract/openapi.json or another
+          chapter contradicts.
+
+knowledge_base:
+  # No other repository is linked, by hand or automatically: a review of a public repository could
+  # otherwise quote a private one.
+  automatic_linking_mode: disabled
+  # Learnings, issues and pull requests from this repository only.
+  learnings:
+    scope: local
+  issues:
+    scope: local
+  pull_requests:
+    scope: local
+  # 'auto' turns each integration off when the repository is public.
+  jira:
+    usage: auto
+  linear:
+    usage: auto
+  mcp:
+    usage: auto
+
+chat:
+  # Only Dialpad's GitHub organization can question CodeRabbit in comments.
+  allow_non_org_members: false
+  integrations:
+    jira:
+      usage: auto
+    linear:
+      usage: auto
