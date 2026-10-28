@@ -1,34 +1,29 @@
 // Every state of the iframe panel, against the SDK's mock host and its clock: Dialpad is `createMockHost()`,
-// the server is a fetch function, and time moves with `host.advance()`.
-import {
-  type FetchLike,
-  type Rightbar,
-  type RightbarOptions,
-  type User,
-} from '@dialpad/dialapp-external-sdk';
-import { rightbarPlugin } from '@dialpad/dialapp-external-sdk/vue';
+// the server is a fetch function, and time moves with `host.advance()`. The harness is in
+// `testing.ts`; the CRM record's tests are in `crm/CrmRecord.test.ts`.
+import { type RightbarOptions } from '@dialpad/dialapp-external-sdk';
 import {
   createMockHost,
   makeCall,
-  makeContact,
   makePageData,
   makeUser,
 } from '@dialpad/dialapp-external-sdk/testing';
-import { flushPromises, mount } from '@vue/test-utils';
+import { flushPromises } from '@vue/test-utils';
 import { initDialtoneTheme, setMode } from '@dialpad/dialtone/themes/config';
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-  type MockInstance,
-} from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { api, sessionExpired } from './api';
-import App from './App.vue';
+import { api } from './api';
 import { bootstrap } from './bootstrap';
+import {
+  AUTHORIZE_URL,
+  fakeServer,
+  installPanelHarness,
+  rejectToasts,
+  setupPanel as setup,
+  start,
+  unhandledRejectionsDuring,
+  warnings,
+} from './testing';
 
 // Dialtone's theme functions write to the document; here only the calls matter.
 vi.mock('@dialpad/dialtone/themes/config', () => ({
@@ -36,270 +31,7 @@ vi.mock('@dialpad/dialtone/themes/config', () => ({
   setMode: vi.fn(),
 }));
 
-const AUTHORIZE_URL = 'https://acme.example.com/oauth/fake-authorize?state=s';
-
-/** A JSON response, as the Acme server would send one. */
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-/** The server's `external_connection`, in the wire format: one OAuth client, `acme-for-dialpad`. */
-function externalConnection(connected: boolean) {
-  return {
-    connected,
-    authorization_urls: { 'acme-for-dialpad': AUTHORIZE_URL },
-    name: 'acme-for-dialpad',
-    scopes: connected ? ['contacts.read'] : [],
-  };
-}
-
-/**
- * A fake Acme server as a `fetch` function, recording every call it gets.
- *
- * `mode` decides how it answers: `not_connected` or `connected` (an `external_connection` body),
- * `network` (the request throws), or `server_error` (a 500). `ext-disconnect` answers 204 and, when
- * it succeeds, flips the server to `not_connected`, as clearing the cookie does for the real one.
- */
-function fakeServer() {
-  const server = {
-    mode: 'not_connected' as
-      'not_connected' | 'connected' | 'network' | 'server_error',
-    calls: [] as { method: string; path: string }[],
-    fetch: vi.fn<FetchLike>((input, init) => {
-      const path = new URL(
-        input instanceof Request ? input.url : String(input),
-        'https://acme.example.com',
-      ).pathname;
-      server.calls.push({ method: init?.method ?? 'GET', path });
-      if (path.endsWith('/ext-disconnect')) {
-        // The server answers 204 with no body; a later check then says "not connected".
-        if (server.mode === 'network') {
-          return Promise.reject(new TypeError('Failed to fetch'));
-        }
-        if (server.mode === 'server_error') {
-          return Promise.resolve(json({ code: 'oops', message: 'oops' }, 500));
-        }
-        server.mode = 'not_connected';
-        return Promise.resolve(new Response(null, { status: 204 }));
-      }
-      switch (server.mode) {
-        case 'network':
-          return Promise.reject(new TypeError('Failed to fetch'));
-        case 'server_error':
-          return Promise.resolve(json({ code: 'oops', message: 'oops' }, 500));
-        case 'connected':
-          return Promise.resolve(json(externalConnection(true)));
-        default:
-          return Promise.resolve(json(externalConnection(false)));
-      }
-    }),
-  };
-  return server;
-}
-
-/** The rows the server's `POST /api/contact` answers with: non-empty fields, text prefixed "Acme ". */
-function acmeRows(contact: Record<string, unknown>) {
-  const acme = (value: unknown) =>
-    typeof value === 'string' ? `Acme ${value}` : String(value);
-  return Object.entries(contact)
-    .filter(
-      ([, value]) =>
-        value !== null &&
-        value !== undefined &&
-        value !== '' &&
-        !(Array.isArray(value) && value.length === 0),
-    )
-    .map(([label, value]) => ({
-      label,
-      value: Array.isArray(value)
-        ? (value as unknown[]).map(acme).join(', ')
-        : acme(value),
-    }));
-}
-
-/** The fake record page's URL for a contact id, as the fake server answers it. */
-function recordOf(id: string) {
-  return { type: 'Contact', url: `https://acme.example.com/records/${id}` };
-}
-
-/** The record the server answers with for a contact: its fake record page, or null without an id. */
-function acmeRecord(contact: Record<string, unknown>) {
-  return typeof contact.id === 'string' && contact.id !== ''
-    ? recordOf(contact.id)
-    : null;
-}
-
-/**
- * A fake of the server's `POST /api/contact`, standing in for the global `fetch` the panel's own
- * requests (the ones made through `api()`) use, and recording every request it gets.
- *
- * `mode` decides how it answers: `ok` (the Acme'd rows and the record at once), `empty` (no rows),
- * `error` (a 500), or `hold` (each answer waits in `held` until a test calls its `respond`, to
- * answer out of order).
- */
-function fakeContactApi() {
-  const contactApi = {
-    mode: 'ok' as 'ok' | 'empty' | 'error' | 'hold',
-    requests: [] as { method: string; path: string; body: unknown }[],
-    held: [] as { contact: Record<string, unknown>; respond: () => void }[],
-    fetch: vi.fn(
-      (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-        const path = new URL(
-          input instanceof Request ? input.url : String(input),
-          'https://acme.example.com',
-        ).pathname;
-        const body = (
-          typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
-        ) as { contact: Record<string, unknown> } | undefined;
-        contactApi.requests.push({ method: init?.method ?? 'GET', path, body });
-        if (contactApi.mode === 'error' || !body) {
-          return Promise.resolve(json({ code: 'oops', message: 'oops' }, 500));
-        }
-        const answer = () =>
-          json({
-            fields: contactApi.mode === 'empty' ? [] : acmeRows(body.contact),
-            record: acmeRecord(body.contact),
-          });
-        if (contactApi.mode === 'hold') {
-          return new Promise<Response>((resolve) => {
-            contactApi.held.push({
-              contact: body.contact,
-              respond: () => {
-                resolve(answer());
-              },
-            });
-          });
-        }
-        return Promise.resolve(answer());
-      },
-    ),
-  };
-  return contactApi;
-}
-
-/** Every component mounted by `setup`, so `afterEach` can unmount them. */
-const mounted: { unmount(): void }[] = [];
-
-// Vue reports bad props (for example an invalid Dialtone `kind`) as console warnings.
-let warnings: MockInstance<typeof console.warn>;
-
-beforeEach(() => {
-  warnings = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-});
-
-/**
- * Start the iframe panel against a mock Dialpad and a fake Acme server, like a user opening it.
- *
- * `connected` is what the page data says at load (a connected user's cookie, or not); `mode` is how
- * the fake server answers connection checks from then on; `user` is what Dialpad's `get/user`
- * answers. Returns the host (to send contacts and move the clock), the server (to change its mode
- * and see its calls) and the mounted wrapper.
- */
-async function setup({
-  connected = false,
-  mode = 'not_connected',
-  user,
-  app = null,
-}: {
-  connected?: boolean;
-  mode?: ReturnType<typeof fakeServer>['mode'];
-  /** What Dialpad's `get/user` answers: the default user, a user, or `null` for none. */
-  user?: User | null;
-  /** What the server put in the page data's `app` field, for example the demo API call's result. */
-  app?: Record<string, unknown> | null;
-} = {}) {
-  const host = createMockHost(user === undefined ? {} : { user });
-  const server = fakeServer();
-  const contactApi = fakeContactApi();
-  vi.stubGlobal('fetch', contactApi.fetch);
-  server.mode = mode;
-  const root = document.createElement('div');
-  document.body.append(root);
-  const rightbar = await host.createRightbar({
-    heightRoot: root,
-    fetch: server.fetch,
-    pageData: makePageData({
-      app,
-      externalConnection: {
-        connected,
-        name: 'acme-for-dialpad',
-        scopes: connected ? ['contacts.read'] : [],
-        authorizationUrls: { 'acme-for-dialpad': AUTHORIZE_URL },
-      },
-    }),
-  });
-  const wrapper = mount(App, {
-    global: { plugins: [[rightbarPlugin, rightbar]] },
-    attachTo: root,
-  });
-  mounted.push(wrapper);
-  await host.settle();
-  return { host, server, contactApi, wrapper, rightbar };
-}
-
-afterEach(() => {
-  const vueWarnings = warnings.mock.calls
-    .map((call) => String(call[0]))
-    .filter((message) => message.includes('[Vue warn]'));
-  vi.restoreAllMocks();
-  vi.unstubAllGlobals();
-  if (vueWarnings.length > 0) {
-    throw new Error(`Vue warnings:\n${vueWarnings.join('\n')}`);
-  }
-  for (const wrapper of mounted.splice(0)) {
-    wrapper.unmount();
-  }
-  sessionExpired.value = false;
-  document.body.innerHTML = '';
-});
-
-/**
- * Make Dialpad reject every toast, and return a counter of how many were asked for.
- *
- * A plain function, not a `vi.fn()`: a spy attaches its own handler to the promise it returns, which
- * would hide an unhandled rejection from `unhandledRejectionsDuring`.
- */
-function rejectToasts(rightbar: Rightbar): { asked: number } {
-  const counter = { asked: 0 };
-  Object.assign(rightbar, {
-    showToast: () => {
-      counter.asked += 1;
-      return Promise.reject(new Error('Dialpad did not answer'));
-    },
-  });
-  return counter;
-}
-
-/** Make Dialpad reject every `linkRecord`, and return a counter of how many were asked for. */
-function rejectLinks(rightbar: Rightbar): { asked: number } {
-  const counter = { asked: 0 };
-  Object.assign(rightbar, {
-    linkRecord: () => {
-      counter.asked += 1;
-      return Promise.reject(new Error('Dialpad did not answer'));
-    },
-  });
-  return counter;
-}
-
-/** Run `action`, then report how many promise rejections nobody handled while it ran. */
-async function unhandledRejectionsDuring(
-  action: () => Promise<void>,
-): Promise<number> {
-  const unhandled = vi.fn();
-  process.on('unhandledRejection', unhandled);
-  try {
-    await action();
-    // Node reports a rejection nobody handled once the current turn's microtasks are done.
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  } finally {
-    process.off('unhandledRejection', unhandled);
-  }
-  return unhandled.mock.calls.length;
-}
+installPanelHarness();
 
 describe('Connect gate', () => {
   it('shows Connect when not connected', async () => {
@@ -462,112 +194,6 @@ describe('Connected view', () => {
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
-  it("asks the server for the CRM view of the contact Dialpad sends, shows every field Acme'd, omitting empty ones, and links its record", async () => {
-    const { wrapper, host, contactApi } = await setup({ connected: true });
-    const sent = makeContact({
-      id: '1',
-      displayName: 'Pat Customer',
-      primaryPhone: '+1 555 0199',
-      phones: ['+1 555 0199'],
-      emails: ['pat@example.com'],
-      jobTitle: null,
-    });
-
-    host.sendContact(sent);
-    await host.settle();
-    await flushPromises();
-
-    expect(contactApi.requests).toEqual([
-      {
-        method: 'POST',
-        path: '/api/contact',
-        body: { contact: JSON.parse(JSON.stringify(sent)) as unknown },
-      },
-    ]);
-    const contact = wrapper.get('[data-testid="acme-contact"]').text();
-    expect(contact).toContain('displayName');
-    expect(contact).toContain('Acme Pat Customer');
-    expect(contact).toContain('Acme +1 555 0199');
-    expect(contact).toContain('Acme pat@example.com');
-    expect(contact).not.toContain('jobTitle');
-    expect(host.received.linkedRecord).toEqual(recordOf('1'));
-  });
-
-  it("looks the open contact up again on each press of Dialpad's refresh button, the first after a contact change included, and once when Dialpad refreshes a changed record", async () => {
-    const { wrapper, host, contactApi } = await setup({ connected: true });
-    /** Press the refresh button, and return the ids of the contacts looked up because of it. */
-    const refresh = async () => {
-      contactApi.requests.length = 0;
-      host.trigger('refresh_contact');
-      await host.settle();
-      await flushPromises();
-      return contactApi.requests.map(
-        (request) => (request.body as { contact: { id: string } }).contact.id,
-      );
-    };
-    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
-    await host.settle();
-    await flushPromises();
-
-    const first = await refresh();
-    host.sendContact(makeContact({ id: '2', displayName: 'Sam Prospect' }));
-    await host.settle();
-    await flushPromises();
-    const afterChange = await refresh();
-    // The contact's record changed in Dialpad: Dialpad's own silent refresh brings a new object,
-    // which the watch looks up; the refresh handler must not look it up a second time.
-    contactApi.requests.length = 0;
-    host.updateContact(
-      makeContact({ id: '2', displayName: 'Sam Prospect', jobTitle: 'CTO' }),
-    );
-    await host.settle();
-    await flushPromises();
-    const afterUpdate = contactApi.requests.length;
-    // A press while that contact's lookup is still running starts no second lookup.
-    contactApi.mode = 'hold';
-    host.updateContact(
-      makeContact({ id: '2', displayName: 'Sam Prospect', jobTitle: 'CTO' }),
-    );
-    await host.settle();
-    await flushPromises();
-    const whileRunning = await refresh();
-    contactApi.held[0]?.respond();
-    await flushPromises();
-
-    expect(first).toEqual(['1']);
-    expect(afterChange).toEqual(['2']);
-    expect(afterUpdate).toBe(1);
-    expect(whileRunning).toEqual([]);
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-      'Acme CTO',
-    );
-    expect(host.received.linkedRecord).toEqual(recordOf('2'));
-  });
-
-  it('links the record in a browser without URL.canParse, such as Chrome before 120', async () => {
-    const canParse = Object.getOwnPropertyDescriptor(URL, 'canParse');
-    Object.defineProperty(URL, 'canParse', {
-      value: undefined,
-      configurable: true,
-    });
-    try {
-      const { wrapper, host } = await setup({ connected: true });
-
-      host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
-      await host.settle();
-      await flushPromises();
-
-      expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-        'Acme Pat Customer',
-      );
-      expect(host.received.linkedRecord).toEqual(recordOf('1'));
-    } finally {
-      if (canParse) {
-        Object.defineProperty(URL, 'canParse', canParse);
-      }
-    }
-  });
-
   it("shows the user the server fetched from Dialpad's API with the api key", async () => {
     const { wrapper } = await setup({
       connected: true,
@@ -623,176 +249,6 @@ describe('Connected view', () => {
     expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
   });
 
-  it('shows that the contact is loading until the server answers, then the rows', async () => {
-    const { wrapper, host, contactApi } = await setup({ connected: true });
-    contactApi.mode = 'hold';
-
-    host.sendContact(makeContact({ displayName: 'Pat Customer' }));
-    await host.settle();
-    await flushPromises();
-    const loading = wrapper.get('[data-testid="acme-contact"]').text();
-    contactApi.held[0]?.respond();
-    await flushPromises();
-
-    expect(loading).toContain('Loading the contact');
-    expect(loading).not.toContain('Acme Pat Customer');
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-      'Acme Pat Customer',
-    );
-  });
-
-  it.each<
-    [string, 'error' | 'empty', string, { text: string; type: string }[]]
-  >([
-    [
-      'cannot answer',
-      'error',
-      "Couldn't load the contact",
-      [{ text: "Couldn't load the contact from Acme CRM", type: 'error' }],
-    ],
-    [
-      'answers with no rows',
-      'empty',
-      'There are no details for this contact',
-      [],
-    ],
-  ])(
-    'says so when the server %s for the contact, and the rest of the panel works',
-    async (_when, mode, message, toasts) => {
-      const { wrapper, host, contactApi } = await setup({ connected: true });
-      contactApi.mode = mode;
-
-      host.sendContact(makeContact({ displayName: 'Pat Customer' }));
-      await host.settle();
-      await flushPromises();
-
-      expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-        message,
-      );
-      expect(wrapper.find('[data-testid="user-card"]').exists()).toBe(true);
-      expect(host.received.toasts).toEqual(toasts);
-    },
-  );
-
-  it('still shows the failed lookup when Dialpad rejects the error toast', async () => {
-    const { wrapper, host, contactApi, rightbar } = await setup({
-      connected: true,
-    });
-    const toasts = rejectToasts(rightbar);
-    contactApi.mode = 'error';
-
-    const unhandled = await unhandledRejectionsDuring(async () => {
-      host.sendContact(makeContact({ displayName: 'Pat Customer' }));
-      await host.settle();
-      await flushPromises();
-    });
-
-    expect(toasts.asked).toBe(1);
-    expect(unhandled).toBe(0);
-    expect(warnings).toHaveBeenCalledWith(
-      'The contact lookup failed',
-      expect.any(Error),
-    );
-    expect(warnings).toHaveBeenCalledWith(
-      "Dialpad didn't show the toast",
-      expect.any(Error),
-    );
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-      "Couldn't load the contact",
-    );
-  });
-
-  it('still shows the contact when Dialpad rejects the link', async () => {
-    const { wrapper, host, rightbar } = await setup({ connected: true });
-    const links = rejectLinks(rightbar);
-
-    const unhandled = await unhandledRejectionsDuring(async () => {
-      host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
-      await host.settle();
-      await flushPromises();
-    });
-
-    expect(links.asked).toBe(1);
-    expect(unhandled).toBe(0);
-    expect(warnings).toHaveBeenCalledWith(
-      "Dialpad didn't link the record",
-      expect.any(Error),
-    );
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-      'Acme Pat Customer',
-    );
-  });
-
-  it('opens a new contact without reloading or disconnecting, and ignores a late answer for the earlier one', async () => {
-    const { wrapper, host, contactApi } = await setup({ connected: true });
-    contactApi.mode = 'hold';
-
-    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
-    await host.settle();
-    host.sendContact(makeContact({ id: '2', displayName: 'Sam Prospect' }));
-    await host.settle();
-    await flushPromises();
-    const linkedWhilePending = host.received.linkedRecord;
-    contactApi.held[1]?.respond();
-    await flushPromises();
-    contactApi.held[0]?.respond();
-    await host.settle();
-    await flushPromises();
-
-    const shown = wrapper.get('[data-testid="acme-contact"]').text();
-    expect(shown).toContain('Acme Sam Prospect');
-    expect(shown).not.toContain('Acme Pat Customer');
-    expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
-    expect(linkedWhilePending).toBeNull();
-    expect(host.received.linkedRecord).toEqual(recordOf('2'));
-    // Dialpad kept the panel: it sent `init` once, so Dialpad didn't reload it.
-    expect(
-      host.received.messages.filter((message) => message.path === 'init'),
-    ).toHaveLength(1);
-  });
-
-  it('unlinks the record when the lookup for the next contact fails', async () => {
-    const { host, contactApi } = await setup({ connected: true });
-    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
-    await host.settle();
-    await flushPromises();
-    const linked = host.received.linkedRecord;
-
-    contactApi.mode = 'error';
-    host.sendContact(makeContact({ id: '2', displayName: 'Sam Prospect' }));
-    await host.settle();
-    await flushPromises();
-
-    expect(linked).toEqual(recordOf('1'));
-    expect(host.received.linkedRecord).toBeNull();
-  });
-
-  it("doesn't link the record when the lookup answers after the user disconnected", async () => {
-    const { wrapper, host, server, contactApi } = await setup({
-      connected: true,
-    });
-    server.mode = 'connected';
-    contactApi.mode = 'hold';
-    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
-    await host.settle();
-    await flushPromises();
-
-    await wrapper.get('[data-testid="disconnect-button"]').trigger('click');
-    await wrapper.get('[data-testid="disconnect-confirm"]').trigger('click');
-    await host.settle();
-    await flushPromises();
-    const gateBeforeAnswer = wrapper
-      .find('[data-testid="connect-gate"]')
-      .exists();
-    contactApi.held[0]?.respond();
-    await host.settle();
-    await flushPromises();
-
-    expect(contactApi.held).toHaveLength(1);
-    expect(gateBeforeAnswer).toBe(true);
-    expect(host.received.linkedRecord).toBeNull();
-  });
-
   it('shows no active call until Dialpad sends one, then follows it from ringing to connected to ended', async () => {
     const { wrapper, host } = await setup({ connected: true });
     expect(wrapper.get('[data-testid="call-card"]').text()).toContain(
@@ -823,71 +279,6 @@ describe('Connected view', () => {
     await host.settle();
     await flushPromises();
     expect(wrapper.get('[data-testid="call-card"]').text()).toContain('Ended');
-  });
-
-  it.each([
-    [
-      "the iframe panel's contact",
-      makeContact({ id: '1', displayName: 'Pat Customer' }),
-    ],
-    ['no contact', null],
-  ])(
-    'shows no separate call contact section when the call has %s',
-    async (_what, callContact) => {
-      const { wrapper, host } = await setup({ connected: true });
-      const pat = makeContact({ id: '1', displayName: 'Pat Customer' });
-
-      host.sendContact(pat);
-      host.sendCall(makeCall({ state: 'ringing', contact: callContact }));
-      await host.settle();
-      await flushPromises();
-
-      expect(wrapper.find('[data-testid="call-contact"]').exists()).toBe(false);
-      expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-        'Acme Pat Customer',
-      );
-    },
-  );
-
-  it("shows the call's contact as well when it is a different contact, but links and refreshes only the panel's", async () => {
-    const { wrapper, host, contactApi } = await setup({ connected: true });
-    contactApi.mode = 'hold';
-
-    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
-    host.sendCall(
-      makeCall({
-        state: 'ringing',
-        contact: makeContact({ id: '2', displayName: 'Sam Prospect' }),
-      }),
-    );
-    await host.settle();
-    await flushPromises();
-    // Answer the call contact's lookup last, so a link from it would be the one left.
-    const sam = contactApi.held.find((held) => held.contact.id === '2');
-    contactApi.held.find((held) => held.contact.id === '1')?.respond();
-    await flushPromises();
-    sam?.respond();
-    await host.settle();
-    await flushPromises();
-    // Dialpad's refresh button refreshes the panel's contact, not the call's other one.
-    contactApi.mode = 'ok';
-    contactApi.requests.length = 0;
-    host.trigger('refresh_contact');
-    await host.settle();
-    await flushPromises();
-    const refreshed = contactApi.requests.map(
-      (request) => (request.body as { contact: { id: string } }).contact.id,
-    );
-
-    expect(sam).toBeDefined();
-    expect(refreshed).toEqual(['1']);
-    expect(wrapper.get('[data-testid="call-contact"]').text()).toContain(
-      'Acme Sam Prospect',
-    );
-    expect(wrapper.get('[data-testid="acme-contact"]').text()).toContain(
-      'Acme Pat Customer',
-    );
-    expect(host.received.linkedRecord).toEqual(recordOf('1'));
   });
 
   it('asks for inline confirmation before disconnecting, and Cancel backs out', async () => {
@@ -1037,47 +428,9 @@ describe('Bootstrap errors', () => {
 });
 
 describe("Dialpad's panel menu", () => {
-  /**
-   * Run the real `bootstrap`, with the mock host standing in for Dialpad and `server` for Acme.
-   *
-   * `connected` is what the page data says at load. Returns the SDK instance `bootstrap` created,
-   * so a test can check the connection again, and the element the panel is mounted in.
-   */
-  async function start(
-    host: ReturnType<typeof createMockHost>,
-    server: ReturnType<typeof fakeServer>,
-    connected: boolean,
-    patch: (rightbar: Rightbar) => void = () => undefined,
-  ): Promise<{ rightbar: Rightbar; root: HTMLElement }> {
-    const root = document.createElement('div');
-    document.body.append(root);
-    let created: Rightbar | undefined;
-    await bootstrap(root, async (options) => {
-      created = await host.createRightbar({
-        ...options,
-        fetch: server.fetch,
-        pageData: makePageData({
-          externalConnection: {
-            connected,
-            name: 'acme-for-dialpad',
-            scopes: connected ? ['contacts.read'] : [],
-            authorizationUrls: { 'acme-for-dialpad': AUTHORIZE_URL },
-          },
-        }),
-      });
-      patch(created);
-      return created;
-    });
-    await host.settle();
-    if (!created) {
-      throw new Error('bootstrap never created the SDK');
-    }
-    return { rightbar: created, root };
-  }
-
   /** The menu once connected, as Dialpad keeps it: the panel's own ids and English labels, in order. */
   const CONNECTED_MENU = [
-    { id: 'rematch', label: 'Rematch' },
+    { id: 'rematch', label: 'Rematch' }, // crm-record
     { id: 'create-task', label: 'Create Task' },
     { id: 'disconnect', label: 'Disconnect' },
   ];
@@ -1107,17 +460,11 @@ describe("Dialpad's panel menu", () => {
     expect(host.received.menu).toEqual(CONNECTED_MENU);
   });
 
-  it('disconnects when the user picks Disconnect: the Connect gate, the toast, no record, and an empty menu', async () => {
+  it('disconnects when the user picks Disconnect: the Connect gate, the toast, and an empty menu', async () => {
     const host = createMockHost();
     const server = fakeServer();
-    const contactApi = fakeContactApi();
-    vi.stubGlobal('fetch', contactApi.fetch);
     server.mode = 'connected';
     const { root } = await start(host, server, true);
-    host.sendContact(makeContact({ id: '1', displayName: 'Pat Customer' }));
-    await host.settle();
-    await flushPromises();
-    const linked = host.received.linkedRecord;
     expect(host.received.menu).toEqual(CONNECTED_MENU);
     expect(host.received.refreshButtonShown).toBe(true);
 
@@ -1133,14 +480,11 @@ describe("Dialpad's panel menu", () => {
     expect(host.received.toasts).toEqual([
       { text: 'Disconnected from Acme CRM', type: 'info' },
     ]);
-    expect(linked).toEqual(recordOf('1'));
-    expect(host.received.linkedRecord).toBeNull();
     expect(host.received.menu).toEqual([]);
     expect(host.received.refreshButtonShown).toBe(false);
   });
 
   it.each([
-    ['rematch', "Rematch isn't implemented in this sample app"],
     ['create-task', "Create Task isn't implemented in this sample app"],
   ] as const)(
     'says %s is not implemented when the user picks it, and stays connected',
@@ -1170,7 +514,7 @@ describe("Dialpad's panel menu", () => {
     const unhandled = await unhandledRejectionsDuring(async () => {
       const { rightbar } = await start(host, server, true);
       rejectToasts(rightbar);
-      host.selectMenuItem('rematch');
+      host.selectMenuItem('create-task');
       await host.settle();
     });
 

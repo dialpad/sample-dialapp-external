@@ -9,6 +9,7 @@ import json
 import re
 import time
 from dataclasses import dataclass
+from html import unescape
 from http import HTTPStatus
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler
@@ -24,10 +25,10 @@ import pytest
 from sanic import Sanic
 
 from acme_dialpad_rightbar.app import create_app
-from acme_dialpad_rightbar.context import COOKIE_HEADER_NAME
-from acme_dialpad_rightbar.context import App
-from acme_dialpad_rightbar.idtoken import TEST_CLIENT_SECRET
-from acme_dialpad_rightbar.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.demo.fake_storage import COOKIE_HEADER_NAME
+from acme_dialpad_rightbar.dialpad.idtoken import TEST_CLIENT_SECRET
+from acme_dialpad_rightbar.dialpad.idtoken import encode_mock_idtoken
+from acme_dialpad_rightbar.settings import CLIENT_NAME
 from acme_dialpad_rightbar.settings import Settings
 
 if TYPE_CHECKING:
@@ -35,6 +36,8 @@ if TYPE_CHECKING:
   from pathlib import Path
 
   from httpx import Response
+
+  from acme_dialpad_rightbar.context import App
 
 # Fixed values the apps under test are configured with; tests compare against them.
 APP_SECRET = 'test-app-secret'
@@ -138,7 +141,7 @@ class FakeDialpad:
 
 @dataclass
 class Panel:
-  """An iframe panel as its browser holds it: the page data and the session cookie the page set.
+  """An iframe panel as its browser holds it: the page data and the storage cookie the page set.
 
   The test client's cookie jar won't resend a ``Secure`` cookie over plain HTTP, so tests keep the
   ``Cookie`` header value here and send it themselves. Replace ``cookie`` with a response's new one
@@ -194,10 +197,10 @@ class Env:
     return await self.get('/', params={'idtoken': token}, headers=headers)
 
   async def open_panel(self, idtoken: str | None = None, cookie: str | None = None) -> Panel:
-    """Open the iframe panel as a browser does: load the page and keep the session cookie it sets.
+    """Open the iframe panel as a browser does: load the page and keep the storage cookie it sets.
 
     ``cookie`` is what the browser already held (for example from an earlier visit); the page may
-    keep its session or replace it.
+    keep its access token or replace it.
     """
     response = await self.load_page(idtoken, cookie)
     assert response.status_code == HTTPStatus.OK
@@ -258,6 +261,53 @@ def cookie_header(response: Response) -> str:
   jar.load(response.headers['set-cookie'])
   morsel = jar[COOKIE_HEADER_NAME]
   return f'{COOKIE_HEADER_NAME}={morsel.value}'
+
+
+def authorize_url_of(page_data: dict[str, Any]) -> str:
+  """Return the authorize URL from page data, as the Connect button would use it."""
+  return str(page_data['external_connection']['authorization_urls'][CLIENT_NAME])
+
+
+async def press_authorize(env: Env, authorize_page: Response) -> Response:
+  """Click the Authorize button on the fake authorize page and return the callback's response.
+
+  A browser submits the page's GET form: the callback URL from ``action`` with the hidden ``state``
+  and ``code`` as query parameters. This reads them from the HTML the same way.
+  """
+  form = re.search(r'<form method="get" action="([^"]*)">', authorize_page.text)
+  assert form
+  action = unescape(form[1])
+  fields = {
+      name: unescape(value) for name, value in re.findall(
+          r'<input type="hidden" name="(\w+)" value="([^"]*)">', authorize_page.text)
+  }
+  return await env.get(action, params=fields)
+
+
+async def finish_oauth(env: Env, authorize_url: str) -> None:
+  """Play the OAuth popup: open the authorize URL, click Authorize, land on the callback.
+
+  Afterwards the callback has recorded "this user connected" in the app's memory, but nothing is
+  connected yet: the next ``ext-connection`` call has to collect it.
+  """
+  authorize = await env.get(authorize_url)
+  assert authorize.status_code == 200
+  callback = await press_authorize(env, authorize)
+  assert callback.status_code == 200
+
+
+async def connect(env: Env, panel: Panel) -> Response:
+  """Connect an iframe panel's user end to end and return the confirming ``ext-connection`` reply.
+
+  Runs the OAuth popup (``finish_oauth``), then makes the SDK's follow-up connection check with the
+  iframe panel's access token and cookie. That response is "connected" and rewrites the storage
+  cookie; like a browser, this stores the new cookie in ``panel``.
+  """
+  await finish_oauth(env, authorize_url_of(panel.data))
+  response = await env.get('/dialpad/ext-connection', headers=panel.headers)
+  if 'set-cookie' in response.headers:
+    panel.cookie = cookie_header(response)
+  return response
 
 
 def make_env(tmp_path: Path, dialpad: FakeDialpad, *, local_mode: bool) -> Env:

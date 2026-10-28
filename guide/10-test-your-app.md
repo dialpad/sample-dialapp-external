@@ -70,7 +70,8 @@ takes no page data itself. This app's local mode serves such a page URL at
 ## This repository's tests
 
 - **`client/src/App.test.ts`** drives every state of the panel against the mock
-  host. Run it with `pnpm test:run`.
+  host, and **`client/src/crm/CrmRecord.test.ts`** the CRM record's. Both use
+  the harness in `client/src/testing.ts`. Run them with `pnpm test:run`.
 - **`client/e2e/sdk/`** drives the dev host in Chromium with Playwright, using
   Playwright's clock so polling costs no real time. Run it with `pnpm test:e2e`,
   after installing the browser once with `pnpm exec playwright install chromium`.
@@ -78,7 +79,8 @@ takes no page data itself. This app's local mode serves such a page URL at
   lists the tests. They test this repository, not your app, so delete the folder
   when you copy the app.
 - **`server/tests/`** tests the server, including the idtoken decoder, the pages'
-  headers and escaping, and the logs.
+  headers and escaping, and the logs. `test_crm.py` tests the CRM record's
+  routes.
 
 ## Run the checks
 
