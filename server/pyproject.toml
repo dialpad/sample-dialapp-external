@@ -27,6 +27,8 @@ testpaths = ["tests"]
 # Puts server/ on the import path, so the tests can `import acme_dialpad_rightbar`.
 pythonpath = ["."]
 asyncio_mode = "auto"
+# Each test's async fixtures run in that test's own event loop. pytest-asyncio warns when it's unset.
+asyncio_default_fixture_loop_scope = "function"
 addopts = "-ra --strict-markers"
 filterwarnings = [
     "error",
