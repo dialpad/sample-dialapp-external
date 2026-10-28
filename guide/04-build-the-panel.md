@@ -275,13 +275,29 @@ callback instead. The SDK also emits `refreshContact` when Dialpad refreshes a
 contact whose record changed. Then the SDK gives a new object, which your watch
 reloads, so skip it in the callback. Whether the watch runs before or after the
 callback depends on your framework, so reload the contact only when it's the one
-your last reload was for and that reload has finished:
+your last reload was for and that reload has finished. Record each reload as it
+starts, in the reload your watch calls too:
 
 ```ts
+let lastReload: { contact: Contact | null; running: boolean } = {
+  contact: null,
+  running: false,
+};
+
+// Your watch on the contact calls this too, so every reload is recorded.
+async function reload(contact: Contact) {
+  lastReload = { contact, running: true };
+  try {
+    // yours: look the contact up and show it
+  } finally {
+    if (lastReload.contact === contact) lastReload.running = false;
+  }
+}
+
 rightbar.on("refreshContact", () => {
   const contact = rightbar.state.contact;
   if (contact && contact === lastReload.contact && !lastReload.running) {
-    reload(contact); // yours: the same reload as when the contact changes
+    reload(contact);
   }
 });
 ```
