@@ -76,4 +76,10 @@ holds for the app, and its tests pass ([chapter 10](guide/10-test-your-app.md)).
   private registry.
 - **Never commit secrets.** Client secrets, idtokens, and API keys stay out of
   files, including tests and docs.
+- **Vet every change as public.** Treat the repository as public, including its
+  branches, history, pull request descriptions, and review comments. Leave out
+  internal hostnames and URLs, the names and paths of internal repositories and
+  services, cloud project IDs, and anything that works only inside Dialpad, such
+  as setups for testing against a developer environment. Those belong in a
+  private repository or your own tooling.
 - **Commit messages** start with the Jira ticket, or `NO-JIRA:`.
