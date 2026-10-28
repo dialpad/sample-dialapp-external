@@ -273,10 +273,10 @@ The SDK keeps the same `state.contact` object when the reloaded contact is
 unchanged, so a watch on the contact doesn't run. Reload in the `refreshContact`
 callback instead. The SDK also emits `refreshContact` when Dialpad refreshes a
 contact whose record changed. Then the SDK gives a new object, which your watch
-reloads, so skip it in the callback. Whether the watch runs before or after the
-callback depends on your framework, so reload the contact only when it's the one
-your last reload was for and that reload has finished. Record each reload as it
-starts, in the reload your watch calls too:
+reloads, so skip it in the callback. The order of the watch and the callback
+depends on your framework. Reload the contact only when it's the one your last
+reload was for, and that reload has finished. Record each reload as it starts, in
+the reload your watch calls too:
 
 ```ts
 let lastReload: { contact: Contact | null; running: boolean } = {
@@ -302,8 +302,8 @@ rightbar.on("refreshContact", () => {
 });
 ```
 
-This also covers the first press after the user opens another contact, which
-emits no `refreshContact`: by then, your last reload was for the new contact.
+Opening another contact emits no `refreshContact`, so the first press after it
+works too: by then, your last reload was for the new contact.
 
 ## Translate the panel
 

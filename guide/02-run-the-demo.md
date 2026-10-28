@@ -45,7 +45,7 @@ file. To move to a new one, from `client/`:
 
 **From 0.2.0 to 0.3.0:** Dialpad no longer reloads the panel when the user opens
 another contact. `state.contact` changes instead. A panel that reads the contact
-only when it starts must now follow `state.contact`
+only when it starts must follow `state.contact`
 ([chapter 7](07-show-the-crm-record.md#when-the-user-opens-another-contact)).
 
 The [contract](01-the-big-picture.md#the-contract) isn't in the tarball:
