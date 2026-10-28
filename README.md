@@ -94,3 +94,9 @@ holds the Connect screen. In both `client/src/` and
 you replace or delete, and `crm/` holds the CRM record, which you change or
 delete
 ([chapter 11](guide/11-from-demo-to-your-app.md#what-to-keep-replace-and-delete)).
+
+## License
+
+This repository is released under the MIT license; see [LICENSE](LICENSE). The
+SDK in `client/vendor/` is also MIT-licensed, with its own `LICENSE` file in the
+tarball.
