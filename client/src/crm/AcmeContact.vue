@@ -108,19 +108,16 @@ async function lookUp(contact: Contact | null): Promise<void> {
 
 watch(() => props.contact, lookUp, { immediate: true });
 
-/** The SDK's contact when `refreshContact` last fired (or at mount). */
-let refreshedContact = rightbar.state.contact;
-
-// Dialpad's refresh button: the SDK reloads the panel's contact, then emits `refreshContact`. It
-// emits it too when Dialpad changes the contact, and the watch above already looks the new one up.
-// The SDK keeps the same object for a contact that didn't change, so the contact is looked up again
-// here only when it is the one the event found last time and this section last looked it up (the
-// call's other contact isn't refreshed).
+// Dialpad's refresh button, or Dialpad's own refresh when the contact's record changes: the SDK
+// reloads the panel's contact, then emits `refreshContact`. The SDK keeps the same object for a
+// contact that didn't change, so the watch above doesn't run and the contact is looked up again
+// here. A changed contact is a new object, which the watch looks up instead: here it is either not
+// the contact this section last looked up yet, or its lookup is already running, and both are
+// skipped. That also leaves the call's other contact alone. A contact change (Dialpad's
+// `on/contact`) emits no `refreshContact`.
 const stopRefresh = on('refreshContact', () => {
   const contact = rightbar.state.contact;
-  const unchanged = contact === refreshedContact;
-  refreshedContact = contact;
-  if (unchanged && contact && contact === lookedUp) {
+  if (contact && contact === lookedUp && status.value !== 'loading') {
     void lookUp(contact);
   }
 });
