@@ -69,6 +69,28 @@ function panelMenu(page: Page) {
   return page.locator('#panel-menu');
 }
 
+/** Press the dev host's Change contact, and wait for the panel to show that contact Acme'd. */
+async function changeContactTo(
+  page: Page,
+  panel: FrameLocator,
+  name: string,
+): Promise<void> {
+  await page.getByRole('button', { name: 'Change contact' }).click();
+  await expect(panel.getByTestId('acme-contact')).toContainText(`Acme ${name}`);
+}
+
+/** How many times the panel sent `init`, which it does once each time its page loads. */
+function initCount(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const { mockHost } = window as unknown as {
+      mockHost?: { received: { messages: { path?: unknown }[] } };
+    };
+    return (mockHost?.received.messages ?? []).filter(
+      (message) => message.path === 'init',
+    ).length;
+  });
+}
+
 /** The dev host's menu buttons while the user is connected, in order. */
 const CONNECTED_MENU = [
   "Rematch from Dialpad's menu",
@@ -100,23 +122,25 @@ test('connect by polling, reconnect on first paint, then disconnect', async ({
 
   // Data flows from the host to the iframe panel: the contact open in the dev host, shown Acme'd, is
   // there as soon as the user is connected, and its record is linked back to the host. Changing
-  // contact cycles through three and wraps, and the link follows.
+  // contact cycles through three and wraps, and the link follows. The panel isn't reloaded: it sent
+  // `init` once, and the Disconnect confirmation left open before the changes is still open.
   const contact = panel.getByTestId('acme-contact');
   await expect(contact).toContainText('Acme Pat Customer');
   await expect(linkedRecord(page).getByRole('link')).toHaveAttribute(
     'href',
     /\/records\/4800000000000001$/,
   );
-  await page.getByRole('button', { name: 'Change contact' }).click();
-  await expect(contact).toContainText('Acme Sam Prospect');
+  await panel.getByTestId('disconnect-button').click();
+  await changeContactTo(page, panel, 'Sam Prospect');
   await expect(linkedRecord(page).getByRole('link')).toHaveAttribute(
     'href',
     /\/records\/4800000000000002$/,
   );
-  await page.getByRole('button', { name: 'Change contact' }).click();
-  await expect(contact).toContainText('Acme Robin Partner');
-  await page.getByRole('button', { name: 'Change contact' }).click();
-  await expect(contact).toContainText('Acme Pat Customer');
+  await changeContactTo(page, panel, 'Robin Partner');
+  await changeContactTo(page, panel, 'Pat Customer');
+  await expect(panel.getByTestId('disconnect-confirm')).toBeVisible();
+  expect(await initCount(page)).toBe(1);
+  await panel.getByRole('button', { name: 'Cancel' }).click();
 
   // A new iframe (the dev host reloaded) carries the cookie, so the first paint is connected.
   await page.reload();
@@ -252,7 +276,7 @@ test("Rematch and Create Task from Dialpad's menu say they aren't implemented", 
   await expect(panelMenu(page).getByRole('button')).toHaveText(CONNECTED_MENU);
 });
 
-test("Refresh Contact from Dialpad's header looks the contact up again, while connected", async ({
+test("Refresh Contact from Dialpad's header looks the open contact up again, after a contact change too, while connected", async ({
   page,
 }) => {
   const refreshButton = page.locator('#refresh-button');
@@ -262,16 +286,21 @@ test("Refresh Contact from Dialpad's header looks the contact up again, while co
   await expect(panel.getByTestId('acme-contact')).toContainText(
     'Acme Pat Customer',
   );
+  await changeContactTo(page, panel, 'Sam Prospect');
 
+  // The first press after the contact change looks the new contact up.
   const lookedUpAgain = page.waitForRequest(
-    (req) => req.method() === 'POST' && req.url().endsWith('/api/contact'),
+    (req) =>
+      req.method() === 'POST' &&
+      req.url().endsWith('/api/contact') &&
+      (req.postData() ?? '').includes('4800000000000002'),
   );
   await refreshButton
     .getByRole('button', { name: "Refresh Contact from Dialpad's header" })
     .click();
   await lookedUpAgain;
   await expect(panel.getByTestId('acme-contact')).toContainText(
-    'Acme Pat Customer',
+    'Acme Sam Prospect',
   );
   await expect(toastList(page)).toHaveText(['success: Connected to Acme CRM']);
 

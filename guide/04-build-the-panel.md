@@ -71,7 +71,7 @@ rightbar.state;
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ready`      | `true` once the handshake and the first loads are done, which is always the case after `createRightbar()` resolves                                                                                                                                                                                         |
 | `user`       | The Dialpad user (IDs, names, emails, phone numbers, language, licenses, admin flags, and availability), or `null`. Dialpad sends no updates, so the fields are as of the panel's start. `language` is one of Dialpad's language codes, such as `en` or `ja` ([Translate the panel](#translate-the-panel)) |
-| `contact`    | The contact open in Dialpad, or `null`. The SDK reloads it when the user presses Dialpad's refresh button or the contact's record changes                                                                                                                                                                  |
+| `contact`    | The contact open in Dialpad, or `null`. It changes when the user opens another contact, without reloading the panel ([chapter 7](07-show-the-crm-record.md#when-the-user-opens-another-contact)). The SDK also reloads it when the user presses Dialpad's refresh button or the contact's record changes   |
 | `call`       | The active call, updated on every call event, or `null`                                                                                                                                                                                                                                                    |
 | `theme`      | `{ mode: 'light' \| 'dark', brand }`. `brand` is `null` in this SDK version                                                                                                                                                                                                                                |
 | `connection` | The user's connection to the CRM ([chapter 6](06-connect-to-the-crm.md#the-connection))                                                                                                                                                                                                                    |
@@ -169,14 +169,14 @@ three controls in the panel's header. They work for any panel, CRM or not.
 The menu belongs to the panel. The View button and the refresh button belong to
 the open contact, so a panel about the call might use neither.
 
-| Call                             | What it does                                                                                                                            |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `showToast({ text, type })`      | Shows a toast. `type` is `info` (the default), `success`, or `error`                                                                    |
-| `setMenu(items)`                 | Sets the panel menu to `items`, each `{ id, label }`, in order. Resolves once Dialpad answers                                           |
-| `on('menuSelect', callback)`     | Runs `callback(id)` when the user picks a menu item. Returns a function that stops it                                                   |
-| `linkRecord({ type, url })`      | Sets the View button for the open contact. `linkRecord(null)` removes it                                                                |
-| `showRefreshButton(show)`        | Shows or hides the refresh button                                                                                                       |
-| `on('refreshContact', callback)` | Runs `callback` after the SDK reloads `state.contact`, from the refresh button or a change in Dialpad. Returns a function that stops it |
+| Call                             | What it does                                                                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `showToast({ text, type })`      | Shows a toast. `type` is `info` (the default), `success`, or `error`                                                                       |
+| `setMenu(items)`                 | Sets the panel menu to `items`, each `{ id, label }`, in order. Resolves once Dialpad answers                                              |
+| `on('menuSelect', callback)`     | Runs `callback(id)` when the user picks a menu item. Returns a function that stops it                                                      |
+| `linkRecord({ type, url })`      | Sets the View button for the open contact. `linkRecord(null)` removes it                                                                   |
+| `showRefreshButton(show)`        | Shows or hides the refresh button                                                                                                          |
+| `on('refreshContact', callback)` | Runs `callback` after the SDK reloads `state.contact`, from the refresh button or a change to its record. Returns a function that stops it |
 
 This app shows a toast when Connect finishes, when the user disconnects, and when
 a contact lookup fails.
@@ -271,21 +271,39 @@ reloads the contact, not the call.
 
 The SDK keeps the same `state.contact` object when the reloaded contact is
 unchanged, so a watch on the contact doesn't run. Reload in the `refreshContact`
-callback instead. The SDK also emits `refreshContact` when Dialpad changes the
-contact. Your watch already reloads a changed contact, so reload only an
-unchanged one:
+callback instead. The SDK also emits `refreshContact` when Dialpad refreshes a
+contact whose record changed. Then the SDK gives a new object, which your watch
+reloads, so skip it in the callback. The order of the watch and the callback
+depends on your framework. Reload the contact only when it's the one your last
+reload was for, and that reload has finished. Record each reload as it starts, in
+the reload your watch calls too:
 
 ```ts
-let lastContact = rightbar.state.contact;
+let lastReload: { contact: Contact | null; running: boolean } = {
+  contact: null,
+  running: false,
+};
+
+// Your watch on the contact calls this too, so every reload is recorded.
+async function reload(contact: Contact) {
+  lastReload = { contact, running: true };
+  try {
+    // yours: look the contact up and show it
+  } finally {
+    if (lastReload.contact === contact) lastReload.running = false;
+  }
+}
+
 rightbar.on("refreshContact", () => {
   const contact = rightbar.state.contact;
-  const unchanged = contact === lastContact;
-  lastContact = contact;
-  if (unchanged && contact) {
-    reload(contact); // yours: the same reload as when the contact changes
+  if (contact && contact === lastReload.contact && !lastReload.running) {
+    reload(contact);
   }
 });
 ```
+
+Opening another contact emits no `refreshContact`, so the first press after it
+works too: by then, your last reload was for the new contact.
 
 ## Translate the panel
 

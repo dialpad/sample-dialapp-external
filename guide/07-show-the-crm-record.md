@@ -95,6 +95,36 @@ flowchart TD
 - **Show loading and failure.** This app also shows an error toast when a lookup
   fails.
 
+## When the user opens another contact
+
+Dialpad keeps your panel loaded when the user opens another contact. It sends
+the new contact, the SDK updates `state.contact`, and your watch on the contact
+runs the lookup again. Dialpad clears the linked record at the same moment. The
+panel keeps everything else: the user's connection, its menu, the refresh
+button, and whatever the user was doing in it.
+
+When the contact changes, your panel follows two rules:
+
+- **Unlink at once** with `linkRecord(null)`. Your panel can link the previous
+  contact's record just before the new contact reaches it, after Dialpad cleared
+  the link. Unlinking removes that stale link.
+- **Show a loading state, never the previous contact's record,** until the
+  lookup for the new contact answers. Without a reload, nothing clears the panel
+  for you.
+
+Dialpad still reloads the panel at other times, so it must also work from a
+fresh start:
+
+- when the user collapses and expands the panel's section;
+- when the user opens a channel, a contact group, or a page other than a
+  conversation, then comes back;
+- when the user opens a Dialbot conversation, then leaves it;
+- when the page reloads;
+- on every contact change, in a Dialpad version that doesn't send the panel the
+  contact it opens.
+
+Keep what must survive a reload on your server, not only in the panel.
+
 ## Link the record in Dialpad
 
 Dialpad's panel header has three controls
@@ -181,10 +211,11 @@ not for an office or department contact.
   contact's ID.
 - `client/src/crm/CrmRecord.vue` shows the panel's contact, and the call's own
   contact when it's someone else. `client/src/crm/AcmeContact.vue` runs the
-  lookup, shows loading and failure, and ignores late answers. Once the lookup succeeds, it links the
-  record in `setLinkedRecord()`, and it unlinks as described above. Its
-  `refreshContact` callback looks the contact up again, as described in
-  [Refresh the record](#refresh-the-record).
+  lookup, shows loading and failure, and ignores late answers. Once the lookup
+  succeeds, it links the record in `setLinkedRecord()`, and it unlinks as
+  described above. When the contact changes, it unlinks and shows "Loading the
+  contact..." until the new lookup answers. Its `refreshContact` callback looks
+  the contact up again, as described in [Refresh the record](#refresh-the-record).
 - `client/src/panelMenu.ts` sets the menu and the refresh button, with Rematch
   from `client/src/crm/menu.ts`. The demo's **Rematch** and **Create Task** only
   show a toast ([chapter 4](04-build-the-panel.md#in-this-demo)).
