@@ -81,10 +81,10 @@ an arm64 image, so add `--platform linux/amd64` to build what such a host runs.
 
 | Your host must                                                    | Why                                                                                                                            | On Cloud Run                                                                        |
 | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| Serve the container over HTTPS at a public URL                    | Dialpad frames only HTTPS pages, and the storage cookie is `Secure`. The host can end TLS in front of the container            | The service's `run.app` URL ([step 4](#4-deploy))                                   |
-| Let requests in without a sign-in                                 | Dialpad's iframe can't sign in to your host                                                                                    | `--allow-unauthenticated` ([step 4](#4-deploy))                                     |
+| Serve the container over HTTPS at a public URL                    | Dialpad frames only HTTPS pages, and the storage cookie is `Secure`. The host can end TLS in front of the container            | The service's `run.app` URL ([step 4](#4-create-the-service))                       |
+| Let requests in without a sign-in                                 | Dialpad's iframe can't sign in to your host                                                                                    | `--allow-unauthenticated` ([step 4](#4-create-the-service))                         |
 | Pass `DIALPAD_CLIENT_SECRET` and `APP_SECRET` from a secret store | Anyone who can view the service can read its plain environment variables                                                       | Secret Manager ([step 3](#3-put-the-secrets-in-secret-manager))                     |
-| Run one instance, for this demo                                   | The demo keeps OAuth results in memory ([What to know](#what-to-know-before-relying-on-it)). Your app keeps them in a database | `--max-instances 1` ([step 4](#4-deploy))                                           |
+| Run one instance, for this demo                                   | The demo keeps OAuth results in memory ([What to know](#what-to-know-before-relying-on-it)). Your app keeps them in a database | `--max-instances 1` ([step 4](#4-create-the-service))                               |
 | Keep the idtoken out of request logs, or limit who reads them     | The page URL carries the idtoken, which never expires                                                                          | A log exclusion ([step 5](#5-keep-the-idtoken-out-of-the-logs))                     |
 | Allow outbound HTTPS to `DIALPAD_ORIGIN`                          | The demo calls Dialpad's API on each page load                                                                                 | Allowed by default                                                                  |
 | Use one URL for both `BASE_URL` and the sidebar URI               | The OAuth popup and the iframe panel must share an origin                                                                      | The `status.url` form ([step 6](#6-point-dialpad-at-it))                            |
@@ -154,6 +154,16 @@ these. Pass `--project` on every command, as below, so nothing depends on your
 default project. Replace `PROJECT`, `REGION` and the names to suit. Cloud Run's
 commands change over time, so check them against the current documentation.
 
+> **Already deployed? Go to [Deploy a new version](#deploy-a-new-version).** Steps
+> 1 to 6 create the service. On a service that exists, step 4's `--set-env-vars`
+> and `--set-secrets` replace all its environment variables and secrets,
+> including a `DIALPAD_ORIGIN` or `BASE_URL` set for another environment. Check
+> first; a URL in the output means the service exists:
+>
+> ```sh
+> gcloud run services describe acme-crm-demo --project PROJECT --region REGION --format='value(status.url)'
+> ```
+
 ### 1. Enable the services and create a repository
 
 ```sh
@@ -212,7 +222,7 @@ change a value, add a version (`gcloud secrets versions add NAME --data-file=-`)
 and deploy a new revision, so new instances start with it. Changing `APP_SECRET`
 signs everyone out.
 
-### 4. Deploy
+### 4. Create the service
 
 ```sh
 gcloud run deploy acme-crm-demo \
@@ -291,6 +301,9 @@ gcloud builds submit --config deployment/cloudbuild.yaml --project PROJECT \
 gcloud run deploy acme-crm-demo --project PROJECT --region REGION \
   --image REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest
 ```
+
+Pass only `--image`. `--set-env-vars` and `--set-secrets` replace all the
+service's settings; to change one, see below.
 
 The new revision takes all traffic once it's ready. Open iframe panels keep
 working across the rollout: their access token and connection are in the

@@ -40,7 +40,10 @@ section for your task.
    production.
 5. **Deploy** as [`deployment/README.md`](deployment/README.md) describes: the
    container image, the environment variables and secrets it needs, and what
-   the host must provide. Any container host works.
+   the host must provide. Any container host works. Ask the person which
+   account, project, and region to deploy to; a CLI's default can point
+   elsewhere. Where the app already runs, deploy a new version without replacing
+   the settings it runs with.
 
 You're done when every row of [9. Security checklist](guide/09-security-checklist.md)
 holds for the app, and its tests pass ([chapter 10](guide/10-test-your-app.md)).
@@ -85,4 +88,8 @@ holds for the app, and its tests pass ([chapter 10](guide/10-test-your-app.md)).
   services, cloud project IDs, and anything that works only inside Dialpad, such
   as setups for testing against a developer environment. Those belong in a
   private repository or your own tooling.
-- **Commit messages** start with the Jira ticket, or `NO-JIRA:`.
+- **Deploy the demo only where the person says.** The repository names no
+  project or service to deploy to. Ask for the account, project, region, and
+  service; never use a CLI's default. Deploy to an existing service as
+  [Deploy a new version](deployment/README.md#deploy-a-new-version) describes,
+  keeping its settings.
