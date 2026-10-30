@@ -1,0 +1,19 @@
+AGENTS.md
+  s_49376e4d9aaa1f::t_473446a53acb88 63,76-77,79-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "006655534c81b781ef00ba68d149262e16702bdb",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

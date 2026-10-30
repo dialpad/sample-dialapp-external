@@ -1,0 +1,38 @@
+guide/11-from-demo-to-your-app.md
+  s_49376e4d9aaa1f::t_4883273fffff03 185
+guide/02-run-the-demo.md
+  s_49376e4d9aaa1f::t_4883273fffff03 21-23,29,31,34,37,39,47
+deployment/Dockerfile
+  s_49376e4d9aaa1f::t_9fbcdc2e314df9 12
+README.md
+  s_49376e4d9aaa1f::t_4883273fffff03 104-106
+deployment/Dockerfile.dockerignore
+  s_49376e4d9aaa1f::t_4883273fffff03 3-4
+contract/README.md
+  s_49376e4d9aaa1f::t_4883273fffff03 19
+client/package.json
+  s_49376e4d9aaa1f::t_39f891627d167c 27
+deployment/README.md
+  s_49376e4d9aaa1f::t_9fbcdc2e314df9 26
+client/pnpm-workspace.yaml
+  s_49376e4d9aaa1f::t_39f891627d167c 15
+  s_49376e4d9aaa1f::t_a22f052f0aead6 13-14,16
+client/pnpm-lock.yaml
+  s_49376e4d9aaa1f::t_c297d9c85a5be9 170-171,304-305,2659
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "577cb6a70b202857f3baa0ab12fe2302608130df",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}
