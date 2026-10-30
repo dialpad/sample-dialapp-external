@@ -46,8 +46,9 @@ only when it starts must follow `state.contact`
 
 The [contract](01-the-big-picture.md#the-contract) isn't in the SDK package:
 `contract/openapi.json` is a copy, and its `info.version` names the SDK version
-it describes. Check that it still matches. The server has nothing to update,
-because it uses no Dialpad library.
+it describes. Check that it still matches. The server uses no Dialpad library,
+but if the contract changes, update the server's implementation of it in
+`acme_dialpad_rightbar/dialpad/contract.py`.
 
 ## Run it locally
 
