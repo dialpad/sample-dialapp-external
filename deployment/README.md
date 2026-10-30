@@ -79,16 +79,16 @@ an arm64 image, so add `--platform linux/amd64` to build what such a host runs.
 
 ### What your host must provide
 
-| Your host must                                                    | Why                                                                                                                            | On Cloud Run                                                                        |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| Serve the container over HTTPS at a public URL                    | Dialpad frames only HTTPS pages, and the storage cookie is `Secure`. The host can end TLS in front of the container            | The service's `run.app` URL ([step 4](#4-create-the-service))                       |
-| Let requests in without a sign-in                                 | Dialpad's iframe can't sign in to your host                                                                                    | `--allow-unauthenticated` ([step 4](#4-create-the-service))                         |
-| Pass `DIALPAD_CLIENT_SECRET` and `APP_SECRET` from a secret store | Anyone who can view the service can read its plain environment variables                                                       | Secret Manager ([step 3](#3-put-the-secrets-in-secret-manager))                     |
-| Run one instance, for this demo                                   | The demo keeps OAuth results in memory ([What to know](#what-to-know-before-relying-on-it)). Your app keeps them in a database | `--max-instances 1` ([step 4](#4-create-the-service))                               |
-| Keep the idtoken out of request logs, or limit who reads them     | The page URL carries the idtoken, which never expires                                                                          | A log exclusion ([step 5](#5-keep-the-idtoken-out-of-the-logs))                     |
-| Allow outbound HTTPS to `DIALPAD_ORIGIN`                          | The demo calls Dialpad's API on each page load                                                                                 | Allowed by default                                                                  |
-| Use one URL for both `BASE_URL` and the sidebar URI               | The OAuth popup and the iframe panel must share an origin                                                                      | The `status.url` form ([step 6](#6-point-dialpad-at-it))                            |
-| Keep `APP_SECRET` the same across deploys                         | Changing it signs everyone out                                                                                                 | Each revision reads the same secret ([Deploy a new version](#deploy-a-new-version)) |
+| Your host must                                                    | Why                                                                                                                            |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Serve the container over HTTPS at a public URL                    | Dialpad frames only HTTPS pages, and the storage cookie is `Secure`. The host can end TLS in front of the container            |
+| Let requests in without a sign-in                                 | Dialpad's iframe can't sign in to your host                                                                                    |
+| Pass `DIALPAD_CLIENT_SECRET` and `APP_SECRET` from a secret store | Anyone who can view the service can read its plain environment variables                                                       |
+| Run one instance, for this demo                                   | The demo keeps OAuth results in memory ([What to know](#what-to-know-before-relying-on-it)). Your app keeps them in a database |
+| Keep the idtoken out of request logs, or limit who reads them     | The page URL carries the idtoken, which never expires                                                                          |
+| Allow outbound HTTPS to `DIALPAD_ORIGIN`                          | The demo calls Dialpad's API on each page load                                                                                 |
+| Use one URL for both `BASE_URL` and the sidebar URI               | The OAuth popup and the iframe panel must share an origin                                                                      |
+| Keep `APP_SECRET` the same across deploys                         | Changing it signs everyone out                                                                                                 |
 
 ### Point Dialpad at it
 
