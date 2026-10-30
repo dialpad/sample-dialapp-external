@@ -14,7 +14,6 @@ export default defineConfig(
       'dist/**',
       'node_modules/**',
       '.pnpm-store/**',
-      'vendor/**',
       'playwright-report/**',
       'test-results/**',
     ],

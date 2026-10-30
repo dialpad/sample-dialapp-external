@@ -9,10 +9,8 @@ WORKDIR /app
 # pnpm comes from Corepack, at the version client/package.json pins.
 RUN corepack enable
 
-# Install dependencies first so this layer is cached until the manifests or vendor/ change. The SDK
-# is installed from its tarball in client/vendor/, so that folder must be here before `pnpm install`.
+# Install dependencies first so this layer is cached until the manifests change.
 COPY client/package.json client/pnpm-lock.yaml client/pnpm-workspace.yaml ./
-COPY client/vendor ./vendor
 RUN pnpm install --frozen-lockfile
 
 # Type-check and build; this writes dist/ with the hashed assets and Vite's manifest.
