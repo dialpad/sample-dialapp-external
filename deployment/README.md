@@ -128,10 +128,10 @@ commands change over time, so check them against the current documentation.
 ### 1. Enable the services and create a repository
 
 ```sh
-gcloud services enable run.googleapis.com artifactregistry.googleapis.com \
+gcloud services enable --project PROJECT run.googleapis.com artifactregistry.googleapis.com \
   cloudbuild.googleapis.com secretmanager.googleapis.com
 
-gcloud artifacts repositories create acme-crm \
+gcloud artifacts repositories create acme-crm --project PROJECT \
   --repository-format=docker --location=REGION
 ```
 
@@ -146,7 +146,7 @@ source, so this uses [`cloudbuild.yaml`](cloudbuild.yaml), which runs
 `docker build -f deployment/Dockerfile`:
 
 ```sh
-gcloud builds submit --config deployment/cloudbuild.yaml \
+gcloud builds submit --config deployment/cloudbuild.yaml --project PROJECT \
   --substitutions _IMAGE=REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest .
 ```
 
@@ -161,9 +161,9 @@ service's plain environment variables, which anyone who can view the service
 
 ```sh
 # The OAuth app's client secret, from Dialpad
-printf %s "$DIALPAD_CLIENT_SECRET" | gcloud secrets create dialpad-client-secret --data-file=-
+printf %s "$DIALPAD_CLIENT_SECRET" | gcloud secrets create dialpad-client-secret --project PROJECT --data-file=-
 # A random secret of your own that signs `state` and the storage cookie
-openssl rand -hex 32 | tr -d '\n' | gcloud secrets create acme-app-secret --data-file=-
+openssl rand -hex 32 | tr -d '\n' | gcloud secrets create acme-app-secret --project PROJECT --data-file=-
 ```
 
 Then let the service's runtime service account read them. Unless you set another,
@@ -179,7 +179,7 @@ done
 
 Cloud Run reads the secrets when an instance starts and gives them to the app as
 the environment variables of the same names, so the app needs no change. To
-change a value, add a version (`gcloud secrets versions add NAME --data-file=-`)
+change a value, add a version (`gcloud secrets versions add NAME --project PROJECT --data-file=-`)
 and deploy a new revision, so new instances start with it. Changing `APP_SECRET`
 signs everyone out.
 
@@ -188,6 +188,7 @@ signs everyone out.
 ```sh
 gcloud run deploy acme-crm-demo \
   --image REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest \
+  --project PROJECT \
   --region REGION \
   --allow-unauthenticated \
   --port 8080 \
@@ -208,8 +209,8 @@ gcloud run deploy acme-crm-demo \
   placeholder, then set the real one:
 
 ```sh
-URL=$(gcloud run services describe acme-crm-demo --region REGION --format='value(status.url)')
-gcloud run services update acme-crm-demo --region REGION --update-env-vars BASE_URL=$URL
+URL=$(gcloud run services describe acme-crm-demo --project PROJECT --region REGION --format='value(status.url)')
+gcloud run services update acme-crm-demo --project PROJECT --region REGION --update-env-vars BASE_URL=$URL
 ```
 
 Until that update finishes, the authorize URLs the app builds point at the
