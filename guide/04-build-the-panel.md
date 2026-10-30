@@ -101,7 +101,8 @@ const { state } = useRightbar();
 
 ## Follow the theme
 
-Follow Dialpad's light and dark mode. With Dialtone:
+Follow Dialpad's light and dark mode. With
+[Dialtone](https://dialtone.dialpad.com/), Dialpad's design system:
 
 ```ts
 import { initDialtoneTheme, setMode } from "@dialpad/dialtone/themes/config";
@@ -147,7 +148,9 @@ A few more things about the space you have:
   so confirm actions inline, as this app's **Disconnect** button does.
 - **Use Dialtone** for a panel that looks like the rest of Dialpad. Its
   components are Vue components, which is why this app uses Vue. Other frameworks
-  can use Dialtone's CSS and tokens.
+  can use Dialtone's CSS and tokens. The
+  [Dialtone documentation](https://dialtone.dialpad.com/) describes its
+  components, tokens, and guidelines.
 - **Isolate your CSS by naming.** This app avoids Vue's `scoped` styles and uses
   BEM classes with an `acme-` prefix (`acme-<block>__<element>--<modifier>`), one
   class per selector, so they can't collide with Dialtone's classes.

@@ -39,7 +39,7 @@ without Vue; this repository doesn't build or run the sketch.
 | `ConnectedView.vue`, `UserCard.vue`, `CallCard.vue`, `demo/DialpadApiCard.vue`, `DisconnectButton.vue`, `crm/CrmRecord.vue` | One render function each, returning DOM nodes                                         |
 | `crm/AcmeContact.vue`                                                                                                       | A small object that owns its own lookup state (see below)                             |
 | `useRightbar()` and `rightbarPlugin`                                                                                        | `rightbar.state` and `rightbar.subscribe(...)` directly                               |
-| Dialtone's Vue components (`DtButton`, `DtNotice`, `DtAvatar`)                                                              | Dialtone's CSS (`@dialpad/dialtone/css`) and tokens on your own markup                |
+| [Dialtone](https://dialtone.dialpad.com/)'s Vue components (`DtButton`, `DtNotice`, `DtAvatar`)                             | Dialtone's CSS (`@dialpad/dialtone/css`) and tokens on your own markup                |
 | Vue's reactivity                                                                                                            | You decide when to re-render: on every snapshot, or only for the part that changed    |
 
 ## The shape of it
