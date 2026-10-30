@@ -1,14 +1,21 @@
-# Deploying to Cloud Run
+# Deploy the app
 
-This describes how to run the reference app as a container, and how to put that
-container on Google Cloud Run so Dialpad can frame it over HTTPS. Any container
-host works the same way; only the Cloud Run commands are specific.
+The app runs as one container on any host that serves it over HTTPS. This page
+has two parts:
+
+- **[On any host](#on-any-host)** applies to every host: what's in the image,
+  the settings it needs, and what your host must provide.
+- **[Example: Google Cloud Run](#example-google-cloud-run)** shows one way to
+  run it, on Google Cloud Run, which Dialpad uses to test this demo. On another
+  host, skip it and follow your host's documentation.
 
 > **A demo, not a production setup.** The OAuth round trip is fake, and finished
 > OAuth results live in one process's memory. See
 > [What to know before relying on it](#what-to-know-before-relying-on-it).
 
-## What is in the image
+## On any host
+
+### What's in the image
 
 The [`Dockerfile`](Dockerfile) builds in two stages, from the repository root as
 its context (it needs both `client/` and `server/`; its ignore file is
@@ -23,10 +30,10 @@ its context (it needs both `client/` and `server/`; its ignore file is
    serves the page and the API, and the built assets under `/assets`.
 
 The image sets `HOST=0.0.0.0`, `PORT=8080` and `DIST_DIR=dist` (where it keeps
-the built iframe panel). It does not contain any secret or URL: the environment
-variables below are passed when the container runs.
+the built iframe panel). It contains no secret or URL: you pass the environment
+variables below when the container runs.
 
-## Environment variables
+### Environment variables
 
 See the [environment variables reference](../guide/reference.md#the-servers-environment-variables) for all
 of them. A container needs these four, none of which is baked into the image:
@@ -38,15 +45,15 @@ of them. A container needs these four, none of which is baked into the image:
 | `DIALPAD_ORIGIN`        | `https://dialpad.com`                                         |
 | `BASE_URL`              | The public HTTPS URL of the service, without a trailing slash |
 
-Do not set `LOCAL_MODE`. The listen port comes from `PORT`; the port in
-`BASE_URL` is not used when `PORT` is set, which is what a container host does.
+Don't set `LOCAL_MODE`. The listen port comes from `PORT`; the port in
+`BASE_URL` is ignored when `PORT` is set, which is what a container host does.
 
-If a variable is missing or malformed the container exits at once with a message
-such as `DIALPAD_CLIENT_SECRET is required` or
+If a variable is missing or malformed, the container exits at once with a
+message such as `DIALPAD_CLIENT_SECRET is required` or
 `DIALPAD_ORIGIN must be a bare origin ...`, rather than failing on the first
 request.
 
-## Build and try the image locally
+### Build and run the image
 
 ```sh
 docker build -f deployment/Dockerfile -t acme-crm-demo .   # from the repository root
@@ -61,23 +68,91 @@ docker run --rm -p 8080:8080 \
 curl http://localhost:8080/healthz   # ok
 ```
 
-`BASE_URL` is only used to build the authorize and callback URLs, so locally it
-can be the address you reach the container at. `http://localhost:8080/` with a
-real Dialpad `idtoken` renders the iframe panel page; a browser opening it directly
-shows "Open this panel from Dialpad", because the SDK needs Dialpad to frame it.
+The app uses `BASE_URL` only to build the authorize and callback URLs, so
+locally it can be the address you reach the container at.
+`http://localhost:8080/` with a real Dialpad `idtoken` renders the iframe panel
+page; a browser opening it directly shows "Open this panel from Dialpad",
+because the SDK needs Dialpad to frame it.
 
-Cloud Run runs on x86-64. On an Apple-silicon Mac, `docker build` makes an arm64
-image; build with `--platform linux/amd64` to test what Cloud Run will run, or
-let Cloud Build do the build (below).
+Most container hosts run x86-64. On an Apple-silicon Mac, `docker build` makes
+an arm64 image, so add `--platform linux/amd64` to build what such a host runs.
 
-## Deploy
+### What your host must provide
 
-You need `gcloud` signed in (`gcloud auth login`) with permission to enable APIs
-and create Cloud Run services, Artifact Registry repositories, Cloud Build builds
-and Secret Manager secrets in the project. The project owner role does. Pass
-`--project` on every command, as below, so nothing depends on your default
-project. Replace `PROJECT`, `REGION` and the names to suit. Cloud Run's commands
-change over time, so check them against the current documentation.
+| Your host must                                                    | Why                                                                                                                            | On Cloud Run                                                                        |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Serve the container over HTTPS at a public URL                    | Dialpad frames only HTTPS pages, and the storage cookie is `Secure`. The host can end TLS in front of the container            | The service's `run.app` URL ([step 4](#4-deploy))                                   |
+| Let requests in without a sign-in                                 | Dialpad's iframe can't sign in to your host                                                                                    | `--allow-unauthenticated` ([step 4](#4-deploy))                                     |
+| Pass `DIALPAD_CLIENT_SECRET` and `APP_SECRET` from a secret store | Anyone who can view the service can read its plain environment variables                                                       | Secret Manager ([step 3](#3-put-the-secrets-in-secret-manager))                     |
+| Run one instance, for this demo                                   | The demo keeps OAuth results in memory ([What to know](#what-to-know-before-relying-on-it)). Your app keeps them in a database | `--max-instances 1` ([step 4](#4-deploy))                                           |
+| Keep the idtoken out of request logs, or limit who reads them     | The page URL carries the idtoken, which never expires                                                                          | A log exclusion ([step 5](#5-keep-the-idtoken-out-of-the-logs))                     |
+| Allow outbound HTTPS to `DIALPAD_ORIGIN`                          | The demo calls Dialpad's API on each page load                                                                                 | Allowed by default                                                                  |
+| Use one URL for both `BASE_URL` and the sidebar URI               | The OAuth popup and the iframe panel must share an origin                                                                      | The `status.url` form ([step 6](#6-point-dialpad-at-it))                            |
+| Keep `APP_SECRET` the same across deploys                         | Changing it signs everyone out                                                                                                 | Each revision reads the same secret ([Deploy a new version](#deploy-a-new-version)) |
+
+### Point Dialpad at it
+
+Your OAuth app's sidebar URI is your service's URL with a trailing slash, such
+as `https://acme.example.com/`. Dialpad appends `?idtoken=...` itself. Send the
+URL to Dialpad when you ask for your app
+([Get your app from Dialpad](../guide/02-run-the-demo.md#get-your-app-from-dialpad)),
+or ask Dialpad to update it if the URL changed.
+
+Then, as a company admin, open
+[Integrations settings](https://dialpad.com/adminsettings/integrations), and
+turn on **Enable this feature** for the app. Open a contact in Dialpad, and the
+iframe panel appears.
+
+### What to know before relying on it
+
+- **OAuth results are in memory.** Finished OAuth results (the demo-only handoff
+  from the popup to the iframe panel) live in one instance's memory. If the host
+  runs several instances, the OAuth callback can record a result on one while
+  the iframe panel's polling asks another, and Connect never finishes. A
+  restart or a scale-to-zero forgets results that were in flight, so that Connect
+  has to be retried. Running one instance avoids the several-instance case for a
+  demo. A real partner has no such store: the callback saves the CRM tokens in a
+  shared database, as `server/acme_dialpad_rightbar/demo/oauth_results.py` says.
+  The access tokens and the "connected" state aren't in memory: they're in the
+  storage cookie (see Cookies below), so they survive restarts and work on any
+  instance.
+- **The idtoken can end up in your host's request log.** The idtoken is in the
+  page URL and never expires. The app doesn't log it (no access log, and a quiet
+  error handler), but a host's request log can record the full request URL,
+  including `?idtoken=...`. Anyone who can read those logs can read the tokens.
+  Either restrict who can read them, or exclude the service's request logs.
+- **The page request calls Dialpad's API.** As a demo (unnecessary for the app;
+  see the guide's [demo call](../guide/11-from-demo-to-your-app.md#the-demo-call-to-dialpads-api)),
+  loading the page makes an outbound HTTPS request to `DIALPAD_ORIGIN` with the
+  idtoken's API key. It waits at most 3 seconds, so a slow or unreachable Dialpad
+  API delays the iframe panel's first paint by that much and then shows "Dialpad
+  API unavailable". The app doesn't log or store the key.
+- **The OAuth is fake.** `/oauth/fake-authorize` stands in for the CRM's consent
+  screen, and `/oauth/callback` only records that the user connected. A real
+  partner replaces the fake page and makes the callback exchange the `code` for
+  CRM tokens and persist them in a database (see the guide's [What to keep, replace, and delete](../guide/11-from-demo-to-your-app.md#what-to-keep-replace-and-delete)).
+- **Cookies.** The storage cookie is the app's persistent storage of the user's
+  access token and whether they're connected. `APP_SECRET` signs it (changing the
+  secret signs everyone out: every open iframe panel gets `401` and shows "Reload
+  the panel"). It's valid for 30 days and kept in the browser, so it survives a
+  restart or scale-to-zero and works on any instance. The API calls need the
+  bearer token and the cookie to match, so a browser that refuses the cookie
+  (older Safari, or one blocking third-party cookies) can't use the iframe panel.
+  It's `Secure`, `HttpOnly`, `SameSite=None` and `Partitioned`, so it works in a
+  third-party iframe over HTTPS. A host that ends TLS in front of the container
+  works too: the app sets the cookie whatever scheme it sees.
+
+## Example: Google Cloud Run
+
+Everything in this part is specific to Cloud Run. It meets each row of
+[What your host must provide](#what-your-host-must-provide).
+
+You need `gcloud` signed in (`gcloud auth login`) with permission to turn on
+APIs and create Cloud Run services, Artifact Registry repositories, Cloud Build
+builds and Secret Manager secrets in the project. The project owner role has
+these. Pass `--project` on every command, as below, so nothing depends on your
+default project. Replace `PROJECT`, `REGION` and the names to suit. Cloud Run's
+commands change over time, so check them against the current documentation.
 
 ### 1. Enable the services and create a repository
 
@@ -104,12 +179,12 @@ gcloud builds submit --config deployment/cloudbuild.yaml \
   --substitutions _IMAGE=REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest .
 ```
 
-`client/vendor/` is tracked in git, so it is uploaded with the source; the
+`client/vendor/` is tracked in git, so `gcloud` uploads it with the source; the
 image's iframe panel stage needs the SDK tarball in it.
 
 ### 3. Put the secrets in Secret Manager
 
-`DIALPAD_CLIENT_SECRET` and `APP_SECRET` are kept in Secret Manager, not in the
+Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` in Secret Manager, not in the
 service's plain environment variables, which anyone who can view the service
 (the console, `gcloud run services describe`) can read. Create one secret for each:
 
@@ -121,7 +196,7 @@ openssl rand -hex 32 | tr -d '\n' | gcloud secrets create acme-app-secret --data
 ```
 
 Then let the service's runtime service account read them. Unless you set another,
-that is the default Compute Engine account, `PROJECT_NUMBER-compute@developer.gserviceaccount.com`:
+that's the default Compute Engine account, `PROJECT_NUMBER-compute@developer.gserviceaccount.com`:
 
 ```sh
 RUNTIME_SA=$(gcloud projects describe PROJECT --format='value(projectNumber)')-compute@developer.gserviceaccount.com
@@ -151,15 +226,15 @@ gcloud run deploy acme-crm-demo \
 ```
 
 - **`--allow-unauthenticated`:** Dialpad's iframe has to reach the service
-  without a Google login.
+  without a Google sign-in.
 - **`--max-instances 1`:** keeps the in-memory OAuth results in one place (see
   [What to know](#what-to-know-before-relying-on-it)). There is no minimum:
   Cloud Run typically keeps an instance running long enough for a Connect to
   finish (the SDK gives up after 2 minutes), though it may stop one at any time.
 - **`--set-secrets`:** the two secrets from step 3, as environment variables.
-- **`BASE_URL` placeholder:** the service's URL isn't known until it exists, but
-  the app refuses to start without a `BASE_URL`. Deploy with a placeholder, then
-  set the real one:
+- **`BASE_URL` placeholder:** the service's URL doesn't exist until the service
+  does, but the app refuses to start without a `BASE_URL`. Deploy with a
+  placeholder, then set the real one:
 
 ```sh
 URL=$(gcloud run services describe acme-crm-demo --region REGION --format='value(status.url)')
@@ -174,22 +249,35 @@ Cloud Run's default startup probe (a TCP check on the port) is enough. The app's
 it. Don't point a check at it on the public URL: Cloud Run's front end answers
 that path itself (with Google's 404 page) before the request reaches the app.
 
-### 5. Point Dialpad at it
+### 5. Keep the idtoken out of the logs
 
-Your OAuth app's sidebar URI is the service URL with a trailing slash, for
-example `https://acme-crm-demo-xxxxxxxx-uc.a.run.app/`. Dialpad appends
-`?idtoken=...` itself. Send the URL to Dialpad when you ask for your app
-([Get your app from Dialpad](../guide/02-run-the-demo.md#get-your-app-from-dialpad)),
-or ask Dialpad to update it if the URL changed.
+Cloud Run's request log, `run.googleapis.com/requests`, records the full request
+URL, including `?idtoken=...`. Either restrict who can read the project's logs,
+or exclude the service's request logs from the `_Default` sink (check the syntax
+against the current Cloud Logging documentation):
 
-Then, as a company admin, open
-[Integrations settings](https://dialpad.com/adminsettings/integrations), and
-turn on **Enable this feature** for the app. Open a contact in Dialpad, and the
-iframe panel appears.
+```sh
+gcloud logging sinks update _Default --project PROJECT \
+  --add-exclusion='name=exclude-acme-requests,filter=logName:"run.googleapis.com%2Frequests" AND resource.labels.service_name="acme-crm-demo"'
+```
 
-## Day two
+Entries already written stay until their retention ends.
 
-### Deploy a new version
+### 6. Point Dialpad at it
+
+Follow [Point Dialpad at it](#point-dialpad-at-it), with the service's URL, such
+as `https://acme-crm-demo-xxxxxxxx-uc.a.run.app/`.
+
+The service has two equivalent URLs: the one `gcloud run services describe`
+prints in `status.url` (`https://acme-crm-demo-<hash>-uc.a.run.app`) and a
+second form built from the project number
+(`https://acme-crm-demo-<project-number>.<region>.run.app`). Use the
+`status.url` one for both `BASE_URL` and the sidebar URI, so the OAuth popup and
+the iframe panel share an origin.
+
+### Day two
+
+#### Deploy a new version
 
 Build again and roll out a new revision. Rebuilding the same `:latest` tag is
 enough: Cloud Run resolves the tag to the new image when you deploy, and the
@@ -204,31 +292,24 @@ gcloud run deploy acme-crm-demo --project PROJECT --region REGION \
   --image REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest
 ```
 
-The new revision takes all traffic once it is ready. Open iframe panels keep working
-across the rollout: their access token and connection are in the browser's
-storage cookie, signed with `APP_SECRET`, which the new revision accepts. Only a
-Connect that was in flight loses its in-memory OAuth result and has to be
-retried.
+The new revision takes all traffic once it's ready. Open iframe panels keep
+working across the rollout: their access token and connection are in the
+browser's storage cookie, signed with `APP_SECRET`, which the new revision
+accepts. Only a Connect that was in flight loses its in-memory OAuth result and
+has to be retried.
 
 To change a setting without rebuilding, use
 `gcloud run services update ... --update-env-vars` (as for `BASE_URL` above); for
 a secret, see step 3.
 
-### Look at it
+#### Look at it
 
 ```sh
 gcloud run revisions list --service acme-crm-demo --project PROJECT --region REGION
 gcloud run services logs read acme-crm-demo --project PROJECT --region REGION --limit 50
 ```
 
-The service has two equivalent URLs: the one `gcloud run services describe`
-prints in `status.url` (`https://acme-crm-demo-<hash>-uc.a.run.app`) and a
-second form built from the project number
-(`https://acme-crm-demo-<project-number>.<region>.run.app`). Use the same one
-for `BASE_URL` and the sidebar URI so the OAuth popup and the iframe panel share an
-origin.
-
-### Roll back, or remove it
+#### Roll back, or remove it
 
 ```sh
 gcloud run services update-traffic acme-crm-demo --project PROJECT --region REGION \
@@ -240,60 +321,11 @@ gcloud run services delete acme-crm-demo --project PROJECT --region REGION
 Deleting the service leaves the image in Artifact Registry and the enabled APIs
 in the project.
 
-### Cost
+#### Cost
 
-With no minimum, the service scales to zero when idle and is billed only while it
+With no minimum, the service scales to zero when idle and costs nothing until it
 serves requests. The first request after an idle period waits for an instance to
 start. A scale-to-zero (or any restart) forgets in-memory OAuth results, so a
 Connect in flight has to be retried; connected users stay connected. To keep an
-instance warm anyway, add `--min-instances 1`, which is billed even with no traffic.
-
-## What to know before relying on it
-
-- **OAuth results are in memory.** Finished OAuth results (the demo-only handoff
-  from the popup to the iframe panel) live in one instance's memory. If Cloud Run ran
-  several instances, the OAuth callback could record a result on one while the
-  iframe panel's polling asked another, and Connect would never finish. A restart or a
-  scale-to-zero forgets results that were in flight, so that Connect has to be
-  retried. Limiting the service to one instance avoids the several-instance case
-  for a demo. A real partner has no such store: the callback saves the CRM tokens
-  in a shared database, as `server/acme_dialpad_rightbar/demo/oauth_results.py` says. The access
-  tokens and the "connected" state are not in memory: they are in the storage cookie
-  (see Cookies below), so they survive restarts and work on any instance.
-- **The idtoken ends up in Cloud Run's request log.** The idtoken is in the page
-  URL and never expires. The app doesn't log it (no access log, and a quiet
-  error handler), but Cloud Run's own request log,
-  `run.googleapis.com/requests`, records the full request URL including
-  `?idtoken=...`. Anyone who can read the project's logs can read those tokens.
-  Either restrict who can read them, or exclude the service's request logs from the
-  `_Default` sink (check the syntax against the current Cloud Logging
-  documentation):
-
-  ```sh
-  gcloud logging sinks update _Default --project PROJECT \
-    --add-exclusion='name=exclude-acme-requests,filter=logName:"run.googleapis.com%2Frequests" AND resource.labels.service_name="acme-crm-demo"'
-  ```
-
-  Entries already written stay until their retention ends.
-
-- **The page request calls Dialpad's API.** As a demo (unnecessary for the app;
-  see the guide's [demo call](../guide/11-from-demo-to-your-app.md#the-demo-call-to-dialpads-api)),
-  loading the page makes an outbound HTTPS request to `DIALPAD_ORIGIN` with the
-  idtoken's api key, which Cloud Run allows by default. It waits at most 3
-  seconds, so a slow or unreachable Dialpad API delays the iframe panel's first paint
-  by that much and then shows "Dialpad API unavailable". The key is not logged
-  or stored.
-- **The OAuth is fake.** `/oauth/fake-authorize` stands in for the CRM's consent
-  screen, and `/oauth/callback` only records that the user connected. A real
-  partner replaces the fake page and makes the callback exchange the `code` for
-  CRM tokens and persist them in a database (see the guide's [What to keep, replace, and delete](../guide/11-from-demo-to-your-app.md#what-to-keep-replace-and-delete)).
-- **Cookies.** The storage cookie is the app's persistent storage of the user's
-  access token and whether they are connected. It is signed with `APP_SECRET`
-  (changing the secret signs everyone out: every open iframe panel gets `401` and
-  shows "Reload the panel"), valid for 30 days, and kept in the browser, so it
-  survives a restart or scale-to-zero and works on any instance. The API calls
-  need the bearer token and the cookie to match, so a browser that refuses the
-  cookie (older Safari, or one blocking third-party cookies) can't use the
-  iframe panel. It is `Secure`, `HttpOnly`, `SameSite=None` and `Partitioned`, so it
-  works in a third-party iframe over HTTPS. Cloud Run terminates TLS and the app
-  sets the cookie regardless of the scheme it sees internally.
+instance warm anyway, add `--min-instances 1`, which Cloud Run bills even with
+no traffic.

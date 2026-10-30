@@ -39,8 +39,8 @@ section for your task.
    the in-memory OAuth results, the fake authorize page), or local mode in
    production.
 5. **Deploy** as [`deployment/README.md`](deployment/README.md) describes: the
-   container image, the environment variables and secrets it needs, and Cloud
-   Run. Any container host works the same way.
+   container image, the environment variables and secrets it needs, and what
+   the host must provide. Any container host works.
 
 You're done when every row of [9. Security checklist](guide/09-security-checklist.md)
 holds for the app, and its tests pass ([chapter 10](guide/10-test-your-app.md)).

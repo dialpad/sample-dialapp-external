@@ -142,7 +142,7 @@ Edge, Firefox, and Safari. The SDK itself supports Chrome 109 and later and the
 Dialpad desktop app.
 
 [`deployment/README.md`](../deployment/README.md) shows how to run the app as a
-container on Google Cloud Run. The
+container on any host. The
 [reference](reference.md#the-servers-environment-variables) lists every
 environment variable the server reads.
 

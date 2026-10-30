@@ -86,7 +86,7 @@ A panel that doesn't show a CRM record skips chapter 7
 | `client/`     | The panel: Vite, Vue 3, TypeScript, and Dialtone 10. A `pnpm` project                                    |
 | `server/`     | The Python server, `acme_dialpad_rightbar/`: Sanic on Python 3.14, with its tests. One file per endpoint |
 | `contract/`   | `openapi.json`, the contract between Dialpad, your server, and the SDK                                   |
-| `deployment/` | The Dockerfile, and how to run the app on Cloud Run                                                      |
+| `deployment/` | The Dockerfile, and how to deploy the app on a container host                                            |
 | `guide/`      | This guide                                                                                               |
 
 The code is organised by feature. On the server, `dialpad/` is the contract
