@@ -101,5 +101,6 @@ delete
 ## License
 
 This repository is released under the MIT license; see [LICENSE](LICENSE). The
-SDK in `client/vendor/` is also MIT-licensed, with its own `LICENSE` file in the
-tarball.
+SDK, which the client installs from npm as
+[`@dialpad/dialapp-external-sdk`](https://www.npmjs.com/package/@dialpad/dialapp-external-sdk),
+is also MIT-licensed.

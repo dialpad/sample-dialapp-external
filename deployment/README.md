@@ -23,7 +23,7 @@ its context (it needs both `client/` and `server/`; its ignore file is
 
 1. **Iframe panel.** Node 24 with Corepack runs `pnpm install --frozen-lockfile` and
    `pnpm build` in `client/`, producing `dist/` (the hashed assets and Vite's
-   manifest). The SDK installs from its tarball in `client/vendor/`.
+   manifest). The SDK installs from npm.
 2. **Server.** A slim Python 3.14 image installs `server/requirements.txt`
    (public packages only), then copies in `server/acme_dialpad_rightbar/` and the built
    `dist/`. It runs as a non-root user and starts `python -m acme_dialpad_rightbar`, which
@@ -163,9 +163,6 @@ source, so this uses [`cloudbuild.yaml`](cloudbuild.yaml), which runs
 gcloud builds submit --config deployment/cloudbuild.yaml --project PROJECT_ID \
   --substitutions _IMAGE=REGION-docker.pkg.dev/PROJECT_ID/acme-crm/acme-crm-demo:latest .
 ```
-
-`client/vendor/` is tracked in git, so `gcloud` uploads it with the source; the
-image's iframe panel stage needs the SDK tarball in it.
 
 ### 3. Put the secrets in Secret Manager
 

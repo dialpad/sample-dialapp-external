@@ -1,7 +1,7 @@
 # Read by BuildKit for `docker build -f deployment/Dockerfile .` (it looks for <Dockerfile>.dockerignore
 # next to the Dockerfile). The build context is the repository root; this keeps it to what the image
-# needs: client/ (without its tools' folders, but with client/vendor/, which the SDK installs from)
-# and server/acme_dialpad_rightbar plus server/requirements.txt.
+# needs: client/ (without its tools' folders) and server/acme_dialpad_rightbar plus
+# server/requirements.txt.
 .git
 .gitignore
 .codegraph

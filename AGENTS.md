@@ -60,7 +60,7 @@ holds for the app, and its tests pass ([chapter 10](guide/10-test-your-app.md)).
   when you add, rename, or delete a file.
 - **Make the guide's code work as shown.** Partners copy its snippets: declare
   every variable a snippet reads, or say where it comes from, and type-check a
-  TypeScript snippet against the vendored SDK.
+  TypeScript snippet against the installed SDK.
 - **Check what the guide says about the SDK against the SDK's code**, in
   `client/node_modules/@dialpad/dialapp-external-sdk`, not against an earlier
   version.
@@ -73,11 +73,12 @@ holds for the app, and its tests pass ([chapter 10](guide/10-test-your-app.md)).
   the Markdown formatting, and `pnpm links:ci` its links.
 - **Regenerate the guide's images** after a change to the panel's look
   ([`guide/images/`](guide/images/README.md)). Images show fake data only.
-- **Vendor a new SDK build** with `pnpm run vendor <dir>` in `client/`. Each
-  tarball carries a new version number
-  ([chapter 2](guide/02-run-the-demo.md#upgrade-the-sdk)). Copy
-  `contract/openapi.json` from the same SDK commit: its `info.version` names the
-  tarball's version, and the SDK's CI requires the two to be identical.
+- **Upgrade the SDK** with `pnpm add @dialpad/dialapp-external-sdk@<version>` in
+  `client/`, which pins the exact version
+  ([chapter 2](guide/02-run-the-demo.md#upgrade-the-sdk)). In the same commit,
+  copy `contract/openapi.json` from the SDK repository, at the commit that
+  published that version. Its `info.version` names the SDK version, and the SDK
+  repository's CI requires the two copies to be identical.
 - **Use public packages only.** The repository installs nothing from Dialpad's
   private registry.
 - **Never commit secrets.** Client secrets, idtokens, and API keys stay out of

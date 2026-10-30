@@ -18,29 +18,25 @@ python3.14 -m venv .venv
 .venv/bin/pip install -r requirements.txt --group dev
 ```
 
-The client installs the SDK from a tarball in `client/vendor/`, the same way you
-install the one Dialpad sends you: `client/package.json` points at
-`vendor/dialpad-dialapp-external-sdk-<version>.tgz`. Nothing needs Dialpad's
-private registry. The server installs only public packages: `requirements.txt`
+The client installs the SDK from npm, as
+[`@dialpad/dialapp-external-sdk`](https://www.npmjs.com/package/@dialpad/dialapp-external-sdk).
+Nothing needs Dialpad's private registry. The server installs only public packages: `requirements.txt`
 has what it runs on, and the `dev` dependency group in `server/pyproject.toml`
 adds the test, lint, type-check, and style tools.
 
 ### Upgrade the SDK
 
-Dialpad sends each SDK build as a `dialpad-dialapp-external-sdk-<version>.tgz`
-file. To move to a new one, from `client/`:
+To move to a new SDK version, from `client/`:
 
-1. Replace the old tarball in `vendor/` with the new one.
-2. Install it:
+1. Install it:
 
    ```sh
-   pnpm add ./vendor/dialpad-dialapp-external-sdk-<version>.tgz
+   pnpm add @dialpad/dialapp-external-sdk@<version>
    ```
 
-   This updates `pnpm-lock.yaml` and the `file:vendor/...` dependency in
-   `package.json`.
+   This updates the dependency in `package.json` and `pnpm-lock.yaml`.
 
-3. Run the client's checks: `pnpm types:check && pnpm test:run`, and
+2. Run the client's checks: `pnpm types:check && pnpm test:run`, and
    `pnpm test:e2e` if you keep the browser tests.
 
 **From 0.2.0 to 0.3.0:** Dialpad no longer reloads the panel when the user opens
@@ -48,14 +44,11 @@ another contact. `state.contact` changes instead. A panel that reads the contact
 only when it starts must follow `state.contact`
 ([chapter 7](07-show-the-crm-record.md#when-the-user-opens-another-contact)).
 
-The [contract](01-the-big-picture.md#the-contract) isn't in the tarball:
+The [contract](01-the-big-picture.md#the-contract) isn't in the SDK package:
 `contract/openapi.json` is a copy, and its `info.version` names the SDK version
-it describes. Check that it still matches. The server has nothing to update,
-because it uses no Dialpad library.
-
-`client/scripts/vendor.mjs` (the `pnpm run vendor` script) is Dialpad's own
-tooling for testing a freshly built tarball. Delete it if you like, together with the
-`vendor` script in `client/package.json`.
+it describes. Check that it still matches. The server uses no Dialpad library,
+but if the contract changes, update the server's implementation of it in
+`acme_dialpad_rightbar/dialpad/contract.py`.
 
 ## Run it locally
 
