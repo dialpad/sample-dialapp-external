@@ -176,7 +176,7 @@ on, starting with yours. When you and Dialpad agree it's ready, Dialpad makes it
 public, and every company can turn it on. In both cases, a company admin turns
 on the app on the Integrations settings page, and an office admin can turn it on
 for one office. Users on Dialpad's Pro and Enterprise plans then see your panel
-in the right sidebar, but not in Microsoft Teams.
+in the right sidebar.
 
 ## In this demo
 
