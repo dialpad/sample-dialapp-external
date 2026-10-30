@@ -2,7 +2,7 @@
   "openapi": "3.1.2",
   "info": {
     "title": "Dialpad partner rightbar app contract",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "Endpoints a partner rightbar app backend exposes. Paths other than the page are under `/dialpad`, where the frontend SDK calls them. The partner's own feature endpoints sit beside these, authenticated the same way, and are not part of the contract."
   },
   "paths": {
