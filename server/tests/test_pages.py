@@ -119,12 +119,12 @@ def test_page_data_is_a_versioned_json_element_and_every_script_carries_the_nonc
 
 
 def test_page_headers_match_the_contract_and_asset_origins_join_the_policy() -> None:
-  page = render_page(make_page_data(dialpad_origin='https://dialpadbeta.com'),
+  page = render_page(make_page_data(dialpad_origin='https://dialpad.example.com'),
                      nonce=NONCE,
                      assets=ASSETS)
 
   csp = page.headers['Content-Security-Policy']
-  assert 'frame-ancestors https://dialpadbeta.com' in csp.split('; ')
+  assert 'frame-ancestors https://dialpad.example.com' in csp.split('; ')
   assert f"script-src 'self' 'nonce-{NONCE}'" in csp.split('; ')
   assert "object-src 'none'" in csp.split('; ')
   assert "base-uri 'none'" in csp.split('; ')
@@ -220,11 +220,11 @@ def test_renderers_refuse_anything_but_an_origin(renderer: str, origin: str) -> 
 
 
 def test_close_popup_posts_to_the_dialpad_origin_only_with_an_opener_then_closes() -> None:
-  page = render_close_popup('https://dialpadbeta.com', nonce=NONCE)
+  page = render_close_popup('https://dialpad.example.com', nonce=NONCE)
 
   calls = re.findall(r'postMessage\(([^)]*)\)', page.html)
   assert calls == ["'close_popup', dialpadOrigin"]
-  assert 'const dialpadOrigin = "https://dialpadbeta.com";' in page.html
+  assert 'const dialpadOrigin = "https://dialpad.example.com";' in page.html
   assert "'*'" not in page.html
   assert '"*"' not in page.html
   script = page.html[page.html.index('<script'):page.html.index('</script>')]

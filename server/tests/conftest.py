@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 
 # Fixed values the apps under test are configured with; tests compare against them.
 APP_SECRET = 'test-app-secret'
-DIALPAD_ORIGIN = 'https://dialpadbeta.com'
+DIALPAD_ORIGIN = 'https://dialpad.example.com'
 BASE_URL = 'https://acme.example.com'
 # Finds the JSON the page embeds for the SDK: the SDK reads the same element by its id.
 PAGE_DATA = re.compile(
@@ -357,7 +357,7 @@ def fake_dialpad() -> Iterator[FakeDialpad]:
 
 @pytest.fixture
 def env(tmp_path: Path, fake_dialpad: FakeDialpad) -> Env:
-  """Provide an app in production mode, as it runs against dialpadbeta or dialpad.com."""
+  """Provide an app in production mode, as it runs against dialpad.com."""
   return make_env(tmp_path, fake_dialpad, local_mode=False)
 
 
