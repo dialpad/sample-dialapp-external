@@ -32,7 +32,9 @@ the guide to see how each part works, and copy it to start your own.
   the panel, a fresh nonce per response, escaped page data, and no secrets in
   logs.
 - **Run it** locally with a dev page that stands in for Dialpad, or in Dialpad
-  with an OAuth app that Dialpad sets up. Design the panel for 250 to 414 pixels
+  with an OAuth app that Dialpad sets up
+  ([what you send, and what you get back](guide/02-run-the-demo.md#get-your-app-from-dialpad)).
+  Design the panel for 250 to 414 pixels
   wide.
 - **Test it** with the SDK's mock Dialpad in unit tests and Playwright in a real
   browser. CI runs every check.

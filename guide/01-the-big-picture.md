@@ -101,12 +101,12 @@ For a panel that isn't Vue, also read [chapter 12](12-plain-javascript.md) or
 
 Four different secrets appear in this guide. They aren't interchangeable.
 
-| Secret                                                | Who issues it                               | What it's for                                                                  |
-| ----------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| **OAuth app client secret** (`DIALPAD_CLIENT_SECRET`) | Dialpad, when it sets up your OAuth app     | Decoding the idtoken on the page request, and nothing else                     |
-| **API key** (`api_key`, inside the idtoken)           | Dialpad, per user and app                   | `Authorization: Bearer` on your server's calls to Dialpad's public API         |
-| **Access token** (in the page data)                   | Your server, per page load                  | `Authorization: Bearer` on every request the panel makes to your server        |
-| **Webhook signing secret**                            | You, when you create a webhook with Dialpad | Checking that the events Dialpad sends to your server really came from Dialpad |
+| Secret                                                | Who issues it                                                                           | What it's for                                                                  |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **OAuth app client secret** (`DIALPAD_CLIENT_SECRET`) | Dialpad, when it [sets up your OAuth app](02-run-the-demo.md#get-your-app-from-dialpad) | Decoding the idtoken on the page request, and nothing else                     |
+| **API key** (`api_key`, inside the idtoken)           | Dialpad, per user and app                                                               | `Authorization: Bearer` on your server's calls to Dialpad's public API         |
+| **Access token** (in the page data)                   | Your server, per page load                                                              | `Authorization: Bearer` on every request the panel makes to your server        |
+| **Webhook signing secret**                            | You, when you create a webhook with Dialpad                                             | Checking that the events Dialpad sends to your server really came from Dialpad |
 
 ## What your server stores
 

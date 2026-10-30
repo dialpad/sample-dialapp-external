@@ -1,9 +1,8 @@
 # Deploying to Cloud Run
 
 This describes how to run the reference app as a container, and how to put that
-container on Google Cloud Run so Dialpad can frame it over HTTPS (for example in
-dialpadbeta). Any container host works the same way; only the Cloud Run commands
-are specific.
+container on Google Cloud Run so Dialpad can frame it over HTTPS. Any container
+host works the same way; only the Cloud Run commands are specific.
 
 > **A demo, not a production setup.** The OAuth round trip is fake, and finished
 > OAuth results live in one process's memory. See
@@ -32,12 +31,12 @@ variables below are passed when the container runs.
 See the [environment variables reference](../guide/reference.md#the-servers-environment-variables) for all
 of them. A container needs these four, none of which is baked into the image:
 
-| Variable                | Value                                                                    |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `DIALPAD_CLIENT_SECRET` | The OAuth app's client secret                                            |
-| `APP_SECRET`            | Demo only. A random secret that signs `state` and the cookie             |
-| `DIALPAD_ORIGIN`        | `https://dialpadbeta.com` for beta, `https://dialpad.com` for production |
-| `BASE_URL`              | The public HTTPS URL of the service, without a trailing slash            |
+| Variable                | Value                                                         |
+| ----------------------- | ------------------------------------------------------------- |
+| `DIALPAD_CLIENT_SECRET` | The OAuth app's client secret                                 |
+| `APP_SECRET`            | Demo only. A random secret that signs `state` and the cookie  |
+| `DIALPAD_ORIGIN`        | `https://dialpad.com`                                         |
+| `BASE_URL`              | The public HTTPS URL of the service, without a trailing slash |
 
 Do not set `LOCAL_MODE`. The listen port comes from `PORT`; the port in
 `BASE_URL` is not used when `PORT` is set, which is what a container host does.
@@ -55,7 +54,7 @@ docker build -f deployment/Dockerfile -t acme-crm-demo .   # from the repository
 docker run --rm -p 8080:8080 \
   -e DIALPAD_CLIENT_SECRET=... \
   -e APP_SECRET=... \
-  -e DIALPAD_ORIGIN=https://dialpadbeta.com \
+  -e DIALPAD_ORIGIN=https://dialpad.com \
   -e BASE_URL=http://localhost:8080 \
   acme-crm-demo
 
@@ -147,7 +146,7 @@ gcloud run deploy acme-crm-demo \
   --allow-unauthenticated \
   --port 8080 \
   --max-instances 1 \
-  --set-env-vars "DIALPAD_ORIGIN=https://dialpadbeta.com,BASE_URL=https://placeholder.example.com" \
+  --set-env-vars "DIALPAD_ORIGIN=https://dialpad.com,BASE_URL=https://placeholder.example.com" \
   --set-secrets "DIALPAD_CLIENT_SECRET=dialpad-client-secret:latest,APP_SECRET=acme-app-secret:latest"
 ```
 
@@ -177,12 +176,16 @@ that path itself (with Google's 404 page) before the request reaches the app.
 
 ### 5. Point Dialpad at it
 
-Set the beta OAuth app's conversation sidebar URI to the service URL with a
-trailing slash, for example `https://acme-crm-demo-xxxxxxxx-uc.a.run.app/`
-(Dialpad sets this up for you). Dialpad appends `?idtoken=...` itself.
+Your OAuth app's sidebar URI is the service URL with a trailing slash, for
+example `https://acme-crm-demo-xxxxxxxx-uc.a.run.app/`. Dialpad appends
+`?idtoken=...` itself. Send the URL to Dialpad when you ask for your app
+([Get your app from Dialpad](../guide/02-run-the-demo.md#get-your-app-from-dialpad)),
+or ask Dialpad to update it if the URL changed.
 
-Then enable the app from Dialpad's admin settings. Open a contact in dialpadbeta
-and the iframe panel should appear.
+Then, as a company admin, open
+[Integrations settings](https://dialpad.com/adminsettings/integrations), and
+turn on **Enable this feature** for the app. Open a contact in Dialpad, and the
+iframe panel appears.
 
 ## Day two
 

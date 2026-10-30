@@ -20,7 +20,10 @@ section for your task.
      scopes;
    - the stack for the server and the panel;
    - their database;
-   - where the app runs.
+   - where the app runs;
+   - whether they have their OAuth app from Dialpad, and if not, the details
+     Dialpad needs for it
+     ([Get your app from Dialpad](guide/02-run-the-demo.md#get-your-app-from-dialpad)).
 2. **Read [11. Turn the demo into your app](guide/11-from-demo-to-your-app.md).**
    Everything the demo fakes is in `demo/` (on the server and in the panel), and
    the chapter lists the five files where your real code replaces it. The CRM

@@ -117,20 +117,24 @@ cookies; for Safari, use a trusted local certificate such as `mkcert`.
 
 ## Run it in Dialpad
 
-You need an OAuth app that Dialpad sets up for you.
+You need an OAuth app that Dialpad sets up for you
+([Get your app from Dialpad](#get-your-app-from-dialpad)).
 
 1. Build the panel (`pnpm build` in `client/`), and run the server from `server/`
-   without `LOCAL_MODE`, with the four required settings:
+   without `LOCAL_MODE`, with the four required settings. `DIALPAD_CLIENT_SECRET`
+   is the client secret Dialpad sends you:
 
    ```sh
    cd server && DIALPAD_CLIENT_SECRET=... DIALPAD_ORIGIN=https://dialpad.com \
      APP_SECRET=... BASE_URL=https://your-public-url .venv/bin/python -m acme_dialpad_rightbar
    ```
 
-2. Make the server reachable at that public HTTPS URL.
-3. Ask Dialpad to set your OAuth app's conversation sidebar URI to it.
-4. Enable the app in Dialpad's admin settings.
-5. Open a contact in Dialpad. The panel appears, and Connect and Disconnect work
+2. Make the server reachable at the sidebar URI you sent Dialpad. If the URL
+   changes, ask Dialpad to update it.
+3. As a company admin, open
+   [Integrations settings](https://dialpad.com/adminsettings/integrations), and
+   turn on **Enable this feature** for the app.
+4. Open a contact in Dialpad. The panel appears, and Connect and Disconnect work
    against the real Dialpad.
 
 The demo works in the Dialpad desktop app and the latest versions of Chrome,
@@ -141,6 +145,38 @@ Dialpad desktop app.
 container on Google Cloud Run. The
 [reference](reference.md#the-servers-environment-variables) lists every
 environment variable the server reads.
+
+### Get your app from Dialpad
+
+Ask your Dialpad contact for an OAuth app for your panel, and send them:
+
+| What you send  | Details                                                                                                                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name           | The name users see in the right sidebar and on the Integrations settings page. Pick a name that differs from the sections Dialpad's sidebar has, such as "Notes".                                                                     |
+| Description    | One line.                                                                                                                                                                                                                             |
+| Contacts       | A support email, and a developer's name and email.                                                                                                                                                                                    |
+| Sidebar URI    | The HTTPS URL of your panel page, with no query string: Dialpad adds `?idtoken=…`. Give the exact URL your server serves the page at, including any trailing slash. Dialpad accepts the panel's messages only from that URL's origin. |
+| Two SVG icons  | One for the panel's section in the right sidebar, and one for the Integrations settings page.                                                                                                                                         |
+| Dialpad scopes | Only if your server calls Dialpad's API ([chapter 8](08-call-dialpad.md)). The API key in the idtoken gets exactly these scopes, so ask for only what your app needs.                                                                 |
+
+Dialpad needs no redirect URIs: your users connect to your service with your own
+OAuth ([chapter 6](06-connect-to-the-crm.md)), not Dialpad's.
+
+Dialpad sends you back:
+
+- **A client ID**, which names your app to Dialpad. Quote it when you ask Dialpad
+  about your app; your server doesn't use it.
+- **A client secret**, through a secure channel. It's your server's
+  `DIALPAD_CLIENT_SECRET`, for decoding the idtoken
+  ([The four secrets](01-the-big-picture.md#the-four-secrets)). Keep it in your
+  secret store, never in your code.
+
+Your app starts private: only the companies Dialpad installs it for can turn it
+on, starting with yours. When you and Dialpad agree it's ready, Dialpad makes it
+public, and every company can turn it on. In both cases, a company admin turns
+on the app on the Integrations settings page, and an office admin can turn it on
+for one office. Users on Dialpad's Pro and Enterprise plans then see your panel
+in the right sidebar, but not in Microsoft Teams.
 
 ## In this demo
 
