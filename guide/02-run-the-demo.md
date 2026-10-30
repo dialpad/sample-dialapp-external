@@ -35,8 +35,6 @@ To move to a new SDK version, from `client/`:
    ```
 
    This updates the dependency in `package.json` and `pnpm-lock.yaml`.
-   `saveExact` in `pnpm-workspace.yaml` makes it an exact version, without a
-   `^`, so the SDK changes only when you run this.
 
 2. Run the client's checks: `pnpm types:check && pnpm test:run`, and
    `pnpm test:e2e` if you keep the browser tests.
@@ -48,8 +46,7 @@ only when it starts must follow `state.contact`
 
 The [contract](01-the-big-picture.md#the-contract) isn't in the SDK package:
 `contract/openapi.json` is a copy, and its `info.version` names the SDK version
-it describes. Copy the new SDK version's `openapi.json` in the same commit as the
-upgrade, so the two always match. The server uses no Dialpad library,
+it describes. Check that it still matches. The server uses no Dialpad library,
 but if the contract changes, update the server's implementation of it in
 `acme_dialpad_rightbar/dialpad/contract.py`.
 

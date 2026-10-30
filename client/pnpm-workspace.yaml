@@ -10,9 +10,6 @@ trustPolicy: no-downgrade
 blockExoticSubdeps: true
 # ...and installs on a Node version outside a package's engines.
 engineStrict: true
-# `pnpm add` saves exact versions, without a `^`, so a dependency changes only when someone adds
-# its new version (and, for the SDK, its matching contract/openapi.json) in one commit.
-saveExact: true
 # Dialpad's own SDK is exempt from the minimum release age, so a new SDK version installs on
 # the day it's published.
 minimumReleaseAgeExclude:
