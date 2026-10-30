@@ -13,7 +13,8 @@ the guide to see how each part works, and copy it to start your own.
   everything on the Dialpad side: the handshake, one state snapshot of the user,
   contact, call, theme, and CRM connection, OAuth Connect and Disconnect, linking
   CRM records, toasts, and a mock Dialpad for tests. This app uses Vue and
-  Dialtone; plain JavaScript and React work too.
+  [Dialtone](https://dialtone.dialpad.com/), Dialpad's design system; plain
+  JavaScript and React work too.
 - **Your server** can be in any language. It decodes the idtoken that Dialpad
   adds to the page URL, serves the page with its page data, answers
   `GET /dialpad/ext-connection` and `POST /dialpad/ext-disconnect`, and checks a

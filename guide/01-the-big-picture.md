@@ -147,7 +147,8 @@ Acme CRM. Its panel shows the Dialpad user, the call, the OAuth scopes, and the
 open contact with every text field prefixed `Acme `, which proves the data went
 to the server and back.
 
-- **The panel** (`client/`) uses Vue 3 and Dialtone 10, Dialpad's design system.
+- **The panel** (`client/`) uses Vue 3 and [Dialtone](https://dialtone.dialpad.com/)
+  10, Dialpad's design system.
   Any framework works; [chapter 12](12-plain-javascript.md) and
   [chapter 13](13-react.md) show the panel without Vue.
 - **The server** (`server/`) is Python and Sanic. It's a reference, not a

@@ -5,8 +5,9 @@ repository doesn't build or run these snippets; they're sketches.
 
 Everything in [What stays the same](12-plain-javascript.md#what-stays-the-same)
 in chapter 12 applies: the server, the SDK calls, the framework-free modules (with
-`accessTokenRejected` as a plain flag), and the BEM CSS. Dialtone's Vue components
-don't, so use Dialtone's CSS and design tokens on your own React components.
+`accessTokenRejected` as a plain flag), and the BEM CSS.
+[Dialtone](https://dialtone.dialpad.com/)'s Vue components don't, so use
+Dialtone's CSS and design tokens on your own React components.
 
 ## Start the SDK
 
