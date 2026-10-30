@@ -80,7 +80,7 @@ class Settings:
     of a 500 on the first page load.
     """
     if not _is_bare_origin(self.dialpad_origin):
-      message = ('DIALPAD_ORIGIN must be a bare origin such as https://dialpadbeta.com, '
+      message = ('DIALPAD_ORIGIN must be a bare origin such as https://dialpad.com, '
                  f'got {self.dialpad_origin!r}')
       raise ConfigurationError(message)
     if len(self.client_secret) < MIN_CLIENT_SECRET_LENGTH:

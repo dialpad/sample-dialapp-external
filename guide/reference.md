@@ -19,9 +19,9 @@ loads a `.env` file, so export them in your shell or set them in your host.
 | `DIST_DIR`              | No                      | Where `pnpm build` in `client/` wrote the panel. Defaults to `../client/dist`, relative to `server/`; the container sets `dist`                                                                                       |
 | `PORT`                  | No                      | The port to listen on. If unset, the port in `BASE_URL`, else `8000`. A container host sets it                                                                                                                        |
 
-Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control. On Cloud Run,
-Secret Manager holds them and passes them in as environment variables
-([`deployment/README.md`](../deployment/README.md)).
+Keep `DIALPAD_CLIENT_SECRET` and `APP_SECRET` out of source control. Your
+host's secret store holds them and passes them in as environment variables
+([What your host must provide](../deployment/README.md#what-your-host-must-provide)).
 
 ## This app's endpoints
 

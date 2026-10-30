@@ -32,7 +32,9 @@ the guide to see how each part works, and copy it to start your own.
   the panel, a fresh nonce per response, escaped page data, and no secrets in
   logs.
 - **Run it** locally with a dev page that stands in for Dialpad, or in Dialpad
-  with an OAuth app that Dialpad sets up. Design the panel for 250 to 414 pixels
+  with an OAuth app that Dialpad sets up
+  ([what you send, and what you get back](guide/02-run-the-demo.md#get-your-app-from-dialpad)).
+  Design the panel for 250 to 414 pixels
   wide.
 - **Test it** with the SDK's mock Dialpad in unit tests and Playwright in a real
   browser. CI runs every check.
@@ -84,7 +86,7 @@ A panel that doesn't show a CRM record skips chapter 7
 | `client/`     | The panel: Vite, Vue 3, TypeScript, and Dialtone 10. A `pnpm` project                                    |
 | `server/`     | The Python server, `acme_dialpad_rightbar/`: Sanic on Python 3.14, with its tests. One file per endpoint |
 | `contract/`   | `openapi.json`, the contract between Dialpad, your server, and the SDK                                   |
-| `deployment/` | The Dockerfile, and how to run the app on Cloud Run                                                      |
+| `deployment/` | The Dockerfile, and how to deploy the app on a container host                                            |
 | `guide/`      | This guide                                                                                               |
 
 The code is organised by feature. On the server, `dialpad/` is the contract

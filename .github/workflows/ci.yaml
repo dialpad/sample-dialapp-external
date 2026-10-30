@@ -201,7 +201,7 @@ jobs:
           docker run -d --name acme-ci -p 8080:8080 \
             -e DIALPAD_CLIENT_SECRET=test-client-secret-0123456789-abcdefghijklmnopqrst \
             -e APP_SECRET=ci-app-secret \
-            -e DIALPAD_ORIGIN=https://dialpadbeta.com \
+            -e DIALPAD_ORIGIN=https://dialpad.com \
             -e BASE_URL=http://localhost:8080 \
             acme-ci
           for _ in $(seq 1 30); do

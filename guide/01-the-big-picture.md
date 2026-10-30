@@ -74,18 +74,18 @@ flowchart LR
 
 ## Key terms
 
-| Term          | Meaning                                                                                                                                       |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Your service  | The system the user connects to through OAuth. The guide's example is a CRM, so read "CRM" and "CRM tokens" as your service and its tokens    |
-| Sidebar URI   | The URL Dialpad loads in the panel: your OAuth app's _conversation sidebar URI_, which Dialpad sets up for you                                |
-| idtoken       | The encrypted, signed token Dialpad adds to the sidebar URI. Only your server can decode it, with your OAuth app's client secret              |
-| API key       | The `api_key` inside the idtoken: your server's credential for Dialpad's public API, for this user and your app                               |
-| Page data     | A JSON element your server puts in the page for the SDK: Dialpad's origin, the access token, and the connection status                        |
-| Access token  | A random token your server creates on each page load. The panel sends it as `Authorization: Bearer` on every request                          |
-| Connection    | Whether the user has connected their account in your service, and the URLs that connect it. The page data calls it `external_connection`      |
-| Connect       | The OAuth flow that links the Dialpad user to their account in your service                                                                   |
-| Host protocol | The `postMessage` messages between the panel and Dialpad. The SDK speaks it for you                                                           |
-| The contract  | The endpoints and data your server provides for the SDK and Dialpad, described in [`contract/openapi.json`](../contract/openapi.json) (below) |
+| Term          | Meaning                                                                                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Your service  | The system the user connects to through OAuth. The guide's example is a CRM, so read "CRM" and "CRM tokens" as your service and its tokens              |
+| Sidebar URI   | The URL Dialpad loads in the panel: your OAuth app's _conversation sidebar URI_, which you [give Dialpad](02-run-the-demo.md#get-your-app-from-dialpad) |
+| idtoken       | The encrypted, signed token Dialpad adds to the sidebar URI. Only your server can decode it, with your OAuth app's client secret                        |
+| API key       | The `api_key` inside the idtoken: your server's credential for Dialpad's public API, for this user and your app                                         |
+| Page data     | A JSON element your server puts in the page for the SDK: Dialpad's origin, the access token, and the connection status                                  |
+| Access token  | A random token your server creates on each page load. The panel sends it as `Authorization: Bearer` on every request                                    |
+| Connection    | Whether the user has connected their account in your service, and the URLs that connect it. The page data calls it `external_connection`                |
+| Connect       | The OAuth flow that links the Dialpad user to their account in your service                                                                             |
+| Host protocol | The `postMessage` messages between the panel and Dialpad. The SDK speaks it for you                                                                     |
+| The contract  | The endpoints and data your server provides for the SDK and Dialpad, described in [`contract/openapi.json`](../contract/openapi.json) (below)           |
 
 ## Which chapters you need
 
@@ -101,12 +101,12 @@ For a panel that isn't Vue, also read [chapter 12](12-plain-javascript.md) or
 
 Four different secrets appear in this guide. They aren't interchangeable.
 
-| Secret                                                | Who issues it                               | What it's for                                                                  |
-| ----------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| **OAuth app client secret** (`DIALPAD_CLIENT_SECRET`) | Dialpad, when it sets up your OAuth app     | Decoding the idtoken on the page request, and nothing else                     |
-| **API key** (`api_key`, inside the idtoken)           | Dialpad, per user and app                   | `Authorization: Bearer` on your server's calls to Dialpad's public API         |
-| **Access token** (in the page data)                   | Your server, per page load                  | `Authorization: Bearer` on every request the panel makes to your server        |
-| **Webhook signing secret**                            | You, when you create a webhook with Dialpad | Checking that the events Dialpad sends to your server really came from Dialpad |
+| Secret                                                | Who issues it                                                                           | What it's for                                                                  |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **OAuth app client secret** (`DIALPAD_CLIENT_SECRET`) | Dialpad, when it [sets up your OAuth app](02-run-the-demo.md#get-your-app-from-dialpad) | Decoding the idtoken on the page request, and nothing else                     |
+| **API key** (`api_key`, inside the idtoken)           | Dialpad, per user and app                                                               | `Authorization: Bearer` on your server's calls to Dialpad's public API         |
+| **Access token** (in the page data)                   | Your server, per page load                                                              | `Authorization: Bearer` on every request the panel makes to your server        |
+| **Webhook signing secret**                            | You, when you create a webhook with Dialpad                                             | Checking that the events Dialpad sends to your server really came from Dialpad |
 
 ## What your server stores
 

@@ -66,9 +66,9 @@ Two more things protect the pages:
   never the query string.
 - **Keep secrets out of your settings' string form**, so they can't appear in a
   log line or a traceback.
-- **Check your host's logs too.** Cloud Run's request log records the full URL,
-  idtoken included. [`deployment/README.md`](../deployment/README.md) shows how to
-  exclude it.
+- **Check your host's logs too.** A host's request log can record the full URL,
+  idtoken included. Restrict who reads it, or exclude the panel's requests
+  ([What your host must provide](../deployment/README.md#what-your-host-must-provide)).
 
 ## In this demo
 
