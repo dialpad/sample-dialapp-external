@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Reference app for partners building a Dialpad rightbar iframe panel. A fictional Acme CRM shows the whole flow: a Sanic server decodes the launch token and serves the page, the Vue iframe panel runs on the SDK and its Connect flow, and tests drive it against the SDK's mock Dialpad host.",
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@12.9.1",
   "engines": {
@@ -24,7 +25,7 @@
     "guide:images": "node scripts/guide-images.mjs"
   },
   "dependencies": {
-    "@dialpad/dialapp-external-sdk": "file:vendor/dialpad-dialapp-external-sdk-0.3.0.tgz",
+    "@dialpad/dialapp-external-sdk": "file:vendor/dialpad-dialapp-external-sdk-0.4.0.tgz",
     "@dialpad/dialtone": "^10.4.0",
     "vue": "^3.5.0"
   },
