@@ -1,0 +1,57 @@
+client/e2e/sdk/README.md
+  s_fe1dc7c5cbc629::t_455be7041779a5 15-16,18-24
+  s_fe1dc7c5cbc629::t_f9a7dfee51823c 17
+client/package.json
+  s_fe1dc7c5cbc629::t_7ebbab402a4d8d 26
+client/dev-host/main.ts
+  s_fe1dc7c5cbc629::t_80fbf4a5660b0a 10-11
+guide/07-show-the-crm-record.md
+  s_fe1dc7c5cbc629::t_f52bcc90e40c23 116-117
+  s_fe1dc7c5cbc629::t_2e2c7d33bdbf92 252-256,261,267-268
+  s_fe1dc7c5cbc629::t_6c7d103246dbfb 290-291
+  s_fe1dc7c5cbc629::t_1ccab1d93afadd 92-115,118-120
+  s_fe1dc7c5cbc629::t_3b3cab3d8a7913 269
+guide/04-build-the-panel.md
+  s_fe1dc7c5cbc629::t_ff0bb3268dd228 74
+guide/02-run-the-demo.md
+  s_fe1dc7c5cbc629::t_e4c9050a623a63 46-50
+client/src/components/AcmeContact.vue
+  s_fe1dc7c5cbc629::t_e2c6e6c54daecb 114-117,120
+  s_fe1dc7c5cbc629::t_fa103e864e58af 111-113
+contract/openapi.json
+  s_fe1dc7c5cbc629::t_1456f237b6d0b5 5
+client/src/App.test.ts
+  s_fe1dc7c5cbc629::t_9e647e091ab7ca 748-751
+  s_fe1dc7c5cbc629::t_c2712b084855ea 872-880,883
+  s_fe1dc7c5cbc629::t_5342442fffafe1 498-507,512-516,537-538,544
+  s_fe1dc7c5cbc629::t_15213e7a4f02e0 496
+  s_fe1dc7c5cbc629::t_1b9c6bc248d6b9 517-525,539,542
+  s_fe1dc7c5cbc629::t_708d7bf55729ed 526-530,533-535,540
+  s_fe1dc7c5cbc629::t_32e9bacf1b27b2 852
+  s_fe1dc7c5cbc629::t_3be8104ec5796b 726
+client/e2e/sdk/sdk.spec.ts
+  s_fe1dc7c5cbc629::t_436f8a055987af 82-93
+  s_fe1dc7c5cbc629::t_1fc473dd4e75b4 72-81
+  s_fe1dc7c5cbc629::t_5e6e2b162ddfa0 289
+  s_fe1dc7c5cbc629::t_48906f5f49f2e9 125-126,133,141-143
+  s_fe1dc7c5cbc629::t_90262eaac8b83c 134,139-140
+  s_fe1dc7c5cbc629::t_42b19bee93086d 279,291,293-296,303
+client/pnpm-lock.yaml
+  s_fe1dc7c5cbc629::t_560b1423c27fdf 170-171,304-306,2660
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f067473cb5ffefa985cdc8bb0dc768f68d02721a",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

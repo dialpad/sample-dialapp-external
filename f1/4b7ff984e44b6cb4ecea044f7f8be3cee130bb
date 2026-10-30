@@ -1,0 +1,26 @@
+LICENSE
+  s_49376e4d9aaa1f::t_33cc3348f08f47 1-7
+README.md
+  s_49376e4d9aaa1f::t_3c661e8fb35826 97-102
+client/package.json
+  s_49376e4d9aaa1f::t_93da640bb07b8c 6
+  s_49376e4d9aaa1f::t_c7ae3b9b82e31e 28
+client/pnpm-lock.yaml
+  s_49376e4d9aaa1f::t_ced8dccb47600a 170-171,304-306,2660
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f14b7ff984e44b6cb4ecea044f7f8be3cee130bb",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

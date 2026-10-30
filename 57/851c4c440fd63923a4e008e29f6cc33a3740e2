@@ -1,0 +1,68 @@
+guide/02-run-the-demo.md
+  s_fe1dc7c5cbc629::t_88429c2e3ba50d 153-154,156-160
+  s_fe1dc7c5cbc629::t_6ecd9af34c365a 120-121,124-125,132-137
+  s_fe1dc7c5cbc629::t_3ae7d598b9d667 162
+  s_fe1dc7c5cbc629::t_2c2b137ba3cb53 167-168
+  s_fe1dc7c5cbc629::t_84daba7e376d5e 155
+  s_fe1dc7c5cbc629::t_1a60d93ae6c58c 149-152,161,163-166,169-178,180
+  s_fe1dc7c5cbc629::t_f782adba793a0b 179
+  s_fe1dc7c5cbc629::t_9d990c4ae6f1fc 145
+README.md
+  s_fe1dc7c5cbc629::t_0d9f09e88ca07e 35-37
+  s_fe1dc7c5cbc629::t_982ca6e49c7066 89
+guide/01-the-big-picture.md
+  s_fe1dc7c5cbc629::t_88429c2e3ba50d 104-105,107-109
+  s_fe1dc7c5cbc629::t_6e45f7051f208c 106
+  s_fe1dc7c5cbc629::t_69548c404917a8 80
+  s_fe1dc7c5cbc629::t_391ec29e99ac24 77-79,81-88
+AGENTS.md
+  s_fe1dc7c5cbc629::t_2f2c32c48646dd 23-26
+  s_fe1dc7c5cbc629::t_d063c50a0bb965 42
+  s_fe1dc7c5cbc629::t_a52ff161d8f392 91-95
+  s_fe1dc7c5cbc629::t_f0a3607fea04f2 43-46
+deployment/README.md
+  s_fe1dc7c5cbc629::t_e8d91751aed027 210
+  s_fe1dc7c5cbc629::t_84daba7e376d5e 41-46
+  s_fe1dc7c5cbc629::t_542c500845665d 64
+  s_fe1dc7c5cbc629::t_bfc441d0e49a09 1,3-10,16-18,33-34,36,48-49,51-52,56,71-81,92-99,101-104,106-114,167,172,184,215,221-223,238,240-243,245,247-262,264,266,284-288,294
+  s_fe1dc7c5cbc629::t_a4df1d9489d98b 200
+  s_fe1dc7c5cbc629::t_fe7d7a7e2abdcd 281-283
+  s_fe1dc7c5cbc629::t_2f579afaa08526 132-138,140-141
+  s_fe1dc7c5cbc629::t_b7f8abf7be0834 301-304
+  s_fe1dc7c5cbc629::t_1bb8d657ad434c 13-14,82-91,217
+  s_fe1dc7c5cbc629::t_c70f05feb3dfeb 115-117,120-130,139,145,148,163-164,178,180,187,189,196,204-205,226-227,246,274-275,277-278,297-298,307
+  s_fe1dc7c5cbc629::t_a0af198be040cd 118-119
+.github/workflows/ci.yaml
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 204
+guide/images/README.md
+  s_fe1dc7c5cbc629::t_47f26c03c321ce 6-7,9-12
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 8,21
+server/tests/conftest.py
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 44,360
+server/tests/test_pages.py
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 122,127,223,227
+server/tests/test_settings.py
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 24-28
+server/acme_dialpad_rightbar/settings.py
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 83
+guide/09-security-checklist.md
+  s_fe1dc7c5cbc629::t_f0030d90da2e77 69-71
+guide/reference.md
+  s_fe1dc7c5cbc629::t_8681bfb1eaac4f 22-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "57851c4c440fd63923a4e008e29f6cc33a3740e2",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}
