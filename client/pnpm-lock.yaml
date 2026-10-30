@@ -167,7 +167,7 @@ importers:
   .:
     dependencies:
       '@dialpad/dialapp-external-sdk':
-        specifier: ^0.4.0
+        specifier: 0.4.0
         version: 0.4.0(@vue/test-utils@2.5.1(@vue/compiler-dom@3.5.43)(@vue/server-renderer@3.5.43)(vue@3.5.43(typescript@5.9.3)))(vue@3.5.43(typescript@5.9.3))
       '@dialpad/dialtone':
         specifier: ^10.4.0
