@@ -322,23 +322,12 @@ gcloud run revisions list --service acme-crm-demo --project PROJECT --region REG
 gcloud run services logs read acme-crm-demo --project PROJECT --region REGION --limit 50
 ```
 
-#### Roll back, or remove it
+#### Roll back
+
+Send all traffic back to an earlier revision, from the list in
+[Look at it](#look-at-it):
 
 ```sh
 gcloud run services update-traffic acme-crm-demo --project PROJECT --region REGION \
   --to-revisions REVISION=100
-
-gcloud run services delete acme-crm-demo --project PROJECT --region REGION
 ```
-
-Deleting the service leaves the image in Artifact Registry and the enabled APIs
-in the project.
-
-#### Cost
-
-With no minimum, the service scales to zero when idle and costs nothing until it
-serves requests. The first request after an idle period waits for an instance to
-start. A scale-to-zero (or any restart) forgets in-memory OAuth results, so a
-Connect in flight has to be retried; connected users stay connected. To keep an
-instance warm anyway, add `--min-instances 1`, which Cloud Run bills even with
-no traffic.
