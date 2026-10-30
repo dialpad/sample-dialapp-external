@@ -112,8 +112,22 @@ You need `gcloud` signed in (`gcloud auth login`) with permission to turn on
 APIs and create Cloud Run services, Artifact Registry repositories, Cloud Build
 builds and Secret Manager secrets in the project. The project owner role has
 these. Pass `--project` on every command, as below, so nothing depends on your
-default project. Replace `PROJECT`, `REGION` and the names to suit. Cloud Run's
-commands change over time, so check them against the current documentation.
+default project. Cloud Run's commands change over time, so check them against
+the current documentation.
+
+Replace these placeholders in the commands. A command that still contains
+`PROJECT_ID` fails before it changes anything:
+
+- `PROJECT_ID`: the ID of the Google Cloud project to deploy to, such as
+  `acme-crm-demo-123456`. Use the project you mean to deploy to, not whichever
+  one `gcloud` has as its default.
+- `REGION`: the Cloud Run region, such as `us-central1`.
+- `REVISION`: in [Roll back](#roll-back), the revision to send traffic back to.
+- `SECRET_NAME`: in step 3, the secret whose value you change.
+
+The service, repository, and secret names (`acme-crm-demo`, `acme-crm`,
+`dialpad-client-secret`, `acme-app-secret`) are examples. To use others, change
+them in every command.
 
 > **Already deployed? Go to [Deploy a new version](#deploy-a-new-version).** Steps
 > 1 to 6 create the service. On a service that exists, step 4's `--set-env-vars`
@@ -122,16 +136,16 @@ commands change over time, so check them against the current documentation.
 > first; a URL in the output means the service exists:
 >
 > ```sh
-> gcloud run services describe acme-crm-demo --project PROJECT --region REGION --format='value(status.url)'
+> gcloud run services describe acme-crm-demo --project PROJECT_ID --region REGION --format='value(status.url)'
 > ```
 
 ### 1. Enable the services and create a repository
 
 ```sh
-gcloud services enable --project PROJECT run.googleapis.com artifactregistry.googleapis.com \
+gcloud services enable --project PROJECT_ID run.googleapis.com artifactregistry.googleapis.com \
   cloudbuild.googleapis.com secretmanager.googleapis.com
 
-gcloud artifacts repositories create acme-crm --project PROJECT \
+gcloud artifacts repositories create acme-crm --project PROJECT_ID \
   --repository-format=docker --location=REGION
 ```
 
@@ -146,8 +160,8 @@ source, so this uses [`cloudbuild.yaml`](cloudbuild.yaml), which runs
 `docker build -f deployment/Dockerfile`:
 
 ```sh
-gcloud builds submit --config deployment/cloudbuild.yaml --project PROJECT \
-  --substitutions _IMAGE=REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest .
+gcloud builds submit --config deployment/cloudbuild.yaml --project PROJECT_ID \
+  --substitutions _IMAGE=REGION-docker.pkg.dev/PROJECT_ID/acme-crm/acme-crm-demo:latest .
 ```
 
 `client/vendor/` is tracked in git, so `gcloud` uploads it with the source; the
@@ -161,25 +175,25 @@ service's plain environment variables, which anyone who can view the service
 
 ```sh
 # The OAuth app's client secret, from Dialpad
-printf %s "$DIALPAD_CLIENT_SECRET" | gcloud secrets create dialpad-client-secret --project PROJECT --data-file=-
+printf %s "$DIALPAD_CLIENT_SECRET" | gcloud secrets create dialpad-client-secret --project PROJECT_ID --data-file=-
 # A random secret of your own that signs `state` and the storage cookie
-openssl rand -hex 32 | tr -d '\n' | gcloud secrets create acme-app-secret --project PROJECT --data-file=-
+openssl rand -hex 32 | tr -d '\n' | gcloud secrets create acme-app-secret --project PROJECT_ID --data-file=-
 ```
 
 Then let the service's runtime service account read them. Unless you set another,
 that's the default Compute Engine account, `PROJECT_NUMBER-compute@developer.gserviceaccount.com`:
 
 ```sh
-RUNTIME_SA=$(gcloud projects describe PROJECT --format='value(projectNumber)')-compute@developer.gserviceaccount.com
+RUNTIME_SA=$(gcloud projects describe PROJECT_ID --format='value(projectNumber)')-compute@developer.gserviceaccount.com
 for s in dialpad-client-secret acme-app-secret; do
-  gcloud secrets add-iam-policy-binding $s --project PROJECT \
+  gcloud secrets add-iam-policy-binding $s --project PROJECT_ID \
     --member serviceAccount:$RUNTIME_SA --role roles/secretmanager.secretAccessor
 done
 ```
 
 Cloud Run reads the secrets when an instance starts and gives them to the app as
 the environment variables of the same names, so the app needs no change. To
-change a value, add a version (`gcloud secrets versions add NAME --project PROJECT --data-file=-`)
+change a value, add a version (`gcloud secrets versions add SECRET_NAME --project PROJECT_ID --data-file=-`)
 and deploy a new revision, so new instances start with it. Changing `APP_SECRET`
 signs everyone out.
 
@@ -187,8 +201,8 @@ signs everyone out.
 
 ```sh
 gcloud run deploy acme-crm-demo \
-  --image REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest \
-  --project PROJECT \
+  --image REGION-docker.pkg.dev/PROJECT_ID/acme-crm/acme-crm-demo:latest \
+  --project PROJECT_ID \
   --region REGION \
   --allow-unauthenticated \
   --port 8080 \
@@ -209,8 +223,8 @@ gcloud run deploy acme-crm-demo \
   placeholder, then set the real one:
 
 ```sh
-URL=$(gcloud run services describe acme-crm-demo --project PROJECT --region REGION --format='value(status.url)')
-gcloud run services update acme-crm-demo --project PROJECT --region REGION --update-env-vars BASE_URL=$URL
+URL=$(gcloud run services describe acme-crm-demo --project PROJECT_ID --region REGION --format='value(status.url)')
+gcloud run services update acme-crm-demo --project PROJECT_ID --region REGION --update-env-vars BASE_URL=$URL
 ```
 
 Until that update finishes, the authorize URLs the app builds point at the
@@ -229,7 +243,7 @@ or exclude the service's request logs from the `_Default` sink (check the syntax
 against the current Cloud Logging documentation):
 
 ```sh
-gcloud logging sinks update _Default --project PROJECT \
+gcloud logging sinks update _Default --project PROJECT_ID \
   --add-exclusion='name=exclude-acme-requests,filter=logName:"run.googleapis.com%2Frequests" AND resource.labels.service_name="acme-crm-demo"'
 ```
 
@@ -257,11 +271,11 @@ service keeps its environment variables, secret references, scaling settings and
 URL.
 
 ```sh
-gcloud builds submit --config deployment/cloudbuild.yaml --project PROJECT \
-  --substitutions _IMAGE=REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest .
+gcloud builds submit --config deployment/cloudbuild.yaml --project PROJECT_ID \
+  --substitutions _IMAGE=REGION-docker.pkg.dev/PROJECT_ID/acme-crm/acme-crm-demo:latest .
 
-gcloud run deploy acme-crm-demo --project PROJECT --region REGION \
-  --image REGION-docker.pkg.dev/PROJECT/acme-crm/acme-crm-demo:latest
+gcloud run deploy acme-crm-demo --project PROJECT_ID --region REGION \
+  --image REGION-docker.pkg.dev/PROJECT_ID/acme-crm/acme-crm-demo:latest
 ```
 
 Pass only `--image`. `--set-env-vars` and `--set-secrets` replace all the
@@ -280,8 +294,8 @@ a secret, see step 3.
 #### Look at it
 
 ```sh
-gcloud run revisions list --service acme-crm-demo --project PROJECT --region REGION
-gcloud run services logs read acme-crm-demo --project PROJECT --region REGION --limit 50
+gcloud run revisions list --service acme-crm-demo --project PROJECT_ID --region REGION
+gcloud run services logs read acme-crm-demo --project PROJECT_ID --region REGION --limit 50
 ```
 
 #### Roll back
@@ -290,6 +304,6 @@ Send all traffic back to an earlier revision, from the list in
 [Look at it](#look-at-it):
 
 ```sh
-gcloud run services update-traffic acme-crm-demo --project PROJECT --region REGION \
+gcloud run services update-traffic acme-crm-demo --project PROJECT_ID --region REGION \
   --to-revisions REVISION=100
 ```
