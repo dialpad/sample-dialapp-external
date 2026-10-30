@@ -75,10 +75,10 @@ holds for the app, and its tests pass ([chapter 10](guide/10-test-your-app.md)).
   ([`guide/images/`](guide/images/README.md)). Images show fake data only.
 - **Upgrade the SDK** with `pnpm add @dialpad/dialapp-external-sdk@<version>` in
   `client/`, which pins the exact version
-  ([chapter 2](guide/02-run-the-demo.md#upgrade-the-sdk)). Copy
-  `contract/openapi.json` from the same SDK commit in the same commit: its
-  `info.version` names the SDK's version, and the SDK's CI requires the two to
-  be identical.
+  ([chapter 2](guide/02-run-the-demo.md#upgrade-the-sdk)). In the same commit,
+  copy `contract/openapi.json` from the SDK repository, at the commit that
+  published that version. Its `info.version` names the SDK version, and the SDK
+  repository's CI requires the two copies to be identical.
 - **Use public packages only.** The repository installs nothing from Dialpad's
   private registry.
 - **Never commit secrets.** Client secrets, idtokens, and API keys stay out of
