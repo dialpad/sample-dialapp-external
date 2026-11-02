@@ -182,7 +182,7 @@ The client's files are in `client/`:
 | `src/testing.ts`, `src/App.test.ts`                                                      | Change | The test harness and the panel's tests. Adapt them to your panel ([chapter 10](10-test-your-app.md))                                                                        |
 | `dev-host/`                                                                              | Keep   | Only if you keep local mode                                                                                                                                                 |
 | `e2e/sdk/`, `playwright.config.ts`                                                       | Delete | They test this repository. Also remove the `test:e2e` script and `@playwright/test`, or adapt the tests                                                                     |
-| `scripts/guide-images.mjs`                                                               | Delete | Dialpad's tooling for this repository. Also remove its script in `package.json`                                                                                             |
+| `scripts/guide-images.mjs`, `scripts/sync-contract.mjs`                                  | Delete | Dialpad's tooling for this repository. Also remove their scripts in `package.json`                                                                                          |
 
 To run your app as a container, see
 [`deployment/README.md`](../deployment/README.md).
