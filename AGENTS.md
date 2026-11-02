@@ -73,12 +73,15 @@ holds for the app, and its tests pass ([chapter 10](guide/10-test-your-app.md)).
   the Markdown formatting, and `pnpm links:ci` its links.
 - **Regenerate the guide's images** after a change to the panel's look
   ([`guide/images/`](guide/images/README.md)). Images show fake data only.
-- **Upgrade the SDK** with `pnpm add @dialpad/dialapp-external-sdk@<version>` in
-  `client/`, which pins the exact version
-  ([chapter 2](guide/02-run-the-demo.md#upgrade-the-sdk)). In the same commit,
-  copy `contract/openapi.json` from the SDK repository, at the commit that
-  published that version. Its `info.version` names the SDK version, and the SDK
-  repository's CI requires the two copies to be identical.
+- **Upgrade the SDK** with `pnpm add @dialpad/dialapp-external-sdk@<version>`
+  in `client/`, then `pnpm sync:contract` to copy the contract the package ships
+  over `contract/openapi.json`
+  ([chapter 2](guide/02-run-the-demo.md#upgrade-the-sdk)). Commit both together:
+  `pnpm contract:ci` fails when the copy differs from the installed SDK's. Keep
+  the version exact, without a `^`, because the contract copy is updated by hand.
+- **Name the branch after the SDK pull request.** A change that goes with a
+  `dialapp-external` pull request uses a branch with the same name as that pull
+  request's branch, so that repository's CI checks the two together.
 - **Use public packages only.** The repository installs nothing from Dialpad's
   private registry.
 - **Never commit secrets.** Client secrets, idtokens, and API keys stay out of

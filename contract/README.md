@@ -15,7 +15,9 @@ that implements it works with the SDK. It describes:
 The partner's own feature endpoints (such as this app's `POST /api/contact`) sit
 beside these and are not part of the contract.
 
-It is generated, so don't edit it by hand. Its `info.version` is the SDK version it
-describes, so check it against the SDK version in `client/package.json`. The server's
+It is generated, so don't edit it by hand. It's a copy of the contract the SDK package
+ships as `@dialpad/dialapp-external-sdk/openapi.json`, and its `info.version` is that
+SDK version. `pnpm sync:contract` in `client/` refreshes the copy, and `pnpm contract:ci`
+checks that it matches. The server's
 `acme_dialpad_rightbar/dialpad/contract.py` is this app's Python implementation of the same
 schemas.

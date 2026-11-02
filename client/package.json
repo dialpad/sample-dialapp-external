@@ -17,6 +17,8 @@
     "format": "prettier --write . ../README.md ../AGENTS.md ../guide ../contract/README.md ../deployment/README.md",
     "format:ci": "prettier --check . ../README.md ../AGENTS.md ../guide ../contract/README.md ../deployment/README.md",
     "links:ci": "node scripts/check-links.mjs",
+    "sync:contract": "node scripts/sync-contract.mjs",
+    "contract:ci": "node scripts/sync-contract.mjs --check",
     "types:check": "vue-tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
@@ -24,7 +26,7 @@
     "guide:images": "node scripts/guide-images.mjs"
   },
   "dependencies": {
-    "@dialpad/dialapp-external-sdk": "0.4.0",
+    "@dialpad/dialapp-external-sdk": "0.4.1",
     "@dialpad/dialtone": "^10.4.0",
     "vue": "^3.5.0"
   },
