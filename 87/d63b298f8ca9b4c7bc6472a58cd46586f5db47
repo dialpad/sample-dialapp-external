@@ -1,0 +1,26 @@
+guide/02-run-the-demo.md
+  s_fe1dc7c5cbc629::t_c3ac685f5856aa 128
+  s_fe1dc7c5cbc629::t_9de9d5e4024827 129-130
+guide/reference.md
+  s_fe1dc7c5cbc629::t_c3ac685f5856aa 5
+README.md
+  s_fe1dc7c5cbc629::t_c3ac685f5856aa 70
+deployment/README.md
+  s_fe1dc7c5cbc629::t_c3ac685f5856aa 32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "87d63b298f8ca9b4c7bc6472a58cd46586f5db47",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

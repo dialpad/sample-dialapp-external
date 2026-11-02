@@ -1,0 +1,77 @@
+guide/02-run-the-demo.md
+  s_fe1dc7c5cbc629::t_0c29b55f56a141 1-51,53-140
+  s_fe1dc7c5cbc629::t_8daf85a0159813 52
+README.md
+  s_fe1dc7c5cbc629::t_3f6b5c1d4fd976 3-37,41-55,72-74,78
+  s_fe1dc7c5cbc629::t_2b330a7d5edf5e 56-71,75-77,79-81
+guide/04-build-the-panel.md
+  s_fe1dc7c5cbc629::t_b34ccc12ed38c3 1-46,51,53-69,73,78-110,115-152,158-184
+  s_fe1dc7c5cbc629::t_2b330a7d5edf5e 47-50,52,70-72,74-77,111-114,153-157
+client/package.json
+  s_fe1dc7c5cbc629::t_d8ae1478f5c040 16-17
+guide/05-authenticate-requests.md
+  s_fe1dc7c5cbc629::t_434b2b1799131c 1-115
+guide/09-security-checklist.md
+  s_fe1dc7c5cbc629::t_2b330a7d5edf5e 11-25,33-38
+  s_fe1dc7c5cbc629::t_928cad690cf1b6 1-10,26-32,39-86
+client/playwright.config.ts
+  s_fe1dc7c5cbc629::t_d8ae1478f5c040 24
+server/acme_dialpad_rightbar/endpoints/dialpad/page.py
+  s_fe1dc7c5cbc629::t_d8ae1478f5c040 6-7
+guide/01-how-it-works.md
+  s_fe1dc7c5cbc629::t_4416a210c98976 1-34,37-38,40,44-70,81-95,104-109,112,116-145
+  s_fe1dc7c5cbc629::t_2b330a7d5edf5e 35-36,39,41-43,71-80,96-103,110-111,113-115
+guide/06-connect-to-the-crm.md
+  s_fe1dc7c5cbc629::t_0abcc6c637760c 1-27,34-37,45-98,102-123,132-159,162-192
+  s_fe1dc7c5cbc629::t_8daf85a0159813 101
+  s_fe1dc7c5cbc629::t_2b330a7d5edf5e 28-33,38-44,99-100,124-131,160-161
+guide/11-from-demo-to-your-app.md
+  s_fe1dc7c5cbc629::t_33a257f4372ba8 1-8,18-84,96-109
+  s_fe1dc7c5cbc629::t_2b330a7d5edf5e 9-17,85-95
+guide/13-react.md
+  s_fe1dc7c5cbc629::t_7c90da31e844f3 1-13,15,51-53,105-106,108-109,144-149
+  s_fe1dc7c5cbc629::t_4929aa51738c6b 134-135
+  s_fe1dc7c5cbc629::t_814e4ea612ef9e 14,16-50,54-104,107,110-133,136-143
+guide/12-plain-javascript.md
+  s_fe1dc7c5cbc629::t_814e4ea612ef9e 2,8,10-12,14-30,32-43,45-46,48-170,172-174,176-216,218,220,223-224,227-232
+  s_fe1dc7c5cbc629::t_dd4dd0dbb260ba 1,3-7,9,13,31,44,47,171,175,217,219,221-222,225-226,233-237
+.github/workflows/ci.yaml
+  s_fe1dc7c5cbc629::t_d8ae1478f5c040 94
+guide/10-test-your-app.md
+  s_fe1dc7c5cbc629::t_a052439b65760a 1-115
+guide/reference.md
+  s_fe1dc7c5cbc629::t_d6b73a278a98c6 1-9,12,21-31,35,42,44-62
+  s_fe1dc7c5cbc629::t_2b330a7d5edf5e 10-11,13-20,32-34,36-41
+  s_fe1dc7c5cbc629::t_9f04b4da51fdce 43
+server/acme_dialpad_rightbar/__main__.py
+  s_fe1dc7c5cbc629::t_d8ae1478f5c040 3
+guide/08-call-dialpad.md
+  s_fe1dc7c5cbc629::t_dc98054c7836f7 1-144
+guide/03-load-the-panel-page.md
+  s_fe1dc7c5cbc629::t_8a5218a5a7736a 79-80
+  s_fe1dc7c5cbc629::t_2b330a7d5edf5e 115-119,141-144
+  s_fe1dc7c5cbc629::t_8daf85a0159813 134
+  s_fe1dc7c5cbc629::t_fdc286e0f46e31 154-155
+  s_fe1dc7c5cbc629::t_a9404d6cb7c7cd 1-78,81-114,120-133,135-140,145-153,156-170
+guide/07-show-the-crm-record.md
+  s_fe1dc7c5cbc629::t_2b330a7d5edf5e 96-99,126-130
+  s_fe1dc7c5cbc629::t_c4415d7f6d54fd 1-95,100-125,131-155
+deployment/README.md
+  s_fe1dc7c5cbc629::t_d8ae1478f5c040 32-33,277,286
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d12b5ded339dd8d1443c548ef783e2ee6fc71835",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

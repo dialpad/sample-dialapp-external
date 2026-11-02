@@ -1,0 +1,65 @@
+.github/workflows/ci.yaml
+  s_fe1dc7c5cbc629::t_6dc30bf2e799cb 94
+AGENTS.md
+  s_fe1dc7c5cbc629::t_d1977f8a1e3182 1-56
+README.md
+  s_fe1dc7c5cbc629::t_0e468bab1b1e05 1-36,40-80
+client/package.json
+  s_fe1dc7c5cbc629::t_5cd36668b4bb2a 16-17,22-23
+client/playwright.config.ts
+  s_fe1dc7c5cbc629::t_e303aff74a1d0b 24
+client/scripts/guide-images.mjs
+  s_fe1dc7c5cbc629::t_417d30f87653d6 1-65
+deployment/README.md
+  s_fe1dc7c5cbc629::t_5ed412d6fea98d 32-33,277,286
+guide/01-the-big-picture.md
+  s_fe1dc7c5cbc629::t_85e77f5f4666a5 1-147
+guide/03-load-the-panel-page.md
+  s_fe1dc7c5cbc629::t_70361428d1ee04 1-187
+guide/04-build-the-panel.md
+  s_fe1dc7c5cbc629::t_f695bacba3c2ec 1-190
+guide/05-authenticate-requests.md
+  s_fe1dc7c5cbc629::t_609cdbee8b95cf 1-115
+guide/06-connect-to-the-crm.md
+  s_fe1dc7c5cbc629::t_4d42b284518e0d 1,3-5,7,9-11,13,15-17,19-25,28-33,35-36,38-45,47,53,60,62,64,66,70,73,75-78,81,83,85-94,96-97,99-102,104,106,108-116,118-120,122,124-131,133,135-136,141-143,148-157,160-186,190-192
+guide/08-call-dialpad.md
+  s_fe1dc7c5cbc629::t_0e31ef2d0fb04d 1-144
+guide/09-security-checklist.md
+  s_fe1dc7c5cbc629::t_6823e780177292 1-86
+guide/10-test-your-app.md
+  s_fe1dc7c5cbc629::t_6902bc83988e5e 1-115
+guide/11-from-demo-to-your-app.md
+  s_fe1dc7c5cbc629::t_f2992c0f62ace6 1-137
+guide/images/README.md
+  s_fe1dc7c5cbc629::t_edf44688b65e64 1-29
+guide/reference.md
+  s_fe1dc7c5cbc629::t_02ff01e5800262 1-63
+server/acme_dialpad_rightbar/__main__.py
+  s_fe1dc7c5cbc629::t_0c228b893092fc 3
+server/acme_dialpad_rightbar/endpoints/dialpad/page.py
+  s_fe1dc7c5cbc629::t_20652f1d309045 6-7
+guide/02-run-the-demo.md
+  s_fe1dc7c5cbc629::t_934fcbccad9873 1-144
+guide/07-show-the-crm-record.md
+  s_fe1dc7c5cbc629::t_da6af7f4e20f15 1-165
+guide/12-plain-javascript.md
+  s_fe1dc7c5cbc629::t_a929b3e9be4ee9 1-248
+guide/13-react.md
+  s_fe1dc7c5cbc629::t_e1b49ca009e9f8 1-161
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6be67d2bd8a8367b372f9b0d522b2f1954f87799",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

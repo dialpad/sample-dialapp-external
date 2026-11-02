@@ -1,0 +1,41 @@
+guide/11-from-demo-to-your-app.md
+  s_49376e4d9aaa1f::t_99e5262e47c893 51
+guide/05-authenticate-requests.md
+  s_49376e4d9aaa1f::t_e71ef09ff30423 88-89,91
+server/acme_dialpad_rightbar/endpoints/dialpad/page.py
+  s_49376e4d9aaa1f::t_e71ef09ff30423 44,69,72,75,85
+server/acme_dialpad_rightbar/crm/contact.py
+  s_49376e4d9aaa1f::t_e71ef09ff30423 87-88,90
+server/acme_dialpad_rightbar/endpoints/dialpad/ext_connection.py
+  s_49376e4d9aaa1f::t_e71ef09ff30423 32,37-38,40,43
+  s_49376e4d9aaa1f::t_99e5262e47c893 31,33
+  s_49376e4d9aaa1f::t_6cae1d3a5ec3a7 45
+server/tests/test_fake_storage.py
+  s_49376e4d9aaa1f::t_99e5262e47c893 1
+  s_49376e4d9aaa1f::t_e71ef09ff30423 2-55
+server/acme_dialpad_rightbar/demo/fake_storage.py
+  s_49376e4d9aaa1f::t_e71ef09ff30423 13,60,126,179,228,233,239,248,250,252,265-266
+  s_49376e4d9aaa1f::t_664ccab32f97e3 151
+  s_49376e4d9aaa1f::t_6cae1d3a5ec3a7 246,249
+  s_49376e4d9aaa1f::t_5a3ff49b9bc9e5 130-132
+  s_49376e4d9aaa1f::t_99e5262e47c893 140,159,163,167,175,183,229,240,258,268
+server/acme_dialpad_rightbar/endpoints/dialpad/ext_disconnect.py
+  s_49376e4d9aaa1f::t_99e5262e47c893 25,30
+  s_49376e4d9aaa1f::t_e71ef09ff30423 33-34,37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "343fbf1dd97f868b88316ae886b47fea488890d8",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

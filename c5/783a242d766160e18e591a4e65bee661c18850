@@ -1,0 +1,70 @@
+guide/02-run-the-demo.md
+  s_49376e4d9aaa1f::t_25553548af9d73 82-83
+guide/08-call-dialpad.md
+  s_49376e4d9aaa1f::t_70fba5f8ba559d 61-65
+  s_49376e4d9aaa1f::t_dcd5338947cba6 4-7
+client/src/bootstrap.ts
+  s_49376e4d9aaa1f::t_f7867674e7f164 85,87-90
+guide/07-show-the-crm-record.md
+  s_49376e4d9aaa1f::t_25553548af9d73 104,114-115
+  s_49376e4d9aaa1f::t_36767bb7c51f62 189
+guide/01-the-big-picture.md
+  s_49376e4d9aaa1f::t_70fba5f8ba559d 5-8
+  s_49376e4d9aaa1f::t_11aac75d2eb683 63-68
+  s_49376e4d9aaa1f::t_20e45af07c8221 47,113-120
+  s_49376e4d9aaa1f::t_36767bb7c51f62 79,85-86,90-98
+  s_49376e4d9aaa1f::t_de22028e3b7b8a 99
+AGENTS.md
+  s_49376e4d9aaa1f::t_36767bb7c51f62 16-20
+  s_49376e4d9aaa1f::t_17e877dd5ac8ee 29-30
+  s_49376e4d9aaa1f::t_2a007bca864801 50
+guide/06-connect-to-the-crm.md
+  s_49376e4d9aaa1f::t_36767bb7c51f62 1,3-7
+guide/reference.md
+  s_49376e4d9aaa1f::t_25553548af9d73 32-42,48-58
+.github/workflows/ci.yaml
+  s_49376e4d9aaa1f::t_2a007bca864801 101-107,132,136
+client/package.json
+  s_49376e4d9aaa1f::t_2a007bca864801 18
+guide/05-authenticate-requests.md
+  s_49376e4d9aaa1f::t_36767bb7c51f62 114
+client/scripts/check-links.mjs
+  s_49376e4d9aaa1f::t_512fbce03b0782 1-47,51-72,76-104,108-123
+  s_49376e4d9aaa1f::t_04dda54fdf6fe7 48-50,73-75,105-107
+guide/04-build-the-panel.md
+  s_49376e4d9aaa1f::t_58cd33a6d9c742 161
+  s_49376e4d9aaa1f::t_25553548af9d73 162-166,168-169,177,232,234-235,245-248,252,255,342
+  s_49376e4d9aaa1f::t_70fba5f8ba559d 160,167
+guide/11-from-demo-to-your-app.md
+  s_49376e4d9aaa1f::t_c5f0298a2e4269 88-89,94
+  s_49376e4d9aaa1f::t_efb581c0d9b7bc 134
+  s_49376e4d9aaa1f::t_a768f62d77919b 90-93
+guide/03-load-the-panel-page.md
+  s_49376e4d9aaa1f::t_dcd5338947cba6 94-96
+guide/12-plain-javascript.md
+  s_49376e4d9aaa1f::t_25553548af9d73 239
+guide/images/README.md
+  s_49376e4d9aaa1f::t_58cd33a6d9c742 12
+README.md
+  s_49376e4d9aaa1f::t_36767bb7c51f62 59-60,69
+  s_49376e4d9aaa1f::t_70fba5f8ba559d 10-11
+  s_49376e4d9aaa1f::t_bf0f1fa321ca52 23-27
+guide/10-test-your-app.md
+  s_49376e4d9aaa1f::t_2a007bca864801 89,106-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c5783a242d766160e18e591a4e65bee661c18850",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

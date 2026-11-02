@@ -1,0 +1,255 @@
+README.md
+  s_49376e4d9aaa1f::t_6a84d64b318838 81-87
+  s_49376e4d9aaa1f::t_2d5a3c96844aed 66
+  s_49376e4d9aaa1f::t_eda7477ab17db6 88-92
+client/src/crm/CrmRecord.vue
+  s_49376e4d9aaa1f::t_5d41e4012fa5a8 1-31
+client/src/crm/AcmeContact.vue
+  s_49376e4d9aaa1f::t_1bc3a8595dd478 28
+client/src/App.test.ts
+  s_49376e4d9aaa1f::t_57d0a416fe1e2f 433
+  s_49376e4d9aaa1f::t_baa25d3a02e3db 2-4,11,13-15,17-26,34,463,517
+guide/07-show-the-crm-record.md
+  s_49376e4d9aaa1f::t_2051f91d1da2b1 188-190
+  s_49376e4d9aaa1f::t_6f6c5287446ac2 170-172,174-177,179-184
+server/acme_dialpad_rightbar/endpoints/__init__.py
+  s_49376e4d9aaa1f::t_c15b9f6f8ac37a 5,8-10
+  s_49376e4d9aaa1f::t_e011950295d37c 1
+server/acme_dialpad_rightbar/context.py
+  s_49376e4d9aaa1f::t_df85d41022ee0e 63
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 32,68
+  s_49376e4d9aaa1f::t_93f0e63b05f3de 1,4-5,9-10,12-13
+  s_49376e4d9aaa1f::t_7aad1b19ef9a95 33
+  s_49376e4d9aaa1f::t_506a5a7a81f2e8 6-8,11,19,47-48,50,52-54,71
+  s_49376e4d9aaa1f::t_6dac58cce837d8 59
+server/acme_dialpad_rightbar/app.py
+  s_49376e4d9aaa1f::t_5f39ff76b1f574 6-7
+  s_49376e4d9aaa1f::t_762ee56a4df0a7 21-22
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 28,81
+  s_49376e4d9aaa1f::t_ee5da9be2e3c0d 5
+  s_49376e4d9aaa1f::t_5f705c9075775f 67-68
+  s_49376e4d9aaa1f::t_6dac58cce837d8 65
+  s_49376e4d9aaa1f::t_40cec28bdacf3d 26-27
+  s_49376e4d9aaa1f::t_df85d41022ee0e 69
+  s_49376e4d9aaa1f::t_41d42b1ae75d9d 70-73
+  s_49376e4d9aaa1f::t_55e84a3427d3ce 89
+  s_49376e4d9aaa1f::t_56bc6be5e5fed1 29
+  s_49376e4d9aaa1f::t_410fe2e514e64b 88
+server/acme_dialpad_rightbar/endpoints/dialpad/page.py
+  s_49376e4d9aaa1f::t_e76787408382d0 16,19-20
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 69,85
+  s_49376e4d9aaa1f::t_df85d41022ee0e 44,47
+  s_49376e4d9aaa1f::t_6dac58cce837d8 43
+client/src/demo/DialpadApiCard.vue
+  s_49376e4d9aaa1f::t_d39aa1432f8344 14
+server/acme_dialpad_rightbar/crm/fake_record.py
+  s_49376e4d9aaa1f::t_2e89816efe0bb7 1,5-6,13-17,20-25
+  s_49376e4d9aaa1f::t_dc55bb0200ea9e 4
+  s_49376e4d9aaa1f::t_d921a6cfa32917 56-76
+server/acme_dialpad_rightbar/crm/contact.py
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 78,87
+  s_49376e4d9aaa1f::t_a27f390ab46022 18-19
+  s_49376e4d9aaa1f::t_90c79041ec7245 79-80
+  s_49376e4d9aaa1f::t_b100511f5f1efe 55
+  s_49376e4d9aaa1f::t_f2648256b9b2ac 110
+  s_49376e4d9aaa1f::t_6dac58cce837d8 13
+  s_49376e4d9aaa1f::t_46873f5f305d9b 44
+client/src/crm/contactApi.ts
+  s_49376e4d9aaa1f::t_0f1ad5c797bd82 17
+guide/12-plain-javascript.md
+  s_49376e4d9aaa1f::t_c247a1206cec1c 19-22
+  s_49376e4d9aaa1f::t_71c1d05ddd1fc3 34-43
+  s_49376e4d9aaa1f::t_23d255a9cf2df2 12,24,59-61,107,136
+  s_49376e4d9aaa1f::t_2d5a3c96844aed 62-67
+  s_49376e4d9aaa1f::t_76e2614e5470bb 190
+guide/13-react.md
+  s_49376e4d9aaa1f::t_23d255a9cf2df2 8,161
+  s_49376e4d9aaa1f::t_8907de8d2ef5dc 122
+guide/reference.md
+  s_49376e4d9aaa1f::t_71c1d05ddd1fc3 34-44
+  s_49376e4d9aaa1f::t_c2921eb82dc930 14
+  s_49376e4d9aaa1f::t_e957e23fc79d7f 28-32
+  s_49376e4d9aaa1f::t_f3bb2dc1651438 33
+server/tests/test_signing.py
+  s_49376e4d9aaa1f::t_df85d41022ee0e 1,4,47,49,56,58,62,65,67,69,79-80,82-87,90,100,119,122
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 10-11
+  s_49376e4d9aaa1f::t_2d5a3c96844aed 50-52
+  s_49376e4d9aaa1f::t_6c31bd9266d269 118
+  s_49376e4d9aaa1f::t_6dac58cce837d8 48
+server/acme_dialpad_rightbar/endpoints/dialpad/ext_connection.py
+  s_49376e4d9aaa1f::t_55b0bba38ad4ff 33-34
+  s_49376e4d9aaa1f::t_d440d976832b55 35
+  s_49376e4d9aaa1f::t_0881bc1052b9ce 29-32
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 37,43
+guide/04-build-the-panel.md
+  s_49376e4d9aaa1f::t_d66e8861eb4c0c 338-345,349
+server/acme_dialpad_rightbar/pages.py
+  s_49376e4d9aaa1f::t_123c1dd8c1a962 6
+client/src/components/ConnectedView.vue
+  s_49376e4d9aaa1f::t_977464043b4a2e 9
+  s_49376e4d9aaa1f::t_4e5e5368242a7c 24
+  s_49376e4d9aaa1f::t_41f38316722b0d 23
+  s_49376e4d9aaa1f::t_89993bc4fd9168 8
+  s_49376e4d9aaa1f::t_68145e445974e1 2-5,10
+server/acme_dialpad_rightbar/demo/endpoints/fake_authorize.py
+  s_49376e4d9aaa1f::t_48d8ef501cf97b 15-16
+client/src/crm/CrmRecord.test.ts
+  s_49376e4d9aaa1f::t_b16387cef57cbf 457-459
+  s_49376e4d9aaa1f::t_368aaf0731a296 1-22,29-456,460-478
+  s_49376e4d9aaa1f::t_9e6c2d5203052a 23-28
+server/acme_dialpad_rightbar/demo/fake_storage.py
+  s_49376e4d9aaa1f::t_b05f21d7ea6397 217,219-221
+  s_49376e4d9aaa1f::t_c7a7533ce313d0 61,66
+  s_49376e4d9aaa1f::t_6dac58cce837d8 37,105,135-136
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 2,8,14-15,17-18,20-36,38-57,59,62-65,68-70,73-79,82-87,93-98,101-104,106-109,111-122,124-133,137-140,142-146,148-150,152,154,157-158,161-163,165-171,173-175,177-179,181-187,192-195,198-216,218,222-228,230-241,243-249,252-269
+  s_49376e4d9aaa1f::t_9b90147539711c 1,3-7,9-13
+  s_49376e4d9aaa1f::t_df85d41022ee0e 16,19,58,60,67,71-72,80-81,88-92,99-100,110,123,134,141,147,151,153,155-156,159-160,164,172,176,180,188-191,196-197,229,242,250-251
+server/acme_dialpad_rightbar/crm/__init__.py
+  s_49376e4d9aaa1f::t_565aa5a4cb86d7 1-9,11-26
+  s_49376e4d9aaa1f::t_382feae2b6a7a1 10
+server/tests/test_crm.py
+  s_49376e4d9aaa1f::t_0efef6f5136a08 1-165
+server/acme_dialpad_rightbar/demo/__init__.py
+  s_49376e4d9aaa1f::t_8a17180792eaf1 6-7
+  s_49376e4d9aaa1f::t_69d61b893cab41 8-9
+  s_49376e4d9aaa1f::t_5a9550cdf3aa33 1-5,10-14,17
+  s_49376e4d9aaa1f::t_d8f3ff31179a5e 15-16
+server/tests/conftest.py
+  s_49376e4d9aaa1f::t_b3d7be3227a1cb 12
+  s_49376e4d9aaa1f::t_df85d41022ee0e 143,199
+  s_49376e4d9aaa1f::t_870127bb80c0d2 265-301,303-311
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 30
+  s_49376e4d9aaa1f::t_6dac58cce837d8 202,302
+  s_49376e4d9aaa1f::t_e8f25f04a4444c 28
+server/acme_dialpad_rightbar/endpoints/app/__init__.py
+  s_49376e4d9aaa1f::t_976439c82e58ab 6-9,22
+server/acme_dialpad_rightbar/endpoints/dialpad/ext_disconnect.py
+  s_49376e4d9aaa1f::t_83d6f8f3786dd1 30-31
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 33,37
+  s_49376e4d9aaa1f::t_6dac58cce837d8 25
+server/tests/test_dialpad_api.py
+  s_49376e4d9aaa1f::t_d5633bc439d79a 1
+guide/03-load-the-panel-page.md
+  s_49376e4d9aaa1f::t_7cec2bc3157cd4 113
+  s_49376e4d9aaa1f::t_cab25a9a360926 174
+  s_49376e4d9aaa1f::t_3e9b7db67f0637 138
+  s_49376e4d9aaa1f::t_f1e7ffdacbc524 181-185
+  s_49376e4d9aaa1f::t_1b70c5e5cd1111 4-5
+  s_49376e4d9aaa1f::t_ab4ebb822df3e1 37
+  s_49376e4d9aaa1f::t_9a906536367ead 14,16
+  s_49376e4d9aaa1f::t_c71cfa0c884847 98,101,105,107-111,117-119
+server/acme_dialpad_rightbar/responses.py
+  s_49376e4d9aaa1f::t_6dac58cce837d8 33
+server/tests/test_app.py
+  s_49376e4d9aaa1f::t_9383fc5e7ee95d 32
+  s_49376e4d9aaa1f::t_884757ca06b981 246-247
+  s_49376e4d9aaa1f::t_1b37ce46bf0d33 1-4
+  s_49376e4d9aaa1f::t_ce0611e06ba3cd 19
+  s_49376e4d9aaa1f::t_e88f05af0731b7 24,26,28
+  s_49376e4d9aaa1f::t_df85d41022ee0e 166,169,177,182-184,204,254,267-269,424,429-430
+  s_49376e4d9aaa1f::t_a9ab7d8bb04c96 223
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 18,297
+  s_49376e4d9aaa1f::t_6dac58cce837d8 241
+guide/11-from-demo-to-your-app.md
+  s_49376e4d9aaa1f::t_03519afbd3ac23 39
+  s_49376e4d9aaa1f::t_a5c9ee4046df79 62
+  s_49376e4d9aaa1f::t_0444fa6e790ca0 19,21-26
+  s_49376e4d9aaa1f::t_4d683d304ac70e 48,51,53
+  s_49376e4d9aaa1f::t_9b098d39fbb6af 93-95,102-107,116-118,120-123,126-129,133-140,158,172,176-179
+  s_49376e4d9aaa1f::t_251b83a8c41502 74-75
+  s_49376e4d9aaa1f::t_9011da83a71605 43-46
+  s_49376e4d9aaa1f::t_645082e5f58510 57
+  s_49376e4d9aaa1f::t_ad219ea4c1f2d8 130-132
+  s_49376e4d9aaa1f::t_f7cd19aa5c340e 11-12
+  s_49376e4d9aaa1f::t_71c1d05ddd1fc3 97-101,144-150,153-157,160-165
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 49,52
+  s_49376e4d9aaa1f::t_2d5a3c96844aed 109-115,151,159
+  s_49376e4d9aaa1f::t_cace4fb744af45 119,152
+  s_49376e4d9aaa1f::t_30c91f04d3185e 50
+  s_49376e4d9aaa1f::t_1cc61124411f8e 47,96
+client/src/api.ts
+  s_49376e4d9aaa1f::t_23d255a9cf2df2 36,51
+  s_49376e4d9aaa1f::t_a499f755fa8422 10-14,16
+client/src/crm/menu.ts
+  s_49376e4d9aaa1f::t_009825706ea296 1-19
+server/tests/test_database.py
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 4
+  s_49376e4d9aaa1f::t_df85d41022ee0e 1
+  s_49376e4d9aaa1f::t_27b00783b3f2e8 3
+guide/10-test-your-app.md
+  s_49376e4d9aaa1f::t_1177e088b18999 82-83
+  s_49376e4d9aaa1f::t_eea1eefeee01ee 73-74
+server/acme_dialpad_rightbar/signing.py
+  s_49376e4d9aaa1f::t_b05eceac7d4ad0 1-10
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 12
+  s_49376e4d9aaa1f::t_df85d41022ee0e 11,97
+deployment/README.md
+  s_49376e4d9aaa1f::t_e3b9ead40fc664 286
+  s_49376e4d9aaa1f::t_c2921eb82dc930 120,206,258,287
+  s_49376e4d9aaa1f::t_3b00fbe73a28fc 257
+server/pyproject.toml
+  s_49376e4d9aaa1f::t_718d44d7d938d3 74-75
+server/acme_dialpad_rightbar/demo/oauth_results.py
+  s_49376e4d9aaa1f::t_df85d41022ee0e 5,40,49-60
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 6,42
+  s_49376e4d9aaa1f::t_ba434a783bdaf9 7-16
+  s_49376e4d9aaa1f::t_5b356128cd28e4 43
+server/acme_dialpad_rightbar/endpoints/app/oauth_callback.py
+  s_49376e4d9aaa1f::t_f310d0cb739305 13,15
+  s_49376e4d9aaa1f::t_9a86bbbedda670 38
+guide/09-security-checklist.md
+  s_49376e4d9aaa1f::t_2d5a3c96844aed 17
+client/src/App.vue
+  s_49376e4d9aaa1f::t_23d255a9cf2df2 9,33
+guide/06-connect-to-the-crm.md
+  s_49376e4d9aaa1f::t_c2921eb82dc930 167,186
+client/src/testing.ts
+  s_49376e4d9aaa1f::t_b16387cef57cbf 148-151
+  s_49376e4d9aaa1f::t_7a3dda976c82b2 1-16,18-120,122-147,152-250
+  s_49376e4d9aaa1f::t_23d255a9cf2df2 17,121
+guide/01-the-big-picture.md
+  s_49376e4d9aaa1f::t_2d5a3c96844aed 46,116
+  s_49376e4d9aaa1f::t_c2921eb82dc930 55-56
+server/tests/test_stores.py
+  s_49376e4d9aaa1f::t_daa6a2bacda7d4 1,3-5
+server/acme_dialpad_rightbar/demo/endpoints/__init__.py
+  s_49376e4d9aaa1f::t_9b10bf7eb0b7c8 1-30
+guide/05-authenticate-requests.md
+  s_49376e4d9aaa1f::t_6c0a9027a640f5 100,106-107
+  s_49376e4d9aaa1f::t_47287743592484 88
+  s_49376e4d9aaa1f::t_553e92d8ff36f5 102-103
+  s_49376e4d9aaa1f::t_96543cc8b1f814 105
+  s_49376e4d9aaa1f::t_4d99bb78073bdb 95-96
+  s_49376e4d9aaa1f::t_c04aa72e8f23d6 19
+  s_49376e4d9aaa1f::t_bb6280aa5f3cb8 32
+  s_49376e4d9aaa1f::t_46273fcebd2094 6
+  s_49376e4d9aaa1f::t_bad9f4963930f0 74-75
+  s_49376e4d9aaa1f::t_464d2508112688 61,64-66,68-69
+client/src/bootstrap.ts
+  s_49376e4d9aaa1f::t_73ed32d9fe92d6 16
+  s_49376e4d9aaa1f::t_69e36f6fb35a3c 76-77,89-90
+  s_49376e4d9aaa1f::t_34b0517c27d8e7 80
+  s_49376e4d9aaa1f::t_584cd038228d87 70
+AGENTS.md
+  s_49376e4d9aaa1f::t_c2921eb82dc930 35
+  s_49376e4d9aaa1f::t_59efffe552f94a 25-27,29
+  s_49376e4d9aaa1f::t_cc5cbd83800110 28
+  s_49376e4d9aaa1f::t_54a6acd0415282 53
+  s_49376e4d9aaa1f::t_6c77e8fb0d88b4 36-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "50feea7abee3168c20dd41517247cfa7a604ad86",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

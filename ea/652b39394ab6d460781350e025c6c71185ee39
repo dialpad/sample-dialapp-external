@@ -1,0 +1,21 @@
+client/package.json
+  s_49376e4d9aaa1f::t_5d01496929b9e0 28
+client/pnpm-lock.yaml
+  s_49376e4d9aaa1f::t_085fe0fc9f4a1d 170-171,304-306,2660
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ea652b39394ab6d460781350e025c6c71185ee39",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

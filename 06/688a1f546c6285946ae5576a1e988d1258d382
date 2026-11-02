@@ -1,0 +1,78 @@
+server/acme_dialpad_rightbar/endpoints/app/contact.py
+  s_fe1dc7c5cbc629::t_23f279675377bb 32-35
+guide/13-react.md
+  s_fe1dc7c5cbc629::t_cc8c909337ad30 41-46
+guide/reference.md
+  s_fe1dc7c5cbc629::t_787595379b1624 48-56,58
+  s_fe1dc7c5cbc629::t_0f602a7000897c 57
+contract/openapi.json
+  s_fe1dc7c5cbc629::t_5d94fa1ed25973 5
+client/dev-host/main.ts
+  s_fe1dc7c5cbc629::t_8add2be1bab82f 169-170,174-179
+  s_fe1dc7c5cbc629::t_8b83bb77ab2058 11-14
+  s_fe1dc7c5cbc629::t_19f6ce0aa2b469 200,202,205
+  s_fe1dc7c5cbc629::t_fa4c6222dae850 171-173,180-199,201,203-204,206-215,218
+  s_fe1dc7c5cbc629::t_4122a77e85b2c9 20
+guide/07-show-the-crm-record.md
+  s_fe1dc7c5cbc629::t_37b6f25d961ee1 107-108
+  s_fe1dc7c5cbc629::t_4e4435c39c857f 216-218
+  s_fe1dc7c5cbc629::t_4c672cc0f9c835 145-146
+  s_fe1dc7c5cbc629::t_d29d16aa0ca0f2 118-119,121-125,132-144,147,152,156-193
+  s_fe1dc7c5cbc629::t_787595379b1624 127-131
+  s_fe1dc7c5cbc629::t_8501cf419453c8 194
+guide/images/README.md
+  s_fe1dc7c5cbc629::t_ccefcaf8d8318b 17
+client/e2e/sdk/README.md
+  s_fe1dc7c5cbc629::t_b2a8db98c5fe90 15-16,18-22
+  s_fe1dc7c5cbc629::t_c251281ab40049 17
+client/src/App.test.ts
+  s_fe1dc7c5cbc629::t_8088dcf22dd395 959-1045
+client/dev-host/index.html
+  s_fe1dc7c5cbc629::t_ff67f807b89f44 40-48
+client/package.json
+  s_fe1dc7c5cbc629::t_83e1b42547a1fe 26
+client/e2e/sdk/sdk.spec.ts
+  s_fe1dc7c5cbc629::t_4ce97adf303cda 85,87
+  s_fe1dc7c5cbc629::t_5f248b58483537 96-99
+  s_fe1dc7c5cbc629::t_d7636c53182592 77-81
+  s_fe1dc7c5cbc629::t_97c018dfccad74 60-61
+  s_fe1dc7c5cbc629::t_e527f82d20e09f 233
+  s_fe1dc7c5cbc629::t_02c86f3f5bebe7 130-133,135,140
+client/src/bootstrap.ts
+  s_fe1dc7c5cbc629::t_e71087cce61621 58-65,67-72
+  s_fe1dc7c5cbc629::t_7c08101a632cd9 24-25
+  s_fe1dc7c5cbc629::t_0ebd35ea077572 66
+guide/04-build-the-panel.md
+  s_fe1dc7c5cbc629::t_2a6ad3b1cef583 164
+guide/12-plain-javascript.md
+  s_fe1dc7c5cbc629::t_22e4b6915f31ce 17-18
+  s_fe1dc7c5cbc629::t_5df48bd137a201 83-88
+guide/02-run-the-demo.md
+  s_fe1dc7c5cbc629::t_5e9be7bd5880d9 81
+  s_fe1dc7c5cbc629::t_9a40383f00703a 72-73
+guide/11-from-demo-to-your-app.md
+  s_fe1dc7c5cbc629::t_b2a8db98c5fe90 114-115,117-128
+  s_fe1dc7c5cbc629::t_d14d70e3f86b55 116
+guide/06-connect-to-the-crm.md
+  s_fe1dc7c5cbc629::t_5284a247d18167 136-138
+guide/10-test-your-app.md
+  s_fe1dc7c5cbc629::t_d50a0226d81b1c 59-60
+client/pnpm-lock.yaml
+  s_fe1dc7c5cbc629::t_5f6f591352ad19 170-171,304-306,2660
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "06688a1f546c6285946ae5576a1e988d1258d382",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "unknown"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

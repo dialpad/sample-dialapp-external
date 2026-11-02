@@ -1,0 +1,19 @@
+guide/03-load-the-panel-page.md
+  s_fe1dc7c5cbc629::t_101cd1ac5c5061 90-93,99-118
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ecf83a275861cfb42a894a3fb14c6b8ed70cbdc0",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

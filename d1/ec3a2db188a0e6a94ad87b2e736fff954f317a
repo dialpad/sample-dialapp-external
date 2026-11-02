@@ -1,0 +1,67 @@
+guide/13-react.md
+  s_fe1dc7c5cbc629::t_86003a0f71be9c 45-47,49-51
+guide/reference.md
+  s_fe1dc7c5cbc629::t_3c12f591cecf2d 48-58
+guide/images/README.md
+  s_fe1dc7c5cbc629::t_8dca937d14c7c1 15
+guide/02-run-the-demo.md
+  s_fe1dc7c5cbc629::t_5854e7b84f4b2e 82-83
+client/src/components/DisconnectButton.vue
+  s_fe1dc7c5cbc629::t_14f210b37ebf19 6-9
+client/e2e/sdk/sdk.spec.ts
+  s_fe1dc7c5cbc629::t_a5847de7a86a70 204
+  s_fe1dc7c5cbc629::t_c250e0a55efbd6 212
+  s_fe1dc7c5cbc629::t_3cc4fb96a4cbda 187
+guide/06-connect-to-the-crm.md
+  s_fe1dc7c5cbc629::t_d709f16e641d80 136-138
+client/src/bootstrap.ts
+  s_fe1dc7c5cbc629::t_4e236a6f3467a8 4
+  s_fe1dc7c5cbc629::t_7bdc1f83c2e857 64-66,68-79,81-82,89-94,110-121
+  s_fe1dc7c5cbc629::t_358307e7157d37 101
+client/src/App.test.ts
+  s_fe1dc7c5cbc629::t_3623a110d265c9 980,983-988,994,1004,1008,1011-1025,1029,1033,1037-1042,1049,1052,1056,1058
+  s_fe1dc7c5cbc629::t_358307e7157d37 1034-1036,1063-1065
+  s_fe1dc7c5cbc629::t_5d86c567f232c6 949,956
+  s_fe1dc7c5cbc629::t_278606940d0815 1076,1078
+guide/04-build-the-panel.md
+  s_fe1dc7c5cbc629::t_98ac66df7672bf 217-218
+  s_fe1dc7c5cbc629::t_d646448eff9274 73
+  s_fe1dc7c5cbc629::t_3c12f591cecf2d 70-72,74-77
+  s_fe1dc7c5cbc629::t_0e27e996158e39 170-201
+client/e2e/sdk/README.md
+  s_fe1dc7c5cbc629::t_358307e7157d37 20-21
+guide/12-plain-javascript.md
+  s_fe1dc7c5cbc629::t_1b930c7350370e 87-89,91-93
+guide/07-show-the-crm-record.md
+  s_fe1dc7c5cbc629::t_526201415e5ee4 108-109
+  s_fe1dc7c5cbc629::t_3b9fbf226cbabd 120-122,126-132,134,137-140,144-151,157-165
+  s_fe1dc7c5cbc629::t_91d45ddeb2cad7 187,189
+  s_fe1dc7c5cbc629::t_89241f67abd273 133
+  s_fe1dc7c5cbc629::t_3c12f591cecf2d 152-156,166-171
+  s_fe1dc7c5cbc629::t_0bc8adfc6d51dd 178-179
+  s_fe1dc7c5cbc629::t_4dbc4ddeb9ee40 207-210
+  s_fe1dc7c5cbc629::t_eead6d9c11290e 261-265
+  s_fe1dc7c5cbc629::t_1f77e5987b3819 106-107
+client/dev-host/main.ts
+  s_fe1dc7c5cbc629::t_6661cb1a574122 15
+  s_fe1dc7c5cbc629::t_e9bd92ae7ae545 170-172
+  s_fe1dc7c5cbc629::t_887b7bc41cae79 188,190,193-194,196
+client/pnpm-lock.yaml
+  s_fe1dc7c5cbc629::t_190bbe60a8b23c 305
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d1ec3a2db188a0e6a94ad87b2e736fff954f317a",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+guide/07-show-the-crm-record.md
+  s_49376e4d9aaa1f::t_8b2f9abedd0220 3-8
+  s_49376e4d9aaa1f::t_ab15a9c730e964 100-105
+  s_49376e4d9aaa1f::t_8d7bb10c0dfdfd 114-116
+  s_49376e4d9aaa1f::t_35587735420b6c 121-123
+  s_49376e4d9aaa1f::t_efc7ab74871733 148-150,154-157
+  s_49376e4d9aaa1f::t_5b7680df321428 162-165
+  s_49376e4d9aaa1f::t_3523064a017a88 179-184
+client/src/bootstrap.ts
+  s_49376e4d9aaa1f::t_704e69586a9321 93-94
+  s_49376e4d9aaa1f::t_5231966ad4e279 90-92
+guide/12-plain-javascript.md
+  s_49376e4d9aaa1f::t_5231966ad4e279 83,239
+guide/13-react.md
+  s_49376e4d9aaa1f::t_5231966ad4e279 41
+guide/images/README.md
+  s_49376e4d9aaa1f::t_6e22f220e24ffd 15-18
+guide/reference.md
+  s_49376e4d9aaa1f::t_5231966ad4e279 48-58
+guide/04-build-the-panel.md
+  s_49376e4d9aaa1f::t_cef75b96fe382f 341-342
+  s_49376e4d9aaa1f::t_5231966ad4e279 160-165,170-176,224-228
+  s_49376e4d9aaa1f::t_3e2fd759a86026 157-159,168-169,177,184-186,189,197,201-212,232,240,243-251,253,255-256,260,266-271,273-274,283,334-340,343-344
+  s_49376e4d9aaa1f::t_4ad00edfae81d5 295
+  s_49376e4d9aaa1f::t_708ec19eb4de42 166-167,180-183,187-188,190-196,198-200,213-223,229-231,233-239,241-242,252,254,257-259,261-265,272,275-282,284-286
+guide/06-connect-to-the-crm.md
+  s_49376e4d9aaa1f::t_5231966ad4e279 137
+guide/11-from-demo-to-your-app.md
+  s_49376e4d9aaa1f::t_5231966ad4e279 114-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9f7a36a2a9231e7d3e8769d9a1acb8e54c87a3aa",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}
