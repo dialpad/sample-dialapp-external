@@ -185,15 +185,6 @@ describe('Connected view', () => {
     expect(card).not.toContain('Available');
   });
 
-  it('copes with Dialpad sending no user', async () => {
-    const { wrapper } = await setup({ connected: true, user: null });
-
-    expect(wrapper.get('[data-testid="user-card"]').text()).toContain(
-      "didn't send your user details",
-    );
-    expect(wrapper.find('[data-testid="connected-view"]').exists()).toBe(true);
-  });
-
   it("shows the user the server fetched from Dialpad's API with the api key", async () => {
     const { wrapper } = await setup({
       connected: true,

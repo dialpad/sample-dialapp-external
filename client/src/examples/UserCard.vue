@@ -2,13 +2,13 @@
 // The Dialpad user, from the SDK's `state.user` (the host's `get/user`, asked once at start).
 // The page data carries no user, so nothing from the idtoken reaches the page.
 //
-// `user` is null if Dialpad answered with none, which shows a short note instead. Status flags
-// are as of the iframe panel's start: Dialpad sends no event when they change.
+// Dialpad always sends the user. Its status flags are as of the iframe panel's start: Dialpad
+// sends no event when they change.
 import type { User } from '@dialpad/dialapp-external-sdk';
 import { DtAvatar } from '@dialpad/dialtone/vue/lib/avatar';
 import { computed } from 'vue';
 
-const props = defineProps<{ user: User | null }>();
+const props = defineProps<{ user: User }>();
 
 /** The boolean fields of `User` and their labels; only the ones that are true are shown. */
 const FLAGS: [keyof User, string][] = [
@@ -24,23 +24,20 @@ const FLAGS: [keyof User, string][] = [
 
 /** The user's full name, or an empty string when Dialpad sent none. */
 const name = computed(() =>
-  [props.user?.firstName, props.user?.lastName].filter(Boolean).join(' '),
+  [props.user.firstName, props.user.lastName].filter(Boolean).join(' '),
 );
 /** Every email and phone number, joined for one line. */
 const reach = computed(() =>
-  [...(props.user?.emails ?? []), ...(props.user?.phoneNumbers ?? [])].join(
-    ' · ',
-  ),
+  [...props.user.emails, ...props.user.phoneNumbers].join(' · '),
 );
 /** The user, company and office ids, which is what a partner matches the Dialpad user by. */
-const ids = computed(() =>
-  props.user
-    ? `user ${props.user.id ?? '-'} · company ${props.user.companyId ?? '-'} · office ${props.user.officeId ?? '-'}`
-    : '',
+const ids = computed(
+  () =>
+    `user ${props.user.id ?? '-'} · company ${props.user.companyId ?? '-'} · office ${props.user.officeId ?? '-'}`,
 );
 /** The status flags that are on, for example "Available · On duty · Online". */
 const status = computed(() =>
-  FLAGS.filter(([flag]) => props.user?.[flag] === true)
+  FLAGS.filter(([flag]) => props.user[flag] === true)
     .map(([, label]) => label)
     .join(' · '),
 );
@@ -53,10 +50,7 @@ const status = computed(() =>
     data-testid="user-card"
   >
     <h2 id="user-heading" class="acme-heading">You</h2>
-    <p v-if="!user" class="acme-muted">
-      Dialpad didn't send your user details.
-    </p>
-    <div v-else class="acme-user__row">
+    <div class="acme-user__row">
       <DtAvatar
         :full-name="name"
         :image-src="user.imageUrl ?? ''"
