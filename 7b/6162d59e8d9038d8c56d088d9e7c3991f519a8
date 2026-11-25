@@ -1,0 +1,23 @@
+client/scripts/check-links.mjs
+  s_49376e4d9aaa1f::t_566116f66bc880 4-6
+.github/workflows/ci.yaml
+  s_49376e4d9aaa1f::t_566116f66bc880 101-102
+guide/04-build-the-panel.md
+  s_49376e4d9aaa1f::t_566116f66bc880 209-210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7b6162d59e8d9038d8c56d088d9e7c3991f519a8",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

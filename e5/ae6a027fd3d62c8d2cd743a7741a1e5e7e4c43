@@ -1,0 +1,20 @@
+guide/01-the-big-picture.md
+  s_fe1dc7c5cbc629::t_69548c404917a8 80
+  s_fe1dc7c5cbc629::t_391ec29e99ac24 77-79,81-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e5ae6a027fd3d62c8d2cd743a7741a1e5e7e4c43",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

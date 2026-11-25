@@ -1,0 +1,19 @@
+guide/08-call-dialpad.md
+  s_49376e4d9aaa1f::t_b921b8916b3480 68-79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ea73ad0abfa2fbe47ce6f2396b9a11db4d52ab35",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+deployment/README.md
+  s_fe1dc7c5cbc629::t_4c98bce665d93a 182
+  s_fe1dc7c5cbc629::t_7d2faf0b2416d4 131,134,149,164,166,191,212-213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "314f3d39ea8cf09c2cfc34513e21d8c6acd5faca",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

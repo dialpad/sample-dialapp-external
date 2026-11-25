@@ -1,0 +1,52 @@
+guide/04-build-the-panel.md
+  s_fe1dc7c5cbc629::t_56b4f4eeafe1a2 167-168
+client/src/App.test.ts
+  s_fe1dc7c5cbc629::t_76f1a09da9c45e 511-530
+  s_fe1dc7c5cbc629::t_1df5873304eae7 1110-1129
+  s_fe1dc7c5cbc629::t_bba275c356a779 1043,1050
+  s_fe1dc7c5cbc629::t_825f2cb7eba896 1033
+client/src/bootstrap.ts
+  s_fe1dc7c5cbc629::t_a5aab73a35d550 24-25
+  s_fe1dc7c5cbc629::t_0c05ff34fc9e19 72-73,76-80,91-93
+client/e2e/sdk/sdk.spec.ts
+  s_fe1dc7c5cbc629::t_263f7bac09fb32 266-295
+client/dev-host/index.html
+  s_fe1dc7c5cbc629::t_5a2eb6c361d7af 40-48
+guide/02-run-the-demo.md
+  s_fe1dc7c5cbc629::t_521c227e24d03b 85
+  s_fe1dc7c5cbc629::t_dad208e7776e6e 72-73
+client/src/components/AcmeContact.vue
+  s_fe1dc7c5cbc629::t_39cbadd88969da 111-113,115-118,120-124
+  s_fe1dc7c5cbc629::t_4b8db8ea666a83 114,125
+  s_fe1dc7c5cbc629::t_135f48ebb69b3b 16-17
+  s_fe1dc7c5cbc629::t_811cc19fd60770 71-72,77
+  s_fe1dc7c5cbc629::t_019f04b15bb953 69,74-76,78-91,93-104,106-110,119,126,129
+  s_fe1dc7c5cbc629::t_52213e894a6945 30
+client/dev-host/main.ts
+  s_fe1dc7c5cbc629::t_a87e8ccd2587c9 215-239,241-242,245
+  s_fe1dc7c5cbc629::t_5344b07f094a18 11-13
+guide/07-show-the-crm-record.md
+  s_fe1dc7c5cbc629::t_3b796293438ad0 246-248
+  s_fe1dc7c5cbc629::t_b3f621619098ce 195-219
+guide/11-from-demo-to-your-app.md
+  s_fe1dc7c5cbc629::t_ff3f2e9c005796 114-115,117-128
+  s_fe1dc7c5cbc629::t_c0560c865f418b 116
+client/e2e/sdk/README.md
+  s_fe1dc7c5cbc629::t_ff3f2e9c005796 23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b93df5643d5358025d2b1a536760e679078eafb3",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

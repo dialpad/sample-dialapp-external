@@ -1,0 +1,23 @@
+guide/08-call-dialpad.md
+  s_49376e4d9aaa1f::t_99793619d27a46 60-64,68-84,126,137,149
+guide/10-test-your-app.md
+  s_49376e4d9aaa1f::t_1eb7d3aea58c60 91
+guide/11-from-demo-to-your-app.md
+  s_49376e4d9aaa1f::t_67b8e4ed07045b 182
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "93177f8a9b9e90748c27e00db63889e1907562de",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "unknown"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

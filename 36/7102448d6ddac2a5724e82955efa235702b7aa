@@ -1,0 +1,28 @@
+guide/02-run-the-demo.md
+  s_49376e4d9aaa1f::t_6f9aed304cae27 51-52
+  s_49376e4d9aaa1f::t_3e9815351f2004 38-39
+client/package.json
+  s_49376e4d9aaa1f::t_69191b4b5806a6 27
+contract/README.md
+  s_49376e4d9aaa1f::t_6f9aed304cae27 19
+client/pnpm-workspace.yaml
+  s_49376e4d9aaa1f::t_3e9815351f2004 13-15
+client/pnpm-lock.yaml
+  s_49376e4d9aaa1f::t_2bb2c72e27585e 170
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "367102448d6ddac2a5724e82955efa235702b7aa",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

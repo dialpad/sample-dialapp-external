@@ -1,0 +1,42 @@
+guide/02-run-the-demo.md
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 46-50
+client/e2e/sdk/README.md
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 15-24
+.coderabbit.yaml
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 1-48
+client/dev-host/main.ts
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 10-11
+guide/04-build-the-panel.md
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 74,172-179,274-279,282-296,299-300,305-306
+  s_49376e4d9aaa1f::t_f57addb3ce1ab1 307
+contract/openapi.json
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 5
+AGENTS.md
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 55-67,72-74,79-84
+guide/07-show-the-crm-record.md
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 98-127,214-218
+client/e2e/sdk/sdk.spec.ts
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 72-93,125-126,133-134,139-143,279,289,291,293-296,303
+client/src/crm/AcmeContact.vue
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 111-117,120
+client/src/crm/CrmRecord.test.ts
+  s_49376e4d9aaa1f::t_8b3c8d423764cf 162,164-173,178-196,199-201,203-206,208,210,337,359-362,431,451-459,462
+client/pnpm-lock.yaml
+  s_49376e4d9aaa1f::t_f836d94c236eb5 305
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7c01d46b9a7d412391d6133baf90ad1c00826d8",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

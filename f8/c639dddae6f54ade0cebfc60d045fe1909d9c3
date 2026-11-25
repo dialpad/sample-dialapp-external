@@ -1,0 +1,27 @@
+client/dev-host/main.ts
+  s_fe1dc7c5cbc629::t_2daac4b165e440 154-160
+client/src/App.test.ts
+  s_fe1dc7c5cbc629::t_2daac4b165e440 516-539,733-757
+  s_fe1dc7c5cbc629::t_0be14777c770ad 758
+client/src/components/AcmeContact.vue
+  s_fe1dc7c5cbc629::t_2daac4b165e440 130-132
+client/src/contactApi.ts
+  s_fe1dc7c5cbc629::t_2daac4b165e440 65-77,91
+  s_fe1dc7c5cbc629::t_e86eb09c99b997 64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f8c639dddae6f54ade0cebfc60d045fe1909d9c3",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

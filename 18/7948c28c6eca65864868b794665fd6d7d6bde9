@@ -1,0 +1,30 @@
+.github/workflows/ci.yaml
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 204
+guide/images/README.md
+  s_fe1dc7c5cbc629::t_47f26c03c321ce 6-7,9-12
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 8,21
+server/tests/conftest.py
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 44,360
+server/tests/test_pages.py
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 122,127,223,227
+server/tests/test_settings.py
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 24-28
+server/acme_dialpad_rightbar/settings.py
+  s_fe1dc7c5cbc629::t_03b8d92b32fef8 83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "187948c28c6eca65864868b794665fd6d7d6bde9",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+contract/openapi.json
+  s_49376e4d9aaa1f::t_450444dfa168cb 5
+client/package.json
+  s_49376e4d9aaa1f::t_450444dfa168cb 29
+client/pnpm-lock.yaml
+  s_49376e4d9aaa1f::t_ee347d17cf7cba 170-171,304-305,2659
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "987f86455563fc434d14adad95821f3e2bfefcab",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

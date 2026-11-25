@@ -1,0 +1,27 @@
+guide/04-build-the-panel.md
+  s_fe1dc7c5cbc629::t_5c37e6d31c327d 276-279
+  s_fe1dc7c5cbc629::t_bcbf4d5f69161e 305-306
+guide/02-run-the-demo.md
+  s_fe1dc7c5cbc629::t_9d009cc7f99177 48
+guide/07-show-the-crm-record.md
+  s_fe1dc7c5cbc629::t_bdcac0917177d1 214-218
+  s_fe1dc7c5cbc629::t_be775634cbca70 112-113
+  s_fe1dc7c5cbc629::t_485cc5e8c18e10 110
+  s_fe1dc7c5cbc629::t_342ce8bd07af7e 123-124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "205ecc2a863fdac572009d8015a66cfb54b3a537",
+  "prompts": {},
+  "sessions": {
+    "s_fe1dc7c5cbc629": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b670220c-ae7f-4071-a3b9-8c1668433e12",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

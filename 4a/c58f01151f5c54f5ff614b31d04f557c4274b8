@@ -1,0 +1,21 @@
+contract/README.md
+  s_49376e4d9aaa1f::t_a7ef2378c7cbc3 19
+guide/02-run-the-demo.md
+  s_49376e4d9aaa1f::t_5916f9dfc90e08 49-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4ac58f01151f5c54f5ff614b31d04f557c4274b8",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}

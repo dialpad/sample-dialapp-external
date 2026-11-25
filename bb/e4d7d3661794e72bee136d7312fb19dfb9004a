@@ -1,0 +1,41 @@
+client/pnpm-lock.yaml
+  s_49376e4d9aaa1f::t_933af8aa84872a 170-171,304-305,2659
+guide/11-from-demo-to-your-app.md
+  s_49376e4d9aaa1f::t_ec172b2ffd3e9c 185
+contract/README.md
+  s_49376e4d9aaa1f::t_ec172b2ffd3e9c 18-21
+client/package.json
+  s_49376e4d9aaa1f::t_ec172b2ffd3e9c 20-21
+  s_49376e4d9aaa1f::t_b863d33c103bda 29
+client/scripts/sync-contract.mjs
+  s_49376e4d9aaa1f::t_d5efa2dd04948e 13,19,25
+  s_49376e4d9aaa1f::t_6e65d9d401529d 33-35
+  s_49376e4d9aaa1f::t_722d3b869fcb3f 1-12,14-18,21-24,26-32,36
+  s_49376e4d9aaa1f::t_c5fc6cd4bc0858 20
+.github/workflows/ci.yaml
+  s_49376e4d9aaa1f::t_ec172b2ffd3e9c 109-116,142,146
+contract/openapi.json
+  s_49376e4d9aaa1f::t_885edd40f1ceca 5
+guide/02-run-the-demo.md
+  s_49376e4d9aaa1f::t_ec172b2ffd3e9c 39-40,48-51
+AGENTS.md
+  s_49376e4d9aaa1f::t_0b3b27cf5f7002 79-84
+  s_49376e4d9aaa1f::t_473446a53acb88 76-77
+  s_49376e4d9aaa1f::t_134f0713fdc3c3 78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bbe4d7d3661794e72bee136d7312fb19dfb9004a",
+  "prompts": {},
+  "sessions": {
+    "s_49376e4d9aaa1f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "260bc356-c845-4757-b811-472799819759",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}
