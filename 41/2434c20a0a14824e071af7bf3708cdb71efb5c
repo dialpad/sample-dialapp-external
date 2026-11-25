@@ -1,0 +1,28 @@
+client/src/testing.ts
+  s_ffa00bc184de83::t_d15d514cd9c458 143-144
+guide/04-build-the-panel.md
+  s_ffa00bc184de83::t_ce710f7965649f 322
+  s_ffa00bc184de83::t_28d82ed9ca5df1 331
+  s_ffa00bc184de83::t_65742500cd106f 70-77
+client/src/examples/UserCard.vue
+  s_ffa00bc184de83::t_5f5ce4508f76af 5-6
+  s_ffa00bc184de83::t_f530d223a24c51 53
+  s_ffa00bc184de83::t_339af916e60c5c 11
+  s_ffa00bc184de83::t_43c9ce72784d12 27,31,34-36,40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "412434c20a0a14824e071af7bf3708cdb71efb5c",
+  "prompts": {},
+  "sessions": {
+    "s_ffa00bc184de83": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ba5755fc-0788-4701-a81f-cb249d69bb51",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Arjun Vade <avade@dialpad.com>"
+    }
+  }
+}
