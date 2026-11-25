@@ -67,14 +67,14 @@ rightbar.state;
 //   connection: { connected, pending, authorizationUrls, name, scopes, error } }
 ```
 
-| Field        | What it holds                                                                                                                                                                                                                                                                                              |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ready`      | `true` once the handshake and the first loads are done, which is always the case after `createRightbar()` resolves                                                                                                                                                                                         |
-| `user`       | The Dialpad user (IDs, names, emails, phone numbers, language, licenses, admin flags, and availability), or `null`. Dialpad sends no updates, so the fields are as of the panel's start. `language` is one of Dialpad's language codes, such as `en` or `ja` ([Translate the panel](#translate-the-panel)) |
-| `contact`    | The contact open in Dialpad, or `null`. It changes when the user opens another contact, without reloading the panel ([chapter 7](07-show-the-crm-record.md#when-the-user-opens-another-contact)). The SDK also reloads it when the user presses Dialpad's refresh button or the contact's record changes   |
-| `call`       | The active call, updated on every call event, or `null`                                                                                                                                                                                                                                                    |
-| `theme`      | `{ mode: 'light' \| 'dark', brand }`. `brand` is `null` in this SDK version                                                                                                                                                                                                                                |
-| `connection` | The user's connection to the CRM ([chapter 6](06-connect-to-the-crm.md#the-connection))                                                                                                                                                                                                                    |
+| Field        | What it holds                                                                                                                                                                                                                                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ready`      | `true` once the handshake and the first loads are done, which is always the case after `createRightbar()` resolves                                                                                                                                                                                       |
+| `user`       | The Dialpad user (IDs, names, emails, phone numbers, language, licenses, admin flags, and availability). Dialpad sends no updates, so the fields are as of the panel's start. `language` is one of Dialpad's language codes, such as `en` or `ja` ([Translate the panel](#translate-the-panel))          |
+| `contact`    | The contact open in Dialpad, or `null`. It changes when the user opens another contact, without reloading the panel ([chapter 7](07-show-the-crm-record.md#when-the-user-opens-another-contact)). The SDK also reloads it when the user presses Dialpad's refresh button or the contact's record changes |
+| `call`       | The active call, updated on every call event, or `null`                                                                                                                                                                                                                                                  |
+| `theme`      | `{ mode: 'light' \| 'dark', brand }`. `brand` is `null` in this SDK version                                                                                                                                                                                                                              |
+| `connection` | The user's connection to the CRM ([chapter 6](06-connect-to-the-crm.md#the-connection))                                                                                                                                                                                                                  |
 
 Every change produces a new snapshot, and the parts that didn't change keep
 their references. To follow changes:
@@ -319,7 +319,7 @@ when the panel starts, as one of Dialpad's two-letter language codes, such as
 - the text of your toasts.
 
 Map Dialpad's code to your translations, and fall back to your default language
-when there's no user, no language, or no translation for it:
+when there's no language or no translation for it:
 
 ```ts
 const MESSAGES = {
@@ -328,7 +328,7 @@ const MESSAGES = {
 } as const;
 type Language = keyof typeof MESSAGES;
 
-const code = rightbar.state.user?.language;
+const code = rightbar.state.user.language;
 const language: Language = code && code in MESSAGES ? (code as Language) : "en";
 
 await rightbar.setMenu([

@@ -140,8 +140,8 @@ export async function setupPanel({
 }: {
   connected?: boolean;
   mode?: ReturnType<typeof fakeServer>['mode'];
-  /** What Dialpad's `get/user` answers: the default user, a user, or `null` for none. */
-  user?: User | null;
+  /** What Dialpad's `get/user` answers: the default user or a given one. */
+  user?: User;
   /** What the server put in the page data's `app` field, for example the demo API call's result. */
   app?: Record<string, unknown> | null;
   /** The global `fetch` for the panel's own requests. */
